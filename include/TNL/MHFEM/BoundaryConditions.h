@@ -1,0 +1,74 @@
+#pragma once
+
+#include <mesh/tnlGrid.h>
+#include <core/vectors/tnlVector.h>
+
+namespace mhfem
+{
+
+template< typename Mesh,
+          typename MeshDependentData,
+          typename ModelImplementation >
+class BoundaryConditions
+{
+};
+
+template< typename MeshReal,
+          typename Device,
+          typename MeshIndex,
+          typename MeshDependentData,
+          typename ModelImplementation >
+class BoundaryConditions< tnlGrid< 2, MeshReal, Device, MeshIndex >, MeshDependentData, ModelImplementation >
+{
+public:
+    typedef tnlGrid< 2, MeshReal, Device, MeshIndex > MeshType;
+    typedef typename MeshType::CoordinatesType CoordinatesType;
+    typedef MeshDependentData MeshDependentDataType;
+    typedef Device DeviceType;
+    typedef typename MeshDependentDataType::RealType RealType;
+    typedef typename MeshDependentDataType::IndexType IndexType;
+    typedef tnlVector< bool, DeviceType, IndexType > TagVectorType;
+
+    void bindMeshDependentData( MeshDependentDataType* mdd );
+
+    __cuda_callable__
+    IndexType getLinearSystemRowLength( const MeshType & mesh,
+                                        const IndexType & indexRow,
+                                        const CoordinatesType & coordinates ) const;
+
+    template< typename Vector, typename Matrix >
+    __cuda_callable__
+    void updateLinearSystem( const RealType & time,
+                             const MeshType & mesh,
+                             const IndexType & indexRow,
+                             const CoordinatesType & coordinates,
+                             Vector & u,
+                             Vector & b,
+                             Matrix & matrix ) const;
+
+    __cuda_callable__
+    bool isNeumannBoundary( const MeshType & mesh, const int & i, const IndexType & face ) const;
+
+    __cuda_callable__
+    bool isDirichletBoundary( const MeshType & mesh, const int & i, const IndexType & face ) const;
+
+protected:
+    MeshDependentDataType* mdd;
+
+    // vector holding tags to differentiate the boundary condition based on the face index
+    // (true indicates Dirichlet boundary)
+    TagVectorType dirichletTags;
+
+    __cuda_callable__
+    RealType getValue( const int & i,
+                       const int & j,
+                       const IndexType & E,
+                       const int & e,
+                       const IndexType & F,
+                       const int & f,
+                       const IndexType & K ) const;
+};
+
+} // namespace mhfem
+
+#include "BoundaryConditions_impl.h"
