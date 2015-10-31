@@ -46,6 +46,10 @@ public:
 //    updateNonLinearTerms( const MeshType & mesh,
 //                          const IndexType & K,
 //                          const CoordinatesType & coordinates );
+//
+//    bool makeSnapshot( const RealType & time,
+//                       const IndexType & step,
+//                       const MeshType & mesh ) const;
 
     // indexing functions
     __cuda_callable__

@@ -245,21 +245,13 @@ makeSnapshot( const RealType & time,
     for( int i = 0; i < mdd.n; i++ ) {
         tnlString fileName;
         FileNameBaseNumberEnding( (outputPrefix + "Z" + convertToString( i ) + "-").getString(), step, 5, ".tnl", fileName );
-        // FIXME: will fail on CUDA !!!
-        SharedVectorType dofPhase( &mdd.Z[ i * cells ], cells );
+        SharedVectorType dofPhase( &mdd.Z[ 0 ] + i * cells, cells );
         if( ! dofPhase.save( fileName ) )
            return false;
     }
 
-    DofVectorType Sw;
-    Sw.setSize( cells );
-    for( IndexType K = 0; K < cells; K++ ) {
-//        Sw[ K ] = mdd.capmod.Sw( mdd.Z[ K ] );
-        Sw[ K ] = mdd.capmod.Sw( mdd.Z[ cells + K ] - mdd.Z[ K ] );
-    }
-    tnlString fileName;
-    FileNameBaseNumberEnding( (outputPrefix + "Sw-").getString(), step, 5, ".tnl", fileName );
-    Sw.save( fileName );
+    if( ! mdd.makeSnapshot( time, step, mesh, outputPrefix ) )
+        return false;
 
 //    cout << "solution (Z_iE): " << endl << dofVector << endl;
 //    cout << "solution (Z_iK): " << endl << mdd.Z << endl;
