@@ -92,10 +92,6 @@ public:
                       MeshDependentDataType & mdd );
 
 protected:
-    SharedVectorType ptrace;
-
-    RealType initialTime;
-
     // prefix for snapshots
     ::tnlString outputPrefix;
 

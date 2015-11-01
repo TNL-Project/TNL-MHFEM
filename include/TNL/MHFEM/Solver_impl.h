@@ -88,15 +88,10 @@ bool
 Solver< Mesh, MeshDependentData, DifferentialOperator, BoundaryConditions, RightHandSide, Matrix >::
 setup( const tnlParameterContainer & parameters )
 {
-    // save value of initial time (defined by tnlPDESolver)
-    initialTime = parameters.getParameter< double >( "initial-time" );
-
     // prefix for snapshots
     outputPrefix = parameters.getParameter< tnlString >( "output-prefix" ) + tnlString("-");
 
-    // TODO: load boundary conditions from file
     return true;
-//    return boundaryConditions.setup( parameters );
 }
 
 template< typename Mesh,
@@ -122,10 +117,7 @@ void
 Solver< Mesh, MeshDependentData, DifferentialOperator, BoundaryConditions, RightHandSide, Matrix >::
 bindDofs( const MeshType & mesh,
           DofVectorType & dofVector )
-{
-    const IndexType dofs = this->getDofs( mesh );
-    this->ptrace.bind( dofVector.getData(), dofs );
-}
+{ }
 
 template< typename Mesh,
           typename MeshDependentData,
@@ -151,11 +143,7 @@ void
 Solver< Mesh, MeshDependentData, DifferentialOperator, BoundaryConditions, RightHandSide, Matrix >::
 bindMeshDependentData( const MeshType & mesh,
                        MeshDependentDataType & mdd )
-{
-    // TODO: does not work for arbitrary object !!!
-    //       but should not be needed anymore (mdd can be passed by reference along with mesh
-//    this->pressure.bind( mdd.getData(), mdd.getSize() );
-}
+{ }
 
 
 template< typename Mesh,
@@ -232,12 +220,7 @@ makeSnapshot( const RealType & time,
               DofVectorType & dofVector,
               MeshDependentDataType & mdd )
 {
-    bindDofs( mesh, dofVector );
-//    bindMeshDependentData( mesh, mdd );
-
     cout << endl << "Writing output at time " << time << " step " << step << endl;
-
-    // TODO: move everything to mdd.makeSnapshot (and some command-line parameter should select whether to save dofVector or auxiliaryDofVector (from mdd.makeSnapshot))
 
     const IndexType cells = mesh.getNumberOfCells();
 
@@ -245,6 +228,7 @@ makeSnapshot( const RealType & time,
     for( int i = 0; i < mdd.n; i++ ) {
         tnlString fileName;
         FileNameBaseNumberEnding( (outputPrefix + "Z" + convertToString( i ) + "-").getString(), step, 5, ".tnl", fileName );
+        // TODO: depends on internal indexing of mdd arrays and mdd.Z being public
         SharedVectorType dofPhase( &mdd.Z[ 0 ] + i * cells, cells );
         if( ! dofPhase.save( fileName ) )
            return false;
@@ -273,9 +257,6 @@ preIterate( const RealType & time,
             DofVectorType & dofVector,
             MeshDependentDataType & mdd )
 {
-    bindDofs( mesh, dofVector );
-//    bindMeshDependentData( mesh, mdd );
-
     // FIXME: nasty hack to pass tau to QRupdater
     mdd.current_tau = tau;
 
@@ -302,9 +283,6 @@ assemblyLinearSystem( const RealType & time,
                       DofVectorType & b,
                       MeshDependentDataType & mdd )
 {
-    bindDofs( mesh, dofVector );
-//    bindMeshDependentData( mesh, mdd );
-
     device_ptr< MeshDependentDataType, DeviceType > mddDevicePtr( mdd );
 
     // bind mesh-dependent data
@@ -321,7 +299,7 @@ assemblyLinearSystem( const RealType & time,
             this->differentialOperator,
             this->boundaryConditions,
             this->rightHandSide,
-            dofVector,   // ptrace as DofVectorType
+            dofVector,
             matrix,
             b );
 
@@ -363,9 +341,6 @@ postIterate( const RealType & time,
              DofVectorType & dofVector,
              MeshDependentDataType & mdd )
 {
-    bindDofs( mesh, dofVector );
-//    bindMeshDependentData( mesh, mdd );
-
     device_ptr< MeshDependentDataType, DeviceType > mddDevicePtr( mdd );
 
     HybridizationExplicitFunction< MeshType, MeshDependentDataType > functionZK;
