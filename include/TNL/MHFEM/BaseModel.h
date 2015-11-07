@@ -2,7 +2,6 @@
 
 #include <core/tnlObject.h>
 #include <mesh/tnlGrid.h>
-#include <matrices/tnlDenseMatrix.h>
 
 namespace mhfem
 {
@@ -116,15 +115,6 @@ public:
     }
 
     __cuda_callable__
-    // TODO: should return reference, but getElementFast returns by value
-//    RealType & Q_ijK( const int & i, const int & j, const IndexType & K )
-    RealType Q_ijK( const int & i, const int & j, const IndexType & K )
-    {
-//        return Q[ n * n * K + i * n + j ];
-        return Q[ K ].getElementFast( i, j );
-    }
-
-    __cuda_callable__
     RealType & R_ijKe( const int & i, const int & j, const IndexType & K, const int & e )
     {
 //        return R1[ n * n * K * facesPerCell + i * n * facesPerCell + j * facesPerCell + e ];
@@ -157,9 +147,6 @@ public:
     DofVectorType m_upw;
     DofVectorType b;    // each "row" represents local diagonal matrix (b_ijK)_EF
     
-    // TODO: need shared matrix
-//    DofVectorType Q;
-    tnlArray< tnlDenseMatrix< RealType, DeviceType, IndexType >, DeviceType, IndexType > Q;
     DofVectorType R1;   // R_KF
     DofVectorType R2;   // R_K
 

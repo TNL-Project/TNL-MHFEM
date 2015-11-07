@@ -41,17 +41,6 @@ allocate( const MeshType & mesh )
     if( ! b.setSize( n * n * numberOfCells * facesPerCell ) )
         return false;
 
-    // TODO: need shared matrix
-//    if( ! Q.setSize( n * n * cells ) )
-//        return false;
-    if( ! Q.setSize( numberOfCells ) )
-        return false;
-    for( int K = 0; K < numberOfCells; K++ ) {
-        // FIXME: operator[] does not work when the array is on CUDA device,
-        //        getElement does not work because tnlDenseMatrix::operator= is broken
-        if( ! Q[ K ].setDimensions( n, n ) )
-            return false;
-    }
     if( ! R1.setSize( n * n * numberOfCells * facesPerCell ) )
         return false;
     if( ! R2.setSize( n * numberOfCells ) )

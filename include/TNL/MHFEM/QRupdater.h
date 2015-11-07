@@ -5,6 +5,7 @@
 
 #include "../mesh_helpers.h"
 #include "../GEM.h"
+#include "../StaticMatrix.h"
 
 // TODO: bind with mesh-dependent data, e.g. as a subclass or local typedef
 // TODO: zkontrolovat vzhledem ke konečné aritmetice (odčítání blízkých čísel)
@@ -35,6 +36,7 @@ public:
     typedef tnlVector< RealType, DeviceType, IndexType> DofVectorType;
     typedef tnlSharedVector< RealType, DeviceType, IndexType > SharedVectorType;
     typedef tnlStaticVector< 4, IndexType > FaceVectorType;
+    typedef StaticMatrix< MeshDependentDataType::NumberOfEquations, MeshDependentDataType::NumberOfEquations, RealType > LocalMatrixType;
 
     template< int EntityDimension >
     __cuda_callable__
@@ -104,9 +106,7 @@ protected:
                           const IndexType & K,
                           const FaceVectorType & faceIndexes )
     {
-        // TODO: shared matrix
-//        SharedVectorType Q( &mdd.Q[ mdd.n * mdd.n * K ], mdd.n * mdd.n );
-        auto & Q = mdd.Q[ K ];
+        LocalMatrixType Q;
         for( int i = 0; i < mdd.n; i++ ) {
             for( int j = 0; j < mdd.n; j++ ) {
                 RealType value = mesh.getHxHy() * mdd.N_ijK( i, j, K );
@@ -114,13 +114,11 @@ protected:
                     const IndexType & E = faceIndexes[ e ];
                     value += mdd.m_upw[ mdd.getDofIndex( i, E ) ] * mdd.b_ijKe( i, j, K, e ) * mdd.current_tau;
                 }
-//                mdd.Q_ijK( i, j, K ) = value;
                 Q.setElementFast( i, j, value );
             }
         }
 
         // TODO: simplify passing right hand sides
-        // FIXME: SharedVectorType() is not __cuda_callable__
         SharedVectorType rk( &mdd.R_iK( 0, K ), mdd.n );
         if( mdd.n == 1 ) {
             SharedVectorType rke1( &mdd.R_ijKe( 0, 0, K, 0 ), mdd.n );
