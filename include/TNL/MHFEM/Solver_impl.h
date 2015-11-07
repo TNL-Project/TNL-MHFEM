@@ -55,13 +55,7 @@ Solver< Mesh, MeshDependentData, DifferentialOperator, BoundaryConditions, Right
 writeProlog( tnlLogger & logger, const tnlParameterContainer & parameters ) const
 {
     logger.writeParameter< tnlString >( "Output prefix:", parameters.getParameter< tnlString >( "output-prefix" ) );
-    // TODO: porosity
-    logger.writeParameter< double >( "Permeability:", parameters.getParameter< double >( "permeability" ) );
-    logger.writeParameter< double >( "Fluid viscosity:", parameters.getParameter< double >( "viscosity" ) );
-    logger.writeParameter< double >( "Fluid molar mass:", parameters.getParameter< double >( "molar-mass" ) );
-    logger.writeParameter< double >( "Gas constant:", parameters.getParameter< double >( "gas-constant" ) );
-    logger.writeParameter< double >( "Temperature:", parameters.getParameter< double >( "temperature" ) );
-    logger.writeParameter< double >( "Gravity:", parameters.getParameter< double >( "y-gravity" ) );
+    // TODO: let models write their parameters
 }
 
 template< typename Mesh,
