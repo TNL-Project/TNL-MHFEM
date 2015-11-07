@@ -64,7 +64,6 @@ protected:
         for( int i = 0; i < mdd.n; i++ ) {
             for( int j = 0; j < mdd.n; j++ ) {
                 // NOTE: assumes that b_ijK is diagonal
-                RealType r_F = 0.0;
                 for( int e = 0; e < mdd.facesPerCell; e++ ) {
                     const IndexType & E = faceIndexes[ e ];
                     // NOTE: only for D isotropic (represented by scalar value)
