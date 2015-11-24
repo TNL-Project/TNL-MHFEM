@@ -41,7 +41,9 @@ tnlString
 Solver< Mesh, MeshDependentData, DifferentialOperator, BoundaryConditions, RightHandSide, Matrix >::
 getPrologHeader() const
 {
-    return tnlString( "Single-phase flow" );
+    // TODO
+//    return tnlString( "Single-phase flow" );
+    return tnlString();
 }
 
 template< typename Mesh,
@@ -255,8 +257,15 @@ preIterate( const RealType & time,
     mdd.current_tau = tau;
 
     tnlTraverser< MeshType, MeshType::Dimensions > traverser;
-    traverser.template processInteriorEntities< MeshDependentDataType, QRupdater< MeshType, MeshDependentDataType > >( mesh, mdd );
-    traverser.template processBoundaryEntities< MeshDependentDataType, QRupdater< MeshType, MeshDependentDataType > >( mesh, mdd );
+//    traverser.template processInteriorEntities< MeshDependentDataType, QRupdater< MeshType, MeshDependentDataType > >( mesh, mdd );
+//    traverser.template processBoundaryEntities< MeshDependentDataType, QRupdater< MeshType, MeshDependentDataType > >( mesh, mdd );
+
+    traverser.template processInteriorEntities< MeshDependentDataType, typename QRupdater< MeshType, MeshDependentDataType >::update_bR >( mesh, mdd );
+    traverser.template processBoundaryEntities< MeshDependentDataType, typename QRupdater< MeshType, MeshDependentDataType >::update_bR >( mesh, mdd );
+    traverser.template processInteriorEntities< MeshDependentDataType, typename QRupdater< MeshType, MeshDependentDataType >::update_R_K >( mesh, mdd );
+    traverser.template processBoundaryEntities< MeshDependentDataType, typename QRupdater< MeshType, MeshDependentDataType >::update_R_K >( mesh, mdd );
+    traverser.template processInteriorEntities< MeshDependentDataType, typename QRupdater< MeshType, MeshDependentDataType >::update_Q >( mesh, mdd );
+    traverser.template processBoundaryEntities< MeshDependentDataType, typename QRupdater< MeshType, MeshDependentDataType >::update_Q >( mesh, mdd );
 
     return true;
 }
@@ -357,6 +366,15 @@ postIterate( const RealType & time,
             mesh,
             upwindFunction,
             mdd.m_upw );
+
+    // TODO
+//    FaceAverageFunction< MeshType, RealType, IndexType > faceAverageFunction;
+//    faceAverageFunction.bind( mdd.m );
+//    tnlFunctionEnumerator< MeshType, FaceAverageFunction< MeshType, RealType, IndexType >, DofVectorType > faceAverageEnumerator;
+//    faceAverageEnumerator.template enumerate< MeshType::Dimensions - 1, MeshDependentDataType::NumberOfEquations >(
+//            mesh,
+//            faceAverageFunction,
+//            mdd.m_upw );
 
 //    cout << "solution (Z_iE): " << endl << dofVector << endl;
 //    cout << "solution (Z_iK): " << endl << mdd.Z << endl;
