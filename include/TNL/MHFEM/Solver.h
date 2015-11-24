@@ -6,7 +6,7 @@
 #include <core/vectors/tnlSharedVector.h>
 #include <solvers/pde/tnlLinearSystemAssembler.h>
 #include <problems/tnlPDEProblem.h>
-//#include <solvers/preconditioners/tnlDiagonalPreconditioner.h>
+#include <core/tnlTimerRT.h>
 
 namespace mhfem
 {
@@ -91,6 +91,8 @@ public:
                       DofVectorType & dofs,
                       MeshDependentDataType & mdd );
 
+    bool writeEpilog( tnlLogger & logger );
+
 protected:
     // prefix for snapshots
     ::tnlString outputPrefix;
@@ -100,6 +102,8 @@ protected:
     BoundaryConditions boundaryConditions;
 
     RightHandSide rightHandSide;
+
+    tnlTimerRT timer_bR, timer_RK, timer_Q, timer_explicit, timer_nonlinear, timer_upwind;
 };
 
 } // namespace mhfem
