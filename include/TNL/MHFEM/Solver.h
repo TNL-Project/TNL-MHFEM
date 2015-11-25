@@ -103,7 +103,7 @@ protected:
 
     RightHandSide rightHandSide;
 
-    tnlTimerRT timer_bR, timer_RK, timer_Q, timer_explicit, timer_nonlinear, timer_upwind;
+    tnlTimerRT timer_R, timer_Q, timer_explicit, timer_nonlinear, timer_upwind;
 };
 
 } // namespace mhfem

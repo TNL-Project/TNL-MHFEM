@@ -171,14 +171,12 @@ setInitialCondition( const tnlParameterContainer & parameters,
             faceAverageFunction,
             dofVector );
 
-    timer_bR.reset();
-    timer_RK.reset();
+    timer_R.reset();
     timer_Q.reset();
     timer_explicit.reset();
     timer_nonlinear.reset();
 
-    timer_bR.stop();
-    timer_RK.stop();
+    timer_R.stop();
     timer_Q.stop();
     timer_explicit.stop();
     timer_nonlinear.stop();
@@ -273,15 +271,12 @@ preIterate( const RealType & time,
 //    traverser.template processBoundaryEntities< MeshDependentDataType, QRupdater< MeshType, MeshDependentDataType > >( mesh, mdd );
 
     tnlTraverser< MeshType, MeshType::Dimensions, MeshDependentDataType::NumberOfEquations > traverserND;
+    timer_R.start();
+    traverserND.template processInteriorEntities< MeshDependentDataType, typename QRupdater< MeshType, MeshDependentDataType >::update_R >( mesh, mdd );
+    traverserND.template processBoundaryEntities< MeshDependentDataType, typename QRupdater< MeshType, MeshDependentDataType >::update_R >( mesh, mdd );
+    timer_R.stop();
+
     tnlTraverser< MeshType, MeshType::Dimensions > traverser;
-    timer_bR.start();
-    traverserND.template processInteriorEntities< MeshDependentDataType, typename QRupdater< MeshType, MeshDependentDataType >::update_bR >( mesh, mdd );
-    traverserND.template processBoundaryEntities< MeshDependentDataType, typename QRupdater< MeshType, MeshDependentDataType >::update_bR >( mesh, mdd );
-    timer_bR.stop();
-    timer_RK.start();
-    traverserND.template processInteriorEntities< MeshDependentDataType, typename QRupdater< MeshType, MeshDependentDataType >::update_R_K >( mesh, mdd );
-    traverserND.template processBoundaryEntities< MeshDependentDataType, typename QRupdater< MeshType, MeshDependentDataType >::update_R_K >( mesh, mdd );
-    timer_RK.stop();
     timer_Q.start();
     traverser.template processInteriorEntities< MeshDependentDataType, typename QRupdater< MeshType, MeshDependentDataType >::update_Q >( mesh, mdd );
     traverser.template processBoundaryEntities< MeshDependentDataType, typename QRupdater< MeshType, MeshDependentDataType >::update_Q >( mesh, mdd );
@@ -418,12 +413,11 @@ bool
 Solver< Mesh, MeshDependentData, DifferentialOperator, BoundaryConditions, RightHandSide, Matrix >::
 writeEpilog( tnlLogger & logger )
 {
-    logger.writeParameter< double >( "update_bR time:", timer_bR.getTime() );
-    logger.writeParameter< double >( "update_RK time:", timer_RK.getTime() );
+    logger.writeParameter< double >( "update_R time:", timer_R.getTime() );
     logger.writeParameter< double >( "update_Q time:", timer_Q.getTime() );
-    logger.writeParameter< double >( "explicit update time:", timer_explicit.getTime() );
+    logger.writeParameter< double >( "Z_iF -> Z_iK update time:", timer_explicit.getTime() );
     logger.writeParameter< double >( "nonlinear update time:", timer_nonlinear.getTime() );
-    logger.writeParameter< double >( "upwind upwind time:", timer_upwind.getTime() );
+    logger.writeParameter< double >( "upwind update time:", timer_upwind.getTime() );
 }
 
 } // namespace mhfem
