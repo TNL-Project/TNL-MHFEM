@@ -63,26 +63,46 @@ public:
         template< int EntityDimension >
         __cuda_callable__
         static void processEntity( const MeshType & mesh,
-                               MeshDependentDataType & mdd,
-                               const IndexType & indexCell,
-                               const CoordinatesType & coordinates )
+                                   MeshDependentDataType & mdd,
+                                   const IndexType & index,
+                                   const CoordinatesType & coordinates )
         {
+            tnlStaticAssert( EntityDimension == 2, "wrong EntityDimension in QRupdater::processEntity");
+
+            const IndexType cells = mesh.getNumberOfCells();
+            const IndexType K = index % cells;
+            const int i = index / cells;
+
             // get face indexes
             FaceVectorType faceIndexes;
-            getFacesForCell( mesh, indexCell, faceIndexes[ 0 ], faceIndexes[ 1 ], faceIndexes[ 2 ], faceIndexes[ 3 ] );
+            getFacesForCell( mesh, K, faceIndexes[ 0 ], faceIndexes[ 1 ], faceIndexes[ 2 ], faceIndexes[ 3 ] );
 
-            for( int i = 0; i < mdd.n; i++ ) {
-                for( int j = 0; j < mdd.n; j++ ) {
+//            for( int i = 0; i < mdd.n; i++ ) {
+//                for( int j = 0; j < mdd.n; j++ ) {
                     // NOTE: assumes that b_ijK is diagonal
-                    for( int e = 0; e < mdd.facesPerCell; e++ ) {
-                        const IndexType & E = faceIndexes[ e ];
+//                    for( int e = 0; e < mdd.facesPerCell; e++ ) {
+//                        const IndexType & E = faceIndexes[ e ];
                         // NOTE: only for D isotropic (represented by scalar value)
-                        RealType b = 2 * mdd.D_ijK( i, j, indexCell )
-                                     * (( isHorizontalFace( mesh, E ) ) ? mesh.getHx() * mesh.getHyInverse()
-                                                                        : mesh.getHy() * mesh.getHxInverse() );
-                        mdd.b_ijKe( i, j, indexCell, e ) = b;
-                        mdd.R_ijKe( i, j, indexCell, e ) = mdd.m_upw[ mdd.getDofIndex( i, E ) ] * b * mdd.current_tau; // TODO: - u_ijKe
-                    }
+//                        RealType b = 2 * mdd.D_ijK( i, j, indexCell )
+//                                     * (( isHorizontalFace( mesh, E ) ) ? mesh.getHx() * mesh.getHyInverse()
+//                                                                        : mesh.getHy() * mesh.getHxInverse() );
+//                        mdd.b_ijKe( i, j, indexCell, e ) = b;
+//                        mdd.R_ijKe( i, j, indexCell, e ) = mdd.m_upw[ mdd.getDofIndex( i, E ) ] * b * mdd.current_tau; // TODO: - u_ijKe
+//                    }
+//                }
+//            }
+
+            // NOTE: assumes that b_ijK is diagonal
+            for( int e = 0; e < mdd.facesPerCell; e++ ) {
+                const IndexType & E = faceIndexes[ e ];
+                // TODO: isVerticalFace <==> e < 2
+                const RealType h = ( isHorizontalFace( mesh, E ) ) ? mesh.getHx() * mesh.getHyInverse()
+                                                                   : mesh.getHy() * mesh.getHxInverse();
+                for( int j = 0; j < mdd.n; j++ ) {
+                    // NOTE: only for D isotropic (represented by scalar value)
+                    RealType b = 2 * mdd.D_ijK( i, j, K ) * h;
+                    mdd.b_ijKe( i, j, K, e ) = b;
+                    mdd.R_ijKe( i, j, K, e ) = mdd.m_upw[ mdd.getDofIndex( i, E ) ] * b * mdd.current_tau; // TODO: - u_ijKe
                 }
             }
         }
@@ -93,15 +113,21 @@ public:
         template< int EntityDimension >
         __cuda_callable__
         static void processEntity( const MeshType & mesh,
-                                MeshDependentDataType & mdd,
-                                const IndexType & K,
-                               const CoordinatesType & coordinates )
+                                   MeshDependentDataType & mdd,
+                                   const IndexType & index,
+                                   const CoordinatesType & coordinates )
         {
+            tnlStaticAssert( EntityDimension == 2, "wrong EntityDimension in QRupdater::processEntity");
+
+            const IndexType cells = mesh.getNumberOfCells();
+            const IndexType K = index % cells;
+            const int i = index / cells;
+
             // get face indexes
             FaceVectorType faceIndexes;
             getFacesForCell( mesh, K, faceIndexes[ 0 ], faceIndexes[ 1 ], faceIndexes[ 2 ], faceIndexes[ 3 ] );
 
-            for( int i = 0; i < mdd.n; i++ ) {
+//            for( int i = 0; i < mdd.n; i++ ) {
                 RealType value = 0.0;
                 for( int j = 0; j < mdd.n; j++ ) {
                     value += mdd.N_ijK( i, j, K ) * mdd.Z_iK( j, K );
@@ -113,7 +139,7 @@ public:
                     value -= mdd.m_upw[ mdd.getDofIndex( i, E ) ] * mdd.w_iKe( i, K, e ) * mdd.current_tau;
                 }
                 mdd.R_iK( i, K ) = value;
-            }
+//            }
         }
     };
 
@@ -122,10 +148,12 @@ public:
         template< int EntityDimension >
         __cuda_callable__
         static void processEntity( const MeshType & mesh,
-                              MeshDependentDataType & mdd,
-                              const IndexType & K,
-                               const CoordinatesType & coordinates )
+                                   MeshDependentDataType & mdd,
+                                   const IndexType & K,
+                                   const CoordinatesType & coordinates )
         {
+            tnlStaticAssert( EntityDimension == 2, "wrong EntityDimension in QRupdater::processEntity");
+
             // get face indexes
             FaceVectorType faceIndexes;
             getFacesForCell( mesh, K, faceIndexes[ 0 ], faceIndexes[ 1 ], faceIndexes[ 2 ], faceIndexes[ 3 ] );

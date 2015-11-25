@@ -268,18 +268,19 @@ preIterate( const RealType & time,
     // FIXME: nasty hack to pass tau to QRupdater
     mdd.current_tau = tau;
 
-    tnlTraverser< MeshType, MeshType::Dimensions > traverser;
+//    tnlTraverser< MeshType, MeshType::Dimensions > traverser;
 //    traverser.template processInteriorEntities< MeshDependentDataType, QRupdater< MeshType, MeshDependentDataType > >( mesh, mdd );
 //    traverser.template processBoundaryEntities< MeshDependentDataType, QRupdater< MeshType, MeshDependentDataType > >( mesh, mdd );
 
-    // TODO: add timers
+    tnlTraverser< MeshType, MeshType::Dimensions, MeshDependentDataType::NumberOfEquations > traverserND;
+    tnlTraverser< MeshType, MeshType::Dimensions > traverser;
     timer_bR.start();
-    traverser.template processInteriorEntities< MeshDependentDataType, typename QRupdater< MeshType, MeshDependentDataType >::update_bR >( mesh, mdd );
-    traverser.template processBoundaryEntities< MeshDependentDataType, typename QRupdater< MeshType, MeshDependentDataType >::update_bR >( mesh, mdd );
+    traverserND.template processInteriorEntities< MeshDependentDataType, typename QRupdater< MeshType, MeshDependentDataType >::update_bR >( mesh, mdd );
+    traverserND.template processBoundaryEntities< MeshDependentDataType, typename QRupdater< MeshType, MeshDependentDataType >::update_bR >( mesh, mdd );
     timer_bR.stop();
     timer_RK.start();
-    traverser.template processInteriorEntities< MeshDependentDataType, typename QRupdater< MeshType, MeshDependentDataType >::update_R_K >( mesh, mdd );
-    traverser.template processBoundaryEntities< MeshDependentDataType, typename QRupdater< MeshType, MeshDependentDataType >::update_R_K >( mesh, mdd );
+    traverserND.template processInteriorEntities< MeshDependentDataType, typename QRupdater< MeshType, MeshDependentDataType >::update_R_K >( mesh, mdd );
+    traverserND.template processBoundaryEntities< MeshDependentDataType, typename QRupdater< MeshType, MeshDependentDataType >::update_R_K >( mesh, mdd );
     timer_RK.stop();
     timer_Q.start();
     traverser.template processInteriorEntities< MeshDependentDataType, typename QRupdater< MeshType, MeshDependentDataType >::update_Q >( mesh, mdd );
