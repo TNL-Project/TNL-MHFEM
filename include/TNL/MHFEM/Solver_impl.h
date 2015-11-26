@@ -420,6 +420,7 @@ writeEpilog( tnlLogger & logger )
     logger.writeParameter< double >( "Z_iF -> Z_iK update time:", timer_explicit.getTime() );
     logger.writeParameter< double >( "nonlinear update time:", timer_nonlinear.getTime() );
     logger.writeParameter< double >( "upwind update time:", timer_upwind.getTime() );
+    return true;
 }
 
 } // namespace mhfem

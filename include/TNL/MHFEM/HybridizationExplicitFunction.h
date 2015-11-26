@@ -1,6 +1,7 @@
 #pragma once
 
 #include <mesh/tnlGrid.h>
+#include <functors/tnlFunction.h>
 #include <core/vectors/tnlSharedVector.h>
 
 #include "../mesh_helpers.h"
@@ -20,6 +21,7 @@ template< typename MeshReal,
           typename MeshIndex,
           typename MeshDependentData >
 class HybridizationExplicitFunction< tnlGrid< 2, MeshReal, Device, MeshIndex >, MeshDependentData >
+    : public tnlFunction< tnlGeneralFunction >
 {
 public:
     typedef tnlGrid< 2, MeshReal, Device, MeshIndex > MeshType;
@@ -68,15 +70,3 @@ protected:
 };
 
 } // namespace mhfem
-
-template< typename MeshReal,
-          typename Device,
-          typename MeshIndex,
-          typename MeshDependentData >
-class tnlFunctionType< mhfem::HybridizationExplicitFunction< tnlGrid< 2, MeshReal, Device, MeshIndex >, MeshDependentData > >
-{
-public:
-//    enum { Type = tnlDiscreteFunction };
-    // specify type so that tnlFunctionAdapter passes the right parameters to getValue method
-    enum { Type = tnlGeneralFunction };
-};
