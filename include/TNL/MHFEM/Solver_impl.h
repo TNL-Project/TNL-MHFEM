@@ -155,11 +155,10 @@ setInitialCondition( const tnlParameterContainer & parameters,
                      DofVectorType & dofVector,
                      MeshDependentDataType & mdd )
 {
-    // TODO: load boundary conditions from file
-    if( ! boundaryConditions.init( parameters, mesh ) )
+    if( ! mdd.init( parameters, mesh ) )
         return false;
 
-    if( ! mdd.init( parameters, mesh ) )
+    if( ! boundaryConditions.init( parameters, mesh, mdd ) )
         return false;
 
     // initialize dofVector as an average of mdd.Z on neighbouring cells

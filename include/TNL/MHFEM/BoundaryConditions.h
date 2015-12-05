@@ -29,6 +29,26 @@ public:
     typedef typename MeshDependentDataType::IndexType IndexType;
     typedef tnlVector< bool, DeviceType, IndexType > TagVectorType;
 
+    // NOTE: children of BoundaryConditions (i.e. ModelImplementation) must implement these methods
+//    bool
+//    init( const tnlParameterContainer & parameters,
+//          const MeshType & mesh,
+//          const MeshDependentDataType & mdd );
+//
+//    __cuda_callable__
+//    typename MeshDependentData::RealType
+//    getNeumannValue( const MeshType & mesh,
+//                     const int & i,
+//                     const IndexType & E,
+//                     const RealType & time ) const;
+//
+//    __cuda_callable__
+//    typename MeshDependentData::RealType
+//    getDirichletValue( const MeshType & mesh,
+//                       const int & i,
+//                       const IndexType & E,
+//                       const RealType & time ) const;
+
     void bindMeshDependentData( MeshDependentDataType* mdd );
 
     __cuda_callable__

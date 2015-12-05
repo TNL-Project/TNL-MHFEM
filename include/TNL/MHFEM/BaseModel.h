@@ -34,9 +34,7 @@ public:
     typedef Index IndexType;
     typedef tnlVector< RealType, DeviceType, IndexType > DofVectorType;
 
-    bool allocate( const MeshType & mesh );
-
-    // NOTE: children of BaseModel must implement these methods
+    // NOTE: children of BaseModel (i.e. ModelImplementation) must implement these methods
 //    bool init( const tnlParameterContainer & parameters,
 //               const MeshType & mesh );
 //
@@ -49,6 +47,8 @@ public:
 //    bool makeSnapshot( const RealType & time,
 //                       const IndexType & step,
 //                       const MeshType & mesh ) const;
+
+    bool allocate( const MeshType & mesh );
 
     // indexing functions
     __cuda_callable__
