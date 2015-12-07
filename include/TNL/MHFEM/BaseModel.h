@@ -72,6 +72,14 @@ public:
         return i * numberOfFaces + indexFace;
     }
 
+    // needed in makeSnapshot
+    __cuda_callable__
+    IndexType getCellDofIndex( const int & i, const IndexType & indexCell ) const
+    {
+//        return n * indexCell + i;
+        return i * numberOfCells + indexCell;
+    }
+
     // accessor for auxiliary dofs
     __cuda_callable__
     RealType & Z_iK( const int & i, const IndexType & K )
