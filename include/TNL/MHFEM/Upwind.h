@@ -6,34 +6,30 @@
 
 #include "../mesh_helpers.h"
 
+// TODO: make mdd->getBoundaryMobility a parameter
+//       (it should be possible to upwind any quantity, not just mobility)
 template< typename Mesh,
-          typename MeshDependentData >
+          typename MeshDependentData,
+          typename BoundaryConditions >
 class Upwind
-{
-};
-
-
-template< typename MeshReal,
-          typename Device,
-          typename MeshIndex,
-          typename MeshDependentData >
-class Upwind< tnlGrid< 2, MeshReal, Device, MeshIndex >, MeshDependentData >
     : public tnlFunction< tnlGeneralFunction >
 {
 public:
-    typedef tnlGrid< 2, MeshReal, Device, MeshIndex > MeshType;
+    typedef Mesh MeshType;
     typedef typename MeshType::CoordinatesType CoordinatesType;
     typedef MeshDependentData MeshDependentDataType;
-    typedef Device DeviceType;
     typedef typename MeshDependentDataType::RealType RealType;
+    typedef typename MeshDependentDataType::DeviceType DeviceType;
     typedef typename MeshDependentDataType::IndexType IndexType;
     typedef tnlVector< RealType, DeviceType, IndexType> DofVectorType;
     typedef tnlSharedVector< RealType, DeviceType, IndexType > SharedVectorType;
 
     void bind( MeshDependentDataType* mdd,
+               BoundaryConditions* bc,
                DofVectorType & Z_iF )
     {
         this->mdd = mdd;
+        this->bc = bc;
         this->Z_iF.bind( Z_iF.getData(), Z_iF.getSize() );
     }
 
@@ -86,13 +82,15 @@ public:
             return mdd->m_iK( i, K2 );
         }
         else {
-            // FIXME: boundary condition has to be respected (we need to know the density on \Gamma_c ... part of the boundary where the fluid flows in)
-            return mdd->m_iK( i, K1 );
+            // TODO: check if the value is available (we need to know the density on \Gamma_c ... part of the boundary where the fluid flows in)
+//            return mdd->m_iK( i, K1 );
+            return mdd->getBoundaryMobility( mesh, *bc, i, E, time );
         }
     }
 
 protected:
     MeshDependentDataType* mdd;
+    BoundaryConditions* bc;
     // auxiliary vector shared with other objects
     SharedVectorType Z_iF;
 };

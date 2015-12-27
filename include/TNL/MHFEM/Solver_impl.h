@@ -155,16 +155,18 @@ setInitialCondition( const tnlParameterContainer & parameters,
                      DofVectorType & dofVector,
                      MeshDependentDataType & mdd )
 {
-    if( ! mdd.init( parameters, mesh ) )
+    if( ! boundaryConditions.init( parameters, mesh ) )
         return false;
 
-    if( ! boundaryConditions.init( parameters, mesh, mdd ) )
+    if( ! mdd.init( parameters, mesh, boundaryConditions ) )
         return false;
+
+    device_ptr< MeshDependentDataType, DeviceType > mddDevicePtr( mdd );
 
     // initialize dofVector as an average of mdd.Z on neighbouring cells
-    FaceAverageFunction< MeshType, RealType, IndexType > faceAverageFunction;
-    faceAverageFunction.bind( mdd.Z );
-    tnlFunctionEnumerator< MeshType, FaceAverageFunction< MeshType, RealType, IndexType >, DofVectorType > faceAverageEnumerator;
+    FaceAverageFunction< MeshType, MeshDependentDataType > faceAverageFunction;
+    faceAverageFunction.bind( mddDevicePtr.get(), mdd.Z );
+    tnlFunctionEnumerator< MeshType, FaceAverageFunction< MeshType, MeshDependentDataType >, DofVectorType > faceAverageEnumerator;
     faceAverageEnumerator.template enumerate< MeshType::Dimensions - 1, MeshDependentDataType::NumberOfEquations >(
             mesh,
             faceAverageFunction,
@@ -244,6 +246,7 @@ makeSnapshot( const RealType & time,
 
 //    cout << "solution (Z_iE): " << endl << dofVector << endl;
 //    cout << "solution (Z_iK): " << endl << mdd.Z << endl;
+//    cout << "mobility (m_iK): " << endl << mdd.m << endl;
 
     return true;
 }
@@ -324,7 +327,7 @@ assemblyLinearSystem( const RealType & time,
 
 //    matrix.print( cout );
 //    cout << b << endl;
-//    if( time > 0 )
+//    if( time > tau )
 //        abort();
 
 //    tnlString matrixFileName, rhsFileName;
@@ -361,6 +364,9 @@ postIterate( const RealType & time,
              MeshDependentDataType & mdd )
 {
     device_ptr< MeshDependentDataType, DeviceType > mddDevicePtr( mdd );
+    device_ptr< BoundaryConditions, DeviceType > bcDevicePtr( boundaryConditions );
+
+    this->boundaryConditions.bindMeshDependentData( mddDevicePtr.get() );
 
     timer_explicit.start();
     HybridizationExplicitFunction< MeshType, MeshDependentDataType > functionZK;
@@ -380,9 +386,9 @@ postIterate( const RealType & time,
 
     // update upwind density values
     timer_upwind.start();
-    Upwind< MeshType, MeshDependentDataType > upwindFunction;
-    upwindFunction.bind( mddDevicePtr.get(), dofVector );
-    tnlFunctionEnumerator< MeshType, Upwind< MeshType, MeshDependentDataType >, DofVectorType > upwindEnumerator;
+    Upwind< MeshType, MeshDependentDataType, BoundaryConditions > upwindFunction;
+    upwindFunction.bind( mddDevicePtr.get(), bcDevicePtr.get(), dofVector );
+    tnlFunctionEnumerator< MeshType, Upwind< MeshType, MeshDependentDataType, BoundaryConditions >, DofVectorType > upwindEnumerator;
     upwindEnumerator.template enumerate< MeshType::Dimensions - 1, MeshDependentDataType::NumberOfEquations >(
             mesh,
             upwindFunction,

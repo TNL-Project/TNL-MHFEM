@@ -72,7 +72,7 @@ public:
         return i * numberOfFaces + indexFace;
     }
 
-    // needed in makeSnapshot
+    // needed in makeSnapshot, FaceAverageFunction
     __cuda_callable__
     IndexType getCellDofIndex( const int & i, const IndexType & indexCell ) const
     {
