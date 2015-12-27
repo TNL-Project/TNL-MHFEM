@@ -124,6 +124,9 @@ public:
 
             LocalMatrixType Q;
             for( int i = 0; i < mdd.n; i++ ) {
+                // Q is singular if it has a row with all elements equal to zero
+                bool singular = true;
+
                 for( int j = 0; j < mdd.n; j++ ) {
                     RealType value = mesh.getHxHy() * mdd.N_ijK( i, j, K );
                     for( int e = 0; e < mdd.facesPerCell; e++ ) {
@@ -131,6 +134,16 @@ public:
                         value += mdd.m_upw[ mdd.getDofIndex( i, E ) ] * mdd.b_ijKe( i, j, K, e ) * mdd.current_tau;
                     }
                     Q.setElementFast( i, j, value );
+
+                    // update singularity state
+                    if( value != 0.0 )
+                        singular = false;
+                }
+
+                // check for singularity
+                if( singular ) {
+                    Q.setElementFast( i, i, 1.0 );
+                    mdd.R_iK( i, K ) += mdd.Z_iK( i, K );
                 }
             }
 
