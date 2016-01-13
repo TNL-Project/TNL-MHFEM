@@ -330,10 +330,12 @@ assemblyLinearSystem( const RealType & time,
 //    if( time > tau )
 //        abort();
 
-//    tnlString matrixFileName, rhsFileName;
-//    FileNameBaseNumberEnding( outputPrefix.getString(), time / tau, 5, ".csr.tnl", matrixFileName );
+//    tnlString matrixFileName, dofFileName, rhsFileName;
+//    FileNameBaseNumberEnding( outputPrefix.getString(), time / tau, 5, "-matrix.tnl", matrixFileName );
+//    FileNameBaseNumberEnding( outputPrefix.getString(), time / tau, 5, "-dof.vec.tnl", dofFileName );
 //    FileNameBaseNumberEnding( outputPrefix.getString(), time / tau, 5, "-rhs.vec.tnl", rhsFileName );
 //    matrix.save( matrixFileName );
+//    dofVector.save( dofFileName );
 //    b.save( rhsFileName );
 
 //    // print matrix elements
