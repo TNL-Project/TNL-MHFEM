@@ -162,11 +162,12 @@ setInitialCondition( const tnlParameterContainer & parameters,
         return false;
 
     device_ptr< MeshDependentDataType, DeviceType > mddDevicePtr( mdd );
+    device_ptr< BoundaryConditions, DeviceType > bcDevicePtr( boundaryConditions );
 
     // initialize dofVector as an average of mdd.Z on neighbouring cells
-    FaceAverageFunction< MeshType, MeshDependentDataType > faceAverageFunction;
-    faceAverageFunction.bind( mddDevicePtr.get(), mdd.Z );
-    tnlFunctionEnumerator< MeshType, FaceAverageFunction< MeshType, MeshDependentDataType >, DofVectorType > faceAverageEnumerator;
+    FaceAverageFunctionWithBoundary< MeshType, MeshDependentDataType, BoundaryConditions > faceAverageFunction;
+    faceAverageFunction.bind( mddDevicePtr.get(), bcDevicePtr.get(), mdd.Z );
+    tnlFunctionEnumerator< MeshType, FaceAverageFunctionWithBoundary< MeshType, MeshDependentDataType, BoundaryConditions >, DofVectorType > faceAverageEnumerator;
     faceAverageEnumerator.template enumerate< MeshType::Dimensions - 1, MeshDependentDataType::NumberOfEquations >(
             mesh,
             faceAverageFunction,
