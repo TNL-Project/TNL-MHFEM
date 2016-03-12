@@ -1,6 +1,5 @@
 #pragma once
 
-#include <mesh/tnlGrid.h>
 #include <functors/tnlFunction.h>
 #include <core/vectors/tnlSharedVector.h>
 
@@ -12,25 +11,17 @@ namespace mhfem
 template< typename Mesh,
           typename MeshDependentData >
 class HybridizationExplicitFunction
-{
-};
-
-
-template< typename MeshReal,
-          typename Device,
-          typename MeshIndex,
-          typename MeshDependentData >
-class HybridizationExplicitFunction< tnlGrid< 2, MeshReal, Device, MeshIndex >, MeshDependentData >
     : public tnlFunction< tnlGeneralFunction >
 {
 public:
-    typedef tnlGrid< 2, MeshReal, Device, MeshIndex > MeshType;
+    typedef Mesh MeshType;
     typedef MeshDependentData MeshDependentDataType;
-    typedef Device DeviceType;
+    typedef typename MeshType::DeviceType DeviceType;
     typedef typename MeshDependentDataType::RealType RealType;
     typedef typename MeshDependentDataType::IndexType IndexType;
     typedef tnlVector< RealType, DeviceType, IndexType> DofVectorType;
     typedef tnlSharedVector< RealType, DeviceType, IndexType > SharedVectorType;
+    typedef tnlStaticVector< MeshDependentDataType::FacesPerCell, IndexType > FaceVectorType;
 
     void bind( MeshDependentDataType* mdd,
                DofVectorType & dofVector )
@@ -49,12 +40,12 @@ public:
         const int i = index / cells;
 
         RealType result = 0.0;
-        IndexType faceIndexes[ 4 ];
-        getFacesForCell( mesh, K, faceIndexes[ 0 ], faceIndexes[ 1 ], faceIndexes[ 2 ], faceIndexes[ 3 ] );
+        FaceVectorType faceIndexes;
+        getFacesForCell( mesh, K, faceIndexes );
 
-        for( int f = 0; f < mdd->facesPerCell; f++ ) {
+        for( int f = 0; f < mdd->FacesPerCell; f++ ) {
             const IndexType F = faceIndexes[ f ];
-            for( int j = 0; j < mdd->n; j++ ) {
+            for( int j = 0; j < mdd->NumberOfEquations; j++ ) {
                 result += mdd->R_ijKe( i, j, K, f ) * dofVector[ mdd->getDofIndex( j, F ) ];
             }
         }

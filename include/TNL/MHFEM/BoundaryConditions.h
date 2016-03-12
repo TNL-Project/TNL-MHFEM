@@ -1,7 +1,7 @@
 #pragma once
 
-#include <mesh/tnlGrid.h>
 #include <core/vectors/tnlVector.h>
+#include <core/vectors/tnlStaticVector.h>
 
 namespace mhfem
 {
@@ -11,23 +11,15 @@ template< typename Mesh,
           typename ModelImplementation >
 class BoundaryConditions
 {
-};
-
-template< typename MeshReal,
-          typename Device,
-          typename MeshIndex,
-          typename MeshDependentData,
-          typename ModelImplementation >
-class BoundaryConditions< tnlGrid< 2, MeshReal, Device, MeshIndex >, MeshDependentData, ModelImplementation >
-{
 public:
-    typedef tnlGrid< 2, MeshReal, Device, MeshIndex > MeshType;
+    typedef Mesh MeshType;
     typedef typename MeshType::CoordinatesType CoordinatesType;
     typedef MeshDependentData MeshDependentDataType;
-    typedef Device DeviceType;
+    typedef typename MeshType::DeviceType DeviceType;
     typedef typename MeshDependentDataType::RealType RealType;
     typedef typename MeshDependentDataType::IndexType IndexType;
     typedef tnlVector< bool, DeviceType, IndexType > TagVectorType;
+    typedef tnlStaticVector< MeshDependentDataType::FacesPerCell, IndexType > FaceVectorType;
 
     // NOTE: children of BoundaryConditions (i.e. ModelImplementation) must implement these methods
 //    bool

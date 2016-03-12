@@ -1,22 +1,21 @@
 #pragma once
 
 #include "BaseModel.h"
+#include "../mesh_helpers.h"
 
 namespace mhfem
 {
 
-template< typename MeshReal,
-          typename Device,
-          typename MeshIndex,
+template< typename Mesh,
           typename Real,
           typename Index,
           typename ModelImplementation >
 bool
-BaseModel< tnlGrid< 2, MeshReal, Device, MeshIndex >, Real, Index, ModelImplementation >::
+BaseModel< Mesh, Real, Index, ModelImplementation >::
 allocate( const MeshType & mesh )
 {
     numberOfCells = mesh.getNumberOfCells();
-    numberOfFaces = mesh.template getNumberOfFaces< 1, 1 >();
+    numberOfFaces = FacesCounter< MeshType >::getNumberOfFaces( mesh );
 
     if( ! Z.setSize( n * numberOfCells ) )
         return false;
@@ -30,7 +29,7 @@ allocate( const MeshType & mesh )
 //        return false;
     if( ! D.setSize( n * n * numberOfCells ) )
         return false;
-    if( ! w.setSize( n * numberOfCells * facesPerCell ) )
+    if( ! w.setSize( n * numberOfCells * FacesPerCell ) )
         return false;
     if( ! f.setSize( n * numberOfCells ) )
         return false;
@@ -38,10 +37,10 @@ allocate( const MeshType & mesh )
     if( ! m_upw.setSize( n * numberOfFaces ) )
         return false;
     // TODO check this
-    if( ! b.setSize( n * n * numberOfCells * facesPerCell ) )
+    if( ! b.setSize( n * n * numberOfCells * FacesPerCell ) )
         return false;
 
-    if( ! R1.setSize( n * n * numberOfCells * facesPerCell ) )
+    if( ! R1.setSize( n * n * numberOfCells * FacesPerCell ) )
         return false;
     if( ! R2.setSize( n * numberOfCells ) )
         return false;

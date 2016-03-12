@@ -1,6 +1,5 @@
 #pragma once
 
-#include <mesh/tnlGrid.h>
 #include <functors/tnlFunction.h>
 #include <core/vectors/tnlSharedVector.h>
 
@@ -23,6 +22,7 @@ public:
     typedef typename MeshDependentDataType::IndexType IndexType;
     typedef tnlVector< RealType, DeviceType, IndexType> DofVectorType;
     typedef tnlSharedVector< RealType, DeviceType, IndexType > SharedVectorType;
+    typedef tnlStaticVector< MeshDependentDataType::FacesPerCell, IndexType > FaceVectorType;
 
     void bind( MeshDependentDataType* mdd,
                BoundaryConditions* bc,
@@ -42,10 +42,10 @@ public:
     {
         // find local index of face E
         // TODO: simplify
-        IndexType faceIndexes[ 4 ];
-        getFacesForCell( mesh, K, faceIndexes[ 0 ], faceIndexes[ 1 ], faceIndexes[ 2 ], faceIndexes[ 3 ] );
+        FaceVectorType faceIndexes;
+        getFacesForCell( mesh, K, faceIndexes );
         int e = 0;
-        for( int xxx = 0; xxx < mdd->facesPerCell; xxx++ ) {
+        for( int xxx = 0; xxx < mdd->FacesPerCell; xxx++ ) {
             if( faceIndexes[ xxx ] == E ) {
                 e = xxx;
                 break;
@@ -53,7 +53,7 @@ public:
         }
 
         RealType result = 0.0;
-        for( int j = 0; j < mdd->n; j++ ) {
+        for( int j = 0; j < mdd->NumberOfEquations; j++ ) {
             result += mdd->b_ijKe( i, j, K, e ) * ( mdd->Z_iK( j, K ) - Z_iF[ mdd->getDofIndex( j, E ) ] );
         }
         result += mdd->w_iKe( i, K, e );

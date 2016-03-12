@@ -1,7 +1,8 @@
 #pragma once
 
 #include <core/tnlObject.h>
-#include <mesh/tnlGrid.h>
+
+#include "../FacesPerCell.h"
 
 namespace mhfem
 {
@@ -13,26 +14,17 @@ template< typename Mesh,
 class BaseModel :
     public tnlObject
 {
-};
-
-template< typename MeshReal,
-          typename Device,
-          typename MeshIndex,
-          typename Real,
-          typename Index,
-          typename ModelImplementation >
-class BaseModel< tnlGrid< 2, MeshReal, Device, MeshIndex >, Real, Index, ModelImplementation > :
-    public tnlObject
-{
 public:
     // TODO: for some arcane reason 'using ModelImplementation::MeshType' does not work, but 'IndexType n = ModelImplementation::NumberOfEquations' does
     // (using typedefs from children would greatly simplify the parametrization of BaseModel)
-    typedef tnlGrid< 2, MeshReal, Device, MeshIndex > MeshType;
+    typedef Mesh MeshType;
     typedef typename MeshType::CoordinatesType CoordinatesType;
     typedef Real RealType;
-    typedef Device DeviceType;
+    typedef typename MeshType::DeviceType DeviceType;
     typedef Index IndexType;
     typedef tnlVector< RealType, DeviceType, IndexType > DofVectorType;
+
+    enum { FacesPerCell = FacesPerCell< MeshType >::value };
 
     // NOTE: children of BaseModel (i.e. ModelImplementation) must implement these methods
 //    bool init( const tnlParameterContainer & parameters,
@@ -112,22 +104,22 @@ public:
     __cuda_callable__
     RealType & w_iKe( const int & i, const IndexType & K, const int & e )
     {
-        return w[ n * K * facesPerCell + i * facesPerCell + e ];
+        return w[ n * K * FacesPerCell + i * FacesPerCell + e ];
     }
 
     // accessors for local matrices/vectors
     __cuda_callable__
     RealType & b_ijKe( const int & i, const int & j, const IndexType & K, const int & e )
     {
-        return b[ n * n * K * facesPerCell + i * n * facesPerCell + j * facesPerCell + e ];
+        return b[ n * n * K * FacesPerCell + i * n * FacesPerCell + j * FacesPerCell + e ];
     }
 
     __cuda_callable__
     RealType & R_ijKe( const int & i, const int & j, const IndexType & K, const int & e )
     {
-//        return R1[ n * n * K * facesPerCell + i * n * facesPerCell + j * facesPerCell + e ];
+//        return R1[ n * n * K * FacesPerCell + i * n * FacesPerCell + j * FacesPerCell + e ];
         // stored in column-major orientation with respect to i,j
-        return R1[ n * n * K * facesPerCell + n * j * facesPerCell + n * e + i ];
+        return R1[ n * n * K * FacesPerCell + n * j * FacesPerCell + n * e + i ];
     }
 
     __cuda_callable__
@@ -137,10 +129,6 @@ public:
     }
 
 //protected:
-    // TODO: generalize
-    const int n = ModelImplementation::NumberOfEquations;
-    const int facesPerCell = 4;
-
     // auxiliary dofs
     DofVectorType Z;
 
@@ -162,11 +150,13 @@ public:
     RealType current_tau;
 
 protected:
-    const int d = 2;
-
     // number of entities of the mesh for which the vectors are allocated
     IndexType numberOfCells = 0;
     IndexType numberOfFaces = 0;
+
+private:
+    const int n = ModelImplementation::NumberOfEquations;
+    const int d = MeshType::Dimensions;
 };
 
 } // namespace mhfem

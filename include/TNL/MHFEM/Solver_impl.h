@@ -100,7 +100,7 @@ typename Solver< Mesh, MeshDependentData, DifferentialOperator, BoundaryConditio
 Solver< Mesh, MeshDependentData, DifferentialOperator, BoundaryConditions, RightHandSide, Matrix >::
 getDofs( const MeshType & mesh ) const
 {
-    return MeshDependentDataType::NumberOfEquations * mesh.template getNumberOfFaces< 1, 1 >();
+    return MeshDependentDataType::NumberOfEquations * FacesCounter< MeshType >::getNumberOfFaces( mesh );
 }
 
 template< typename Mesh,
@@ -233,7 +233,7 @@ makeSnapshot( const RealType & time,
     const IndexType cells = mesh.getNumberOfCells();
 
     // NOTE: depends on the indexation of mdd.Z vector
-    for( int i = 0; i < mdd.n; i++ ) {
+    for( int i = 0; i < MeshDependentDataType::NumberOfEquations; i++ ) {
         tnlString fileName;
         FileNameBaseNumberEnding( (outputPrefix + "Z" + convertToString( i ) + "-").getString(), step, 5, ".tnl", fileName );
         // TODO: depends on internal indexing of mdd arrays and mdd.Z being public

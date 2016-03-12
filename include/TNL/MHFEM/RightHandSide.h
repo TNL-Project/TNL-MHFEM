@@ -1,6 +1,5 @@
 #pragma once
 
-#include <mesh/tnlGrid.h>
 #include <functors/tnlFunction.h>
 
 #include "../mesh_helpers.h"
@@ -11,23 +10,15 @@ namespace mhfem
 template< typename Mesh,
           typename MeshDependentData >
 class RightHandSide
-{
-};
-
-
-template< typename MeshReal,
-          typename Device,
-          typename MeshIndex,
-          typename MeshDependentData >
-class RightHandSide< tnlGrid< 2, MeshReal, Device, MeshIndex >, MeshDependentData >
     : public tnlFunction< tnlGeneralFunction >
 {
 public:
-    typedef tnlGrid< 2, MeshReal, Device, MeshIndex > MeshType;
+    typedef Mesh MeshType;
     typedef MeshDependentData MeshDependentDataType;
-    typedef Device DeviceType;
+    typedef typename MeshType::DeviceType DeviceType;
     typedef typename MeshDependentDataType::RealType RealType;
     typedef typename MeshDependentDataType::IndexType IndexType;
+    typedef tnlStaticVector< MeshDependentDataType::FacesPerCell, IndexType > FaceVectorType;
 
     void bindMeshDependentData( MeshDependentDataType* mdd )
     {
@@ -55,10 +46,10 @@ public:
 
             // find local index of face E
             // TODO: simplify
-            IndexType faceIndexes[ 4 ];
-            getFacesForCell( mesh, K, faceIndexes[ 0 ], faceIndexes[ 1 ], faceIndexes[ 2 ], faceIndexes[ 3 ] );
+            FaceVectorType faceIndexes;
+            getFacesForCell( mesh, K, faceIndexes );
             int e = 0;
-            for( int xxx = 0; xxx < mdd->facesPerCell; xxx++ ) {
+            for( int xxx = 0; xxx < mdd->FacesPerCell; xxx++ ) {
                 if( faceIndexes[ xxx ] == E ) {
                     e = xxx;
                     break;
@@ -66,7 +57,7 @@ public:
             }
 
             result += mdd->w_iKe( i, K, e );
-            for( int j = 0; j < mdd->n; j++ ) {
+            for( int j = 0; j < mdd->NumberOfEquations; j++ ) {
                 result += mdd->b_ijKe( i, j, K, e ) * mdd->R_iK( j, K );
             }
         }
