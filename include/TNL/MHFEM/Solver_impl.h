@@ -232,16 +232,6 @@ makeSnapshot( const RealType & time,
 
     const IndexType cells = mesh.getNumberOfCells();
 
-    // NOTE: depends on the indexation of mdd.Z vector
-    for( int i = 0; i < MeshDependentDataType::NumberOfEquations; i++ ) {
-        tnlString fileName;
-        FileNameBaseNumberEnding( (outputPrefix + "Z" + convertToString( i ) + "-").getString(), step, 5, ".tnl", fileName );
-        // TODO: depends on internal indexing of mdd arrays and mdd.Z being public
-        SharedVectorType dofPhase( &mdd.Z[ 0 ] + i * cells, cells );
-        if( ! dofPhase.save( fileName ) )
-           return false;
-    }
-
     if( ! mdd.makeSnapshot( time, step, mesh, outputPrefix ) )
         return false;
 
