@@ -235,6 +235,9 @@ makeSnapshot( const RealType & time,
     if( ! mdd.makeSnapshot( time, step, mesh, outputPrefix ) )
         return false;
 
+    if( ! mdd.makeSnapshotOnFaces( time, step, mesh, dofVector, outputPrefix ) )
+        return false;
+
 //    cout << "solution (Z_iE): " << endl << dofVector << endl;
 //    cout << "solution (Z_iK): " << endl << mdd.Z << endl;
 //    cout << "mobility (m_iK): " << endl << mdd.m << endl;
