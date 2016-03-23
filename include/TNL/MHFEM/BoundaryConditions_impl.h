@@ -90,7 +90,7 @@ updateLinearSystem( const RealType & time,
         }
 
         // set right hand side value
-        RealType bValue = - static_cast<const ModelImplementation*>(this)->getNeumannValue( mesh, i, E, time );
+        RealType bValue = - static_cast<const ModelImplementation*>(this)->getNeumannValue( mesh, i, E, time ) * getFaceSurface( mesh, E );
         bValue += mdd->w_iKe( i, K, e );
         for( int j = 0; j < MeshDependentDataType::NumberOfEquations; j++ ) {
             bValue += mdd->b_ijKe( i, j, K, e ) * mdd->R_iK( j, K );
