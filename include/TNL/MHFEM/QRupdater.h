@@ -4,7 +4,7 @@
 #include <core/vectors/tnlSharedVector.h>
 
 #include "../mesh_helpers.h"
-#include "../GEM.h"
+#include "../LU.h"
 #include "../StaticMatrix.h"
 
 // TODO: bind with mesh-dependent data, e.g. as a subclass or local typedef
