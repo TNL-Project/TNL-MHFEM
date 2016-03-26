@@ -235,8 +235,9 @@ makeSnapshot( const RealType & time,
     if( ! mdd.makeSnapshot( time, step, mesh, outputPrefix ) )
         return false;
 
-    if( ! mdd.makeSnapshotOnFaces( time, step, mesh, dofVector, outputPrefix ) )
-        return false;
+    // FIXME: TwoPhaseModel::makeSnapshotOnFaces does not work in 2D
+//    if( ! mdd.makeSnapshotOnFaces( time, step, mesh, dofVector, outputPrefix ) )
+//        return false;
 
 //    cout << "solution (Z_iE): " << endl << dofVector << endl;
 //    cout << "solution (Z_iK): " << endl << mdd.Z << endl;
