@@ -36,8 +36,7 @@ allocate( const MeshType & mesh )
 
     if( ! m_upw.setSize( n * numberOfFaces ) )
         return false;
-    // TODO check this
-    if( ! b.setSize( n * n * numberOfCells * FacesPerCell ) )
+    if( ! b.setSize( n * n * numberOfCells * MassMatrix::size ) )
         return false;
 
     if( ! R1.setSize( n * n * numberOfCells * FacesPerCell ) )

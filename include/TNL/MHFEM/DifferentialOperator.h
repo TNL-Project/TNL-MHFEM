@@ -1,6 +1,7 @@
 #pragma once
 
 #include <mesh/tnlGrid.h>
+#include <core/vectors/tnlSharedVector.h>
 
 namespace mhfem
 {
@@ -24,6 +25,7 @@ public:
     typedef Device DeviceType;
     typedef typename MeshDependentDataType::RealType RealType;
     typedef typename MeshDependentDataType::IndexType IndexType;
+    typedef tnlSharedVector< RealType, DeviceType, IndexType > SharedVectorType;
     typedef tnlStaticVector< MeshDependentDataType::FacesPerCell, IndexType > FaceVectorType;
 
     void bindMeshDependentData( MeshDependentDataType* mdd );
@@ -70,6 +72,7 @@ public:
     typedef Device DeviceType;
     typedef typename MeshDependentDataType::RealType RealType;
     typedef typename MeshDependentDataType::IndexType IndexType;
+    typedef tnlSharedVector< RealType, DeviceType, IndexType > SharedVectorType;
     typedef tnlStaticVector< MeshDependentDataType::FacesPerCell, IndexType > FaceVectorType;
 
     void bindMeshDependentData( MeshDependentDataType* mdd );

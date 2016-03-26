@@ -54,7 +54,8 @@ public:
 
         RealType result = 0.0;
         for( int j = 0; j < mdd->NumberOfEquations; j++ ) {
-            result += mdd->b_ijKe( i, j, K, e ) * ( mdd->Z_iK( j, K ) - Z_iF[ mdd->getDofIndex( j, E ) ] );
+            SharedVectorType mass_matrix_storage( mdd->b_ijK( i, j, K ), MeshDependentDataType::MassMatrix::size );
+            result += MeshDependentDataType::MassMatrix::get( e, mass_matrix_storage ) * ( mdd->Z_iK( j, K ) - Z_iF[ mdd->getDofIndex( j, E ) ] );
         }
         result += mdd->w_iKe( i, K, e );
         return result;

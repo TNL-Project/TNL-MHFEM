@@ -1,6 +1,7 @@
 #pragma once
 
 #include <functors/tnlFunction.h>
+#include <core/vectors/tnlSharedVector.h>
 
 #include "../mesh_helpers.h"
 
@@ -18,6 +19,7 @@ public:
     typedef typename MeshType::DeviceType DeviceType;
     typedef typename MeshDependentDataType::RealType RealType;
     typedef typename MeshDependentDataType::IndexType IndexType;
+    typedef tnlSharedVector< RealType, DeviceType, IndexType > SharedVectorType;
     typedef tnlStaticVector< MeshDependentDataType::FacesPerCell, IndexType > FaceVectorType;
 
     void bindMeshDependentData( MeshDependentDataType* mdd )
@@ -58,7 +60,8 @@ public:
 
             result += mdd->w_iKe( i, K, e );
             for( int j = 0; j < mdd->NumberOfEquations; j++ ) {
-                result += mdd->b_ijKe( i, j, K, e ) * mdd->R_iK( j, K );
+                SharedVectorType mass_matrix_storage( mdd->b_ijK( i, j, K ), MeshDependentDataType::MassMatrix::size );
+                result += MeshDependentDataType::MassMatrix::get( e, mass_matrix_storage ) * mdd->R_iK( j, K );
             }
         }
         return result;

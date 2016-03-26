@@ -93,7 +93,8 @@ updateLinearSystem( const RealType & time,
         RealType bValue = - static_cast<const ModelImplementation*>(this)->getNeumannValue( mesh, i, E, time ) * getFaceSurface( mesh, E );
         bValue += mdd->w_iKe( i, K, e );
         for( int j = 0; j < MeshDependentDataType::NumberOfEquations; j++ ) {
-            bValue += mdd->b_ijKe( i, j, K, e ) * mdd->R_iK( j, K );
+            SharedVectorType mass_matrix_storage( mdd->b_ijK( i, j, K ), MeshDependentDataType::MassMatrix::size );
+            bValue += MeshDependentDataType::MassMatrix::get( e, mass_matrix_storage ) * mdd->R_iK( j, K );
         }
         b[ indexRow ] = bValue;
 
@@ -122,11 +123,13 @@ getValue( const int & i,
           const int & f,
           const IndexType & K ) const
 {
+    // TODO: refactoring, this assumes mass-lumping
     RealType value = 0.0;
     for( int xxx = 0; xxx < MeshDependentDataType::NumberOfEquations; xxx++ ) {
-        value -= mdd->b_ijKe( i, xxx, K, e ) * mdd->R_ijKe( xxx, j, K, f );
+        SharedVectorType mass_matrix_storage( mdd->b_ijK( i, xxx, K ), MeshDependentDataType::MassMatrix::size );
+        value -= MeshDependentDataType::MassMatrix::get( e, mass_matrix_storage ) * mdd->R_ijKe( xxx, j, K, f );
         if( xxx == j && E == F )
-            value += mdd->b_ijKe( i, xxx, K, e );
+            value += MeshDependentDataType::MassMatrix::get( e, mass_matrix_storage );
     }
     return value;
 }

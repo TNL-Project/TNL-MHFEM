@@ -1,6 +1,7 @@
 #pragma once
 
 #include <core/vectors/tnlVector.h>
+#include <core/vectors/tnlSharedVector.h>
 #include <core/vectors/tnlStaticVector.h>
 
 namespace mhfem
@@ -19,6 +20,7 @@ public:
     typedef typename MeshDependentDataType::RealType RealType;
     typedef typename MeshDependentDataType::IndexType IndexType;
     typedef tnlVector< bool, DeviceType, IndexType > TagVectorType;
+    typedef tnlSharedVector< RealType, DeviceType, IndexType > SharedVectorType;
     typedef tnlStaticVector< MeshDependentDataType::FacesPerCell, IndexType > FaceVectorType;
 
     // NOTE: children of BoundaryConditions (i.e. ModelImplementation) must implement these methods

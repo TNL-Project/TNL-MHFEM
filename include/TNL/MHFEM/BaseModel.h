@@ -1,7 +1,9 @@
 #pragma once
 
 #include <core/tnlObject.h>
+#include <core/vectors/tnlSharedVector.h>
 
+#include "MassMatrix.h"
 #include "../FacesPerCell.h"
 
 namespace mhfem
@@ -23,6 +25,9 @@ public:
     typedef typename MeshType::DeviceType DeviceType;
     typedef Index IndexType;
     typedef tnlVector< RealType, DeviceType, IndexType > DofVectorType;
+    typedef tnlSharedVector< RealType, DeviceType, IndexType > SharedVectorType;
+
+    using MassMatrix = mhfem::MassMatrix< MeshType, MassLumping::enabled >;
 
     enum { FacesPerCell = FacesPerCell< MeshType >::value };
 
@@ -109,9 +114,10 @@ public:
 
     // accessors for local matrices/vectors
     __cuda_callable__
-    RealType & b_ijKe( const int & i, const int & j, const IndexType & K, const int & e )
+    RealType* b_ijK( const int & i, const int & j, const IndexType & K )
     {
-        return b[ n * n * K * FacesPerCell + i * n * FacesPerCell + j * FacesPerCell + e ];
+        // returns address of the first element of the mass matrix b_ijK
+        return &b[ ((K * n + i) * n + j) * MassMatrix::size ];
     }
 
     __cuda_callable__

@@ -37,6 +37,7 @@ public:
     typedef tnlSharedVector< RealType, DeviceType, IndexType > SharedVectorType;
     typedef tnlStaticVector< 2, IndexType > FaceVectorType;
     typedef StaticMatrix< MeshDependentDataType::NumberOfEquations, MeshDependentDataType::NumberOfEquations, RealType > LocalMatrixType;
+    typedef typename MeshDependentDataType::MassMatrix MassMatrix;
 
     struct update_R
     {
@@ -47,7 +48,7 @@ public:
                                    const IndexType & index,
                                    const CoordinatesType & coordinates )
         {
-            tnlStaticAssert( EntityDimension == 1, "wrong EntityDimension in QRupdater::processEntity");
+            static_assert( EntityDimension == 1, "wrong EntityDimension in QRupdater::processEntity");
 
             const IndexType cells = mesh.getNumberOfCells();
             const IndexType K = index % cells;
@@ -58,14 +59,15 @@ public:
             getFacesForCell( mesh, K, faceIndexes );
 
             // update coefficients b_ijKE and R_ijKE
-            // NOTE: assumes that b_ijK is diagonal
-            for( int e = 0; e < mdd.FacesPerCell; e++ ) {
-                const IndexType & E = faceIndexes[ e ];
-                for( int j = 0; j < mdd.NumberOfEquations; j++ ) {
-                    // NOTE: only for D isotropic (represented by scalar value)
-                    RealType b = 2 * mdd.D_ijK( i, j, K ) * mesh.getHxInverse();
-                    mdd.b_ijKe( i, j, K, e ) = b;
-                    mdd.R_ijKe( i, j, K, e ) = mdd.m_upw[ mdd.getDofIndex( i, E ) ] * b * mdd.current_tau; // TODO: - u_ijKe
+            for( int j = 0; j < mdd.NumberOfEquations; j++ ) {
+                SharedVectorType storage( mdd.b_ijK( i, j, K ), MassMatrix::size );
+                MassMatrix::update( mesh, mdd.D_ijK( i, j, K ), storage );
+
+                for( int e = 0; e < mdd.FacesPerCell; e++ ) {
+                    const IndexType & E = faceIndexes[ e ];
+                    // assuming that the b_ijKe coefficient (accessed with MassMatrix::get( e, storage ) )
+                    // can be cached in L1 or L2 cache even on CUDA
+                    mdd.R_ijKe( i, j, K, e ) = mdd.m_upw[ mdd.getDofIndex( i, E ) ] * MassMatrix::get( e, storage ) * mdd.current_tau; // TODO: - u_ijKe
                 }
             }
 
@@ -93,7 +95,7 @@ public:
                                    const IndexType & K,
                                    const CoordinatesType & coordinates )
         {
-            tnlStaticAssert( EntityDimension == 1, "wrong EntityDimension in QRupdater::processEntity");
+            static_assert( EntityDimension == 1, "wrong EntityDimension in QRupdater::processEntity");
 
             // get face indexes
             FaceVectorType faceIndexes;
@@ -106,9 +108,10 @@ public:
 
                 for( int j = 0; j < mdd.NumberOfEquations; j++ ) {
                     RealType value = mesh.getHx() * mdd.N_ijK( i, j, K );
+                    const SharedVectorType b_storage( mdd.b_ijK( i, j, K ), MassMatrix::size );
                     for( int e = 0; e < mdd.FacesPerCell; e++ ) {
                         const IndexType & E = faceIndexes[ e ];
-                        value += mdd.m_upw[ mdd.getDofIndex( i, E ) ] * mdd.b_ijKe( i, j, K, e ) * mdd.current_tau;
+                        value += mdd.m_upw[ mdd.getDofIndex( i, E ) ] * MassMatrix::get( e, b_storage ) * mdd.current_tau;
                     }
                     Q.setElementFast( i, j, value );
 
@@ -176,6 +179,7 @@ public:
     typedef tnlSharedVector< RealType, DeviceType, IndexType > SharedVectorType;
     typedef tnlStaticVector< 4, IndexType > FaceVectorType;
     typedef StaticMatrix< MeshDependentDataType::NumberOfEquations, MeshDependentDataType::NumberOfEquations, RealType > LocalMatrixType;
+    typedef typename MeshDependentDataType::MassMatrix MassMatrix;
 
 //    template< int EntityDimension >
 //    __cuda_callable__
@@ -184,7 +188,7 @@ public:
 //                               const IndexType & indexCell,
 //                               const CoordinatesType & coordinates )
 //    {
-//        tnlStaticAssert( EntityDimension == 2, "wrong EntityDimension in QRupdater::processEntity");
+//        static_assert( EntityDimension == 2, "wrong EntityDimension in QRupdater::processEntity");
 
         // get face indexes
 //        FaceVectorType faceIndexes;
@@ -206,7 +210,7 @@ public:
                                    const IndexType & index,
                                    const CoordinatesType & coordinates )
         {
-            tnlStaticAssert( EntityDimension == 2, "wrong EntityDimension in QRupdater::processEntity");
+            static_assert( EntityDimension == 2, "wrong EntityDimension in QRupdater::processEntity");
 
             const IndexType cells = mesh.getNumberOfCells();
             const IndexType K = index % cells;
@@ -217,17 +221,15 @@ public:
             getFacesForCell( mesh, K, faceIndexes );
 
             // update coefficients b_ijKE and R_ijKE
-            // NOTE: assumes that b_ijK is diagonal
-            for( int e = 0; e < mdd.FacesPerCell; e++ ) {
-                const IndexType & E = faceIndexes[ e ];
-                // TODO: isVerticalFace <==> e < 2
-                const RealType h = ( isHorizontalFace( mesh, E ) ) ? mesh.getHx() * mesh.getHyInverse()
-                                                                   : mesh.getHy() * mesh.getHxInverse();
-                for( int j = 0; j < mdd.NumberOfEquations; j++ ) {
-                    // NOTE: only for D isotropic (represented by scalar value)
-                    RealType b = 2 * mdd.D_ijK( i, j, K ) * h;
-                    mdd.b_ijKe( i, j, K, e ) = b;
-                    mdd.R_ijKe( i, j, K, e ) = mdd.m_upw[ mdd.getDofIndex( i, E ) ] * b * mdd.current_tau; // TODO: - u_ijKe
+            for( int j = 0; j < mdd.NumberOfEquations; j++ ) {
+                SharedVectorType storage( mdd.b_ijK( i, j, K ), MassMatrix::size );
+                MassMatrix::update( mesh, mdd.D_ijK( i, j, K ), storage );
+
+                for( int e = 0; e < mdd.FacesPerCell; e++ ) {
+                    const IndexType & E = faceIndexes[ e ];
+                    // assuming that the b_ijKe coefficient (accessed with MassMatrix::get( e, storage ) )
+                    // can be cached in L1 or L2 cache even on CUDA
+                    mdd.R_ijKe( i, j, K, e ) = mdd.m_upw[ mdd.getDofIndex( i, E ) ] * MassMatrix::get( e, storage ) * mdd.current_tau; // TODO: - u_ijKe
                 }
             }
 
@@ -255,7 +257,7 @@ public:
                                    const IndexType & K,
                                    const CoordinatesType & coordinates )
         {
-            tnlStaticAssert( EntityDimension == 2, "wrong EntityDimension in QRupdater::processEntity");
+            static_assert( EntityDimension == 2, "wrong EntityDimension in QRupdater::processEntity");
 
             // get face indexes
             FaceVectorType faceIndexes;
@@ -268,9 +270,10 @@ public:
 
                 for( int j = 0; j < mdd.NumberOfEquations; j++ ) {
                     RealType value = mesh.getHxHy() * mdd.N_ijK( i, j, K );
+                    const SharedVectorType b_storage( mdd.b_ijK( i, j, K ), MassMatrix::size );
                     for( int e = 0; e < mdd.FacesPerCell; e++ ) {
                         const IndexType & E = faceIndexes[ e ];
-                        value += mdd.m_upw[ mdd.getDofIndex( i, E ) ] * mdd.b_ijKe( i, j, K, e ) * mdd.current_tau;
+                        value += mdd.m_upw[ mdd.getDofIndex( i, E ) ] * MassMatrix::get( e, b_storage ) * mdd.current_tau;
                     }
                     Q.setElementFast( i, j, value );
 

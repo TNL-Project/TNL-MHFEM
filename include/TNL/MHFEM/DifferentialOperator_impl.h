@@ -95,9 +95,10 @@ getValue( const int & i,
 {
     RealType value = 0.0;
     for( int xxx = 0; xxx < MeshDependentDataType::NumberOfEquations; xxx++ ) {
-        value -= mdd->b_ijKe( i, xxx, K, e ) * mdd->R_ijKe( xxx, j, K, f );
+        SharedVectorType mass_matrix_storage( mdd->b_ijK( i, xxx, K ), MeshDependentDataType::MassMatrix::size );
+        value -= MeshDependentDataType::MassMatrix::get( e, mass_matrix_storage ) * mdd->R_ijKe( xxx, j, K, f );
         if( xxx == j && E == F )
-            value += mdd->b_ijKe( i, xxx, K, e );
+            value += MeshDependentDataType::MassMatrix::get( e, mass_matrix_storage );
     }
     return value;
 }
@@ -223,9 +224,10 @@ getValue( const int & i,
 {
     RealType value = 0.0;
     for( int xxx = 0; xxx < MeshDependentDataType::NumberOfEquations; xxx++ ) {
-        value -= mdd->b_ijKe( i, xxx, K, e ) * mdd->R_ijKe( xxx, j, K, f );
+        SharedVectorType mass_matrix_storage( mdd->b_ijK( i, xxx, K ), MeshDependentDataType::MassMatrix::size );
+        value -= MeshDependentDataType::MassMatrix::get( e, mass_matrix_storage ) * mdd->R_ijKe( xxx, j, K, f );
         if( xxx == j && E == F )
-            value += mdd->b_ijKe( i, xxx, K, e );
+            value += MeshDependentDataType::MassMatrix::get( e, mass_matrix_storage );
     }
     return value;
 }
