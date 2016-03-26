@@ -76,8 +76,8 @@ public:
             for( int j = 0; j < mdd.NumberOfEquations; j++ ) {
                 R += mdd.N_ijK( i, j, K ) * mdd.Z_iK( j, K );
             }
-            R *= mesh.getHx();
-            R += mesh.getHx() * mdd.f[ i * K ] * mdd.current_tau;
+            R *= getCellVolume( mesh, K );
+            R += getCellVolume( mesh, K ) * mdd.f[ i * K ] * mdd.current_tau;
             for( int e = 0; e < mdd.FacesPerCell; e++ ) {
                 const IndexType & E = faceIndexes[ e ];
                 R -= mdd.m_upw[ mdd.getDofIndex( i, E ) ] * mdd.w_iKe( i, K, e ) * mdd.current_tau;
@@ -238,8 +238,8 @@ public:
             for( int j = 0; j < mdd.NumberOfEquations; j++ ) {
                 R += mdd.N_ijK( i, j, K ) * mdd.Z_iK( j, K );
             }
-            R *= mesh.getHxHy();
-            R += mesh.getHxHy() * mdd.f[ i * K ] * mdd.current_tau;
+            R *= getCellVolume( mesh, K );
+            R += getCellVolume( mesh, K ) * mdd.f[ i * K ] * mdd.current_tau;
             for( int e = 0; e < mdd.FacesPerCell; e++ ) {
                 const IndexType & E = faceIndexes[ e ];
                 R -= mdd.m_upw[ mdd.getDofIndex( i, E ) ] * mdd.w_iKe( i, K, e ) * mdd.current_tau;
