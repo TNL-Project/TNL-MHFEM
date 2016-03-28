@@ -22,15 +22,17 @@ class MassMatrix< tnlGrid< 1, MeshReal, Device, MeshIndex >, MassLumping::enable
 {
 public:
     typedef tnlGrid< 1, MeshReal, Device, MeshIndex > MeshType;
+    static constexpr MassLumping lumping = MassLumping::enabled;
 
     // number of independent values defining the matrix
     static constexpr int size = 1;
 
     template< typename Vector >
     __cuda_callable__
-    static void update( const MeshType & mesh,
-                        const typename Vector::RealType & diffusionCoefficient,
-                        Vector & storage )
+    static inline void
+    update( const MeshType & mesh,
+            const typename Vector::RealType & diffusionCoefficient,
+            Vector & storage )
     {
         tnlAssert( storage.getSize() == size, );
         storage[ 0 ] = 2 * diffusionCoefficient * mesh.getHxInverse();
@@ -38,9 +40,10 @@ public:
 
     template< typename Vector >
     __cuda_callable__
-    static typename Vector::RealType get( const int & e,
-                                          const int & f,
-                                          Vector & storage )
+    static inline typename Vector::RealType
+    get( const int & e,
+         const int & f,
+         Vector & storage )
     {
         tnlAssert( storage.getSize() == size, );
         tnlAssert( e < 2 && f < 2, );
@@ -53,8 +56,9 @@ public:
     // optimized version returning diagonal entries
     template< typename Vector >
     __cuda_callable__
-    static typename Vector::RealType get( const int & e,
-                                          Vector & storage )
+    static inline typename Vector::RealType
+    get( const int & e,
+         Vector & storage )
     {
         tnlAssert( storage.getSize() == size, );
         tnlAssert( e < 2, );
@@ -68,15 +72,17 @@ class MassMatrix< tnlGrid< 2, MeshReal, Device, MeshIndex >, MassLumping::enable
 {
 public:
     typedef tnlGrid< 2, MeshReal, Device, MeshIndex > MeshType;
+    static constexpr MassLumping lumping = MassLumping::enabled;
 
     // number of independent values defining the matrix
     static constexpr int size = 2;
 
     template< typename Vector >
     __cuda_callable__
-    static void update( const MeshType & mesh,
-                        const typename Vector::RealType & diffusionCoefficient,
-                        Vector & storage )
+    static inline void
+    update( const MeshType & mesh,
+            const typename Vector::RealType & diffusionCoefficient,
+            Vector & storage )
     {
         tnlAssert( storage.getSize() == size, );
 
@@ -89,9 +95,10 @@ public:
 
     template< typename Vector >
     __cuda_callable__
-    static typename Vector::RealType get( const int & e,
-                                          const int & f,
-                                          Vector & storage )
+    static inline typename Vector::RealType
+    get( const int & e,
+         const int & f,
+         Vector & storage )
     {
         tnlAssert( storage.getSize() == size, );
         tnlAssert( e < 4 && f < 4, );
@@ -109,8 +116,9 @@ public:
     // optimized version returning diagonal entries
     template< typename Vector >
     __cuda_callable__
-    static typename Vector::RealType get( const int & e,
-                                          Vector & storage )
+    static inline typename Vector::RealType
+    get( const int & e,
+         Vector & storage )
     {
         tnlAssert( storage.getSize() == size, );
         tnlAssert( e < 4, );

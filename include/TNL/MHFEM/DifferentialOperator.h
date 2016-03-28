@@ -1,7 +1,8 @@
 #pragma once
 
 #include <mesh/tnlGrid.h>
-#include <core/vectors/tnlSharedVector.h>
+
+#include "MassMatrixDependentCode.h"
 
 namespace mhfem
 {
@@ -25,7 +26,6 @@ public:
     typedef Device DeviceType;
     typedef typename MeshDependentDataType::RealType RealType;
     typedef typename MeshDependentDataType::IndexType IndexType;
-    typedef tnlSharedVector< RealType, DeviceType, IndexType > SharedVectorType;
     typedef tnlStaticVector< MeshDependentDataType::FacesPerCell, IndexType > FaceVectorType;
 
     void bindMeshDependentData( MeshDependentDataType* mdd );
@@ -48,15 +48,7 @@ public:
 
 protected:
     MeshDependentDataType* mdd;
-
-    __cuda_callable__
-    RealType getValue( const int & i,
-                       const int & j,
-                       const IndexType & E,
-                       const int & e,
-                       const IndexType & F,
-                       const int & f,
-                       const IndexType & K ) const;
+    typedef MassMatrixDependentCode< MeshDependentDataType > coeff;
 };
 
 template< typename MeshReal,
@@ -72,7 +64,6 @@ public:
     typedef Device DeviceType;
     typedef typename MeshDependentDataType::RealType RealType;
     typedef typename MeshDependentDataType::IndexType IndexType;
-    typedef tnlSharedVector< RealType, DeviceType, IndexType > SharedVectorType;
     typedef tnlStaticVector< MeshDependentDataType::FacesPerCell, IndexType > FaceVectorType;
 
     void bindMeshDependentData( MeshDependentDataType* mdd );
@@ -95,15 +86,7 @@ public:
 
 protected:
     MeshDependentDataType* mdd;
-
-    __cuda_callable__
-    RealType getValue( const int & i,
-                       const int & j,
-                       const IndexType & E,
-                       const int & e,
-                       const IndexType & F,
-                       const int & f,
-                       const IndexType & K ) const;
+    typedef MassMatrixDependentCode< MeshDependentDataType > coeff;
 };
 
 } // namespace mhfem

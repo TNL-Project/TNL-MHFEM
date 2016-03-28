@@ -71,36 +71,11 @@ updateLinearSystem( const RealType & time,
     getFacesForCell( mesh, cellIndexes[ 1 ], faceIndexesK1 );
     getFacesForCell( mesh, cellIndexes[ 0 ], faceIndexesK0 );
     for( int j = 0; j < MeshDependentDataType::NumberOfEquations; j++ ) {
-        matrixRow.setElement( j * 3 + 0, mdd->getDofIndex( j, faceIndexesK1[ 0 ] ), getValue( i, j, E, 1, faceIndexesK1[ 0 ], 0, cellIndexes[ 1 ] ) );
-        matrixRow.setElement( j * 3 + 1, mdd->getDofIndex( j, faceIndexesK1[ 1 ] ), getValue( i, j, E, 1, faceIndexesK1[ 1 ], 1, cellIndexes[ 1 ] ) +
-                                                                                    getValue( i, j, E, 0, faceIndexesK0[ 0 ], 0, cellIndexes[ 0 ] ) );
-        matrixRow.setElement( j * 3 + 2, mdd->getDofIndex( j, faceIndexesK0[ 1 ] ), getValue( i, j, E, 0, faceIndexesK0[ 1 ], 1, cellIndexes[ 0 ] ) );
+        matrixRow.setElement( j * 3 + 0, mdd->getDofIndex( j, faceIndexesK1[ 0 ] ), coeff::A_ijKEF( *mdd, i, j, cellIndexes[ 1 ], E, 1, faceIndexesK1[ 0 ], 0 ) );
+        matrixRow.setElement( j * 3 + 1, mdd->getDofIndex( j, faceIndexesK1[ 1 ] ), coeff::A_ijKEF( *mdd, i, j, cellIndexes[ 1 ], E, 1, faceIndexesK1[ 1 ], 1 ) +
+                                                                                    coeff::A_ijKEF( *mdd, i, j, cellIndexes[ 0 ], E, 0, faceIndexesK0[ 0 ], 0 ) );
+        matrixRow.setElement( j * 3 + 2, mdd->getDofIndex( j, faceIndexesK0[ 1 ] ), coeff::A_ijKEF( *mdd, i, j, cellIndexes[ 0 ], E, 0, faceIndexesK0[ 1 ], 1 ) );
     }
-}
-
-template< typename MeshReal,
-          typename Device,
-          typename MeshIndex,
-          typename MeshDependentData >
-__cuda_callable__
-typename MeshDependentData::RealType
-DifferentialOperator< tnlGrid< 1, MeshReal, Device, MeshIndex >, MeshDependentData >::
-getValue( const int & i,
-          const int & j,
-          const IndexType & E,
-          const int & e,
-          const IndexType & F,
-          const int & f,
-          const IndexType & K ) const
-{
-    RealType value = 0.0;
-    for( int xxx = 0; xxx < MeshDependentDataType::NumberOfEquations; xxx++ ) {
-        SharedVectorType mass_matrix_storage( mdd->b_ijK( i, xxx, K ), MeshDependentDataType::MassMatrix::size );
-        value -= MeshDependentDataType::MassMatrix::get( e, mass_matrix_storage ) * mdd->R_ijKe( xxx, j, K, f );
-        if( xxx == j && E == F )
-            value += MeshDependentDataType::MassMatrix::get( e, mass_matrix_storage );
-    }
-    return value;
 }
 
 
@@ -172,14 +147,14 @@ updateLinearSystem( const RealType & time,
         getFacesForCell( mesh, cellIndexes[ 1 ], faceIndexesK1 );
         getFacesForCell( mesh, cellIndexes[ 0 ], faceIndexesK0 );
         for( int j = 0; j < MeshDependentDataType::NumberOfEquations; j++ ) {
-            matrixRow.setElement( j * 7 + 0, mdd->getDofIndex( j, faceIndexesK1[ 0 ] ), getValue( i, j, E, 1, faceIndexesK1[ 0 ], 0, cellIndexes[ 1 ] ) );
-            matrixRow.setElement( j * 7 + 1, mdd->getDofIndex( j, faceIndexesK1[ 1 ] ), getValue( i, j, E, 1, faceIndexesK1[ 1 ], 1, cellIndexes[ 1 ] ) +
-                                                                                        getValue( i, j, E, 0, faceIndexesK0[ 0 ], 0, cellIndexes[ 0 ] ) );
-            matrixRow.setElement( j * 7 + 2, mdd->getDofIndex( j, faceIndexesK0[ 1 ] ), getValue( i, j, E, 0, faceIndexesK0[ 1 ], 1, cellIndexes[ 0 ] ) );
-            matrixRow.setElement( j * 7 + 3, mdd->getDofIndex( j, faceIndexesK1[ 2 ] ), getValue( i, j, E, 1, faceIndexesK1[ 2 ], 2, cellIndexes[ 1 ] ) );
-            matrixRow.setElement( j * 7 + 4, mdd->getDofIndex( j, faceIndexesK0[ 2 ] ), getValue( i, j, E, 0, faceIndexesK0[ 2 ], 2, cellIndexes[ 0 ] ) );
-            matrixRow.setElement( j * 7 + 5, mdd->getDofIndex( j, faceIndexesK1[ 3 ] ), getValue( i, j, E, 1, faceIndexesK1[ 3 ], 3, cellIndexes[ 1 ] ) );
-            matrixRow.setElement( j * 7 + 6, mdd->getDofIndex( j, faceIndexesK0[ 3 ] ), getValue( i, j, E, 0, faceIndexesK0[ 3 ], 3, cellIndexes[ 0 ] ) );
+            matrixRow.setElement( j * 7 + 0, mdd->getDofIndex( j, faceIndexesK1[ 0 ] ), coeff::A_ijKEF( *mdd, i, j, cellIndexes[ 1 ], E, 1, faceIndexesK1[ 0 ], 0 ) );
+            matrixRow.setElement( j * 7 + 1, mdd->getDofIndex( j, faceIndexesK1[ 1 ] ), coeff::A_ijKEF( *mdd, i, j, cellIndexes[ 1 ], E, 1, faceIndexesK1[ 1 ], 1 ) +
+                                                                                        coeff::A_ijKEF( *mdd, i, j, cellIndexes[ 0 ], E, 0, faceIndexesK0[ 0 ], 0 ) );
+            matrixRow.setElement( j * 7 + 2, mdd->getDofIndex( j, faceIndexesK0[ 1 ] ), coeff::A_ijKEF( *mdd, i, j, cellIndexes[ 0 ], E, 0, faceIndexesK0[ 1 ], 1 ) );
+            matrixRow.setElement( j * 7 + 3, mdd->getDofIndex( j, faceIndexesK1[ 2 ] ), coeff::A_ijKEF( *mdd, i, j, cellIndexes[ 1 ], E, 1, faceIndexesK1[ 2 ], 2 ) );
+            matrixRow.setElement( j * 7 + 4, mdd->getDofIndex( j, faceIndexesK0[ 2 ] ), coeff::A_ijKEF( *mdd, i, j, cellIndexes[ 0 ], E, 0, faceIndexesK0[ 2 ], 2 ) );
+            matrixRow.setElement( j * 7 + 5, mdd->getDofIndex( j, faceIndexesK1[ 3 ] ), coeff::A_ijKEF( *mdd, i, j, cellIndexes[ 1 ], E, 1, faceIndexesK1[ 3 ], 3 ) );
+            matrixRow.setElement( j * 7 + 6, mdd->getDofIndex( j, faceIndexesK0[ 3 ] ), coeff::A_ijKEF( *mdd, i, j, cellIndexes[ 0 ], E, 0, faceIndexesK0[ 3 ], 3 ) );
         }
     }
     else {
@@ -195,41 +170,16 @@ updateLinearSystem( const RealType & time,
         getFacesForCell( mesh, cellIndexes[ 1 ], faceIndexesK1 );
         getFacesForCell( mesh, cellIndexes[ 0 ], faceIndexesK0 );
         for( int j = 0; j < MeshDependentDataType::NumberOfEquations; j++ ) {
-            matrixRow.setElement( j * 7 + 0, mdd->getDofIndex( j, faceIndexesK1[ 0 ] ), getValue( i, j, E, 3, faceIndexesK1[ 0 ], 0, cellIndexes[ 1 ] ) );
-            matrixRow.setElement( j * 7 + 1, mdd->getDofIndex( j, faceIndexesK1[ 1 ] ), getValue( i, j, E, 3, faceIndexesK1[ 1 ], 1, cellIndexes[ 1 ] ) );
-            matrixRow.setElement( j * 7 + 2, mdd->getDofIndex( j, faceIndexesK0[ 0 ] ), getValue( i, j, E, 2, faceIndexesK0[ 0 ], 0, cellIndexes[ 0 ] ) );
-            matrixRow.setElement( j * 7 + 3, mdd->getDofIndex( j, faceIndexesK0[ 1 ] ), getValue( i, j, E, 2, faceIndexesK0[ 1 ], 1, cellIndexes[ 0 ] ) );
-            matrixRow.setElement( j * 7 + 4, mdd->getDofIndex( j, faceIndexesK1[ 2 ] ), getValue( i, j, E, 3, faceIndexesK1[ 2 ], 2, cellIndexes[ 1 ] ) );
-            matrixRow.setElement( j * 7 + 5, mdd->getDofIndex( j, faceIndexesK1[ 3 ] ), getValue( i, j, E, 3, faceIndexesK1[ 3 ], 3, cellIndexes[ 1 ] ) +
-                                                                                        getValue( i, j, E, 2, faceIndexesK0[ 2 ], 2, cellIndexes[ 0 ] ) );
-            matrixRow.setElement( j * 7 + 6, mdd->getDofIndex( j, faceIndexesK0[ 3 ] ), getValue( i, j, E, 2, faceIndexesK0[ 3 ], 3, cellIndexes[ 0 ] ) );
+            matrixRow.setElement( j * 7 + 0, mdd->getDofIndex( j, faceIndexesK1[ 0 ] ), coeff::A_ijKEF( *mdd, i, j, cellIndexes[ 1 ], E, 3, faceIndexesK1[ 0 ], 0 ) );
+            matrixRow.setElement( j * 7 + 1, mdd->getDofIndex( j, faceIndexesK1[ 1 ] ), coeff::A_ijKEF( *mdd, i, j, cellIndexes[ 1 ], E, 3, faceIndexesK1[ 1 ], 1 ) );
+            matrixRow.setElement( j * 7 + 2, mdd->getDofIndex( j, faceIndexesK0[ 0 ] ), coeff::A_ijKEF( *mdd, i, j, cellIndexes[ 0 ], E, 2, faceIndexesK0[ 0 ], 0 ) );
+            matrixRow.setElement( j * 7 + 3, mdd->getDofIndex( j, faceIndexesK0[ 1 ] ), coeff::A_ijKEF( *mdd, i, j, cellIndexes[ 0 ], E, 2, faceIndexesK0[ 1 ], 1 ) );
+            matrixRow.setElement( j * 7 + 4, mdd->getDofIndex( j, faceIndexesK1[ 2 ] ), coeff::A_ijKEF( *mdd, i, j, cellIndexes[ 1 ], E, 3, faceIndexesK1[ 2 ], 2 ) );
+            matrixRow.setElement( j * 7 + 5, mdd->getDofIndex( j, faceIndexesK1[ 3 ] ), coeff::A_ijKEF( *mdd, i, j, cellIndexes[ 1 ], E, 3, faceIndexesK1[ 3 ], 3 ) +
+                                                                                        coeff::A_ijKEF( *mdd, i, j, cellIndexes[ 0 ], E, 2, faceIndexesK0[ 2 ], 2 ) );
+            matrixRow.setElement( j * 7 + 6, mdd->getDofIndex( j, faceIndexesK0[ 3 ] ), coeff::A_ijKEF( *mdd, i, j, cellIndexes[ 0 ], E, 2, faceIndexesK0[ 3 ], 3 ) );
         }
     }
-}
-
-template< typename MeshReal,
-          typename Device,
-          typename MeshIndex,
-          typename MeshDependentData >
-__cuda_callable__
-typename MeshDependentData::RealType
-DifferentialOperator< tnlGrid< 2, MeshReal, Device, MeshIndex >, MeshDependentData >::
-getValue( const int & i,
-          const int & j,
-          const IndexType & E,
-          const int & e,
-          const IndexType & F,
-          const int & f,
-          const IndexType & K ) const
-{
-    RealType value = 0.0;
-    for( int xxx = 0; xxx < MeshDependentDataType::NumberOfEquations; xxx++ ) {
-        SharedVectorType mass_matrix_storage( mdd->b_ijK( i, xxx, K ), MeshDependentDataType::MassMatrix::size );
-        value -= MeshDependentDataType::MassMatrix::get( e, mass_matrix_storage ) * mdd->R_ijKe( xxx, j, K, f );
-        if( xxx == j && E == F )
-            value += MeshDependentDataType::MassMatrix::get( e, mass_matrix_storage );
-    }
-    return value;
 }
 
 } // namespace mhfem

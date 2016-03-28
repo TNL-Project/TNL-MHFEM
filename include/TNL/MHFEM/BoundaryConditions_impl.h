@@ -103,35 +103,10 @@ updateLinearSystem( const RealType & time,
         // but the getValue method returns only B_KEF
         for( int j = 0; j < MeshDependentDataType::NumberOfEquations; j++ ) {
             for( int f = 0; f < mdd->FacesPerCell; f++ ) {
-                matrixRow.setElement( j * mdd->FacesPerCell + f, mdd->getDofIndex( j, faceIndexes[ f ] ), getValue( i, j, E, e, faceIndexes[ f ], f, K ) );
+                matrixRow.setElement( j * mdd->FacesPerCell + f, mdd->getDofIndex( j, faceIndexes[ f ] ), hybrid::A_ijKEF( *mdd, i, j, K, E, e, faceIndexes[ f ], f ) );
             }
         }
     }
-}
-
-template< typename Mesh,
-          typename MeshDependentData,
-          typename ModelImplementation >
-__cuda_callable__
-typename MeshDependentData::RealType
-BoundaryConditions< Mesh, MeshDependentData, ModelImplementation >::
-getValue( const int & i,
-          const int & j,
-          const IndexType & E,
-          const int & e,
-          const IndexType & F,
-          const int & f,
-          const IndexType & K ) const
-{
-    // TODO: refactoring, this assumes mass-lumping
-    RealType value = 0.0;
-    for( int xxx = 0; xxx < MeshDependentDataType::NumberOfEquations; xxx++ ) {
-        SharedVectorType mass_matrix_storage( mdd->b_ijK( i, xxx, K ), MeshDependentDataType::MassMatrix::size );
-        value -= MeshDependentDataType::MassMatrix::get( e, mass_matrix_storage ) * mdd->R_ijKe( xxx, j, K, f );
-        if( xxx == j && E == F )
-            value += MeshDependentDataType::MassMatrix::get( e, mass_matrix_storage );
-    }
-    return value;
 }
 
 template< typename Mesh,

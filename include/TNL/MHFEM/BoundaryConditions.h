@@ -4,6 +4,8 @@
 #include <core/vectors/tnlSharedVector.h>
 #include <core/vectors/tnlStaticVector.h>
 
+#include "MassMatrixDependentCode.h"
+
 namespace mhfem
 {
 
@@ -73,14 +75,7 @@ protected:
     // (true indicates Dirichlet boundary)
     TagVectorType dirichletTags;
 
-    __cuda_callable__
-    RealType getValue( const int & i,
-                       const int & j,
-                       const IndexType & E,
-                       const int & e,
-                       const IndexType & F,
-                       const int & f,
-                       const IndexType & K ) const;
+    typedef MassMatrixDependentCode< MeshDependentDataType > hybrid;
 };
 
 } // namespace mhfem
