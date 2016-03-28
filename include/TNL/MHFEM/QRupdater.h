@@ -3,6 +3,7 @@
 #include <mesh/tnlGrid.h>
 #include <core/vectors/tnlSharedVector.h>
 
+#include "MassMatrixDependentCode.h"
 #include "../mesh_helpers.h"
 #include "../LU.h"
 #include "../StaticMatrix.h"
@@ -28,6 +29,7 @@ public:
     typedef tnlStaticVector< MeshDependentDataType::FacesPerCell, IndexType > FaceVectorType;
     typedef StaticMatrix< MeshDependentDataType::NumberOfEquations, MeshDependentDataType::NumberOfEquations, RealType > LocalMatrixType;
     typedef typename MeshDependentDataType::MassMatrix MassMatrix;
+    typedef MassMatrixDependentCode< MeshDependentDataType > coeff;
 
 //    template< int EntityDimension >
 //    __cuda_callable__
@@ -70,14 +72,12 @@ public:
 
             // update coefficients b_ijKE and R_ijKE
             for( int j = 0; j < mdd.NumberOfEquations; j++ ) {
-                SharedVectorType storage( mdd.b_ijK( i, j, K ), MassMatrix::size );
-                MassMatrix::update( mesh, mdd.D_ijK( i, j, K ), storage );
+                MassMatrix::update( mesh, mdd, i, j, K );
 
                 for( int e = 0; e < mdd.FacesPerCell; e++ ) {
-                    const IndexType & E = faceIndexes[ e ];
                     // assuming that the b_ijKe coefficient (accessed with MassMatrix::get( e, storage ) )
                     // can be cached in L1 or L2 cache even on CUDA
-                    mdd.R_ijKe( i, j, K, e ) = mdd.m_upw[ mdd.getDofIndex( i, E ) ] * MassMatrix::get( e, storage ) * mdd.current_tau; // TODO: - u_ijKe
+                    mdd.R_ijKe( i, j, K, e ) = coeff::R_ijKe( mdd, faceIndexes, i, j, K, e );
                 }
             }
 
@@ -118,10 +118,9 @@ public:
 
                 for( int j = 0; j < mdd.NumberOfEquations; j++ ) {
                     RealType value = getCellVolume( mesh, K ) * mdd.N_ijK( i, j, K );
-                    const SharedVectorType b_storage( mdd.b_ijK( i, j, K ), MassMatrix::size );
                     for( int e = 0; e < mdd.FacesPerCell; e++ ) {
                         const IndexType & E = faceIndexes[ e ];
-                        value += mdd.m_upw[ mdd.getDofIndex( i, E ) ] * MassMatrix::get( e, b_storage ) * mdd.current_tau;
+                        value += mdd.m_upw[ mdd.getDofIndex( i, E ) ] * MassMatrix::b_ijKe( mdd, i, j, K, e ) * mdd.current_tau;
                     }
                     Q.setElementFast( i, j, value );
 

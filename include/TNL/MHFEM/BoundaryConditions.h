@@ -1,7 +1,6 @@
 #pragma once
 
 #include <core/vectors/tnlVector.h>
-#include <core/vectors/tnlSharedVector.h>
 #include <core/vectors/tnlStaticVector.h>
 
 #include "MassMatrixDependentCode.h"
@@ -22,7 +21,6 @@ public:
     typedef typename MeshDependentDataType::RealType RealType;
     typedef typename MeshDependentDataType::IndexType IndexType;
     typedef tnlVector< bool, DeviceType, IndexType > TagVectorType;
-    typedef tnlSharedVector< RealType, DeviceType, IndexType > SharedVectorType;
     typedef tnlStaticVector< MeshDependentDataType::FacesPerCell, IndexType > FaceVectorType;
 
     // NOTE: children of BoundaryConditions (i.e. ModelImplementation) must implement these methods
@@ -75,7 +73,7 @@ protected:
     // (true indicates Dirichlet boundary)
     TagVectorType dirichletTags;
 
-    typedef MassMatrixDependentCode< MeshDependentDataType > hybrid;
+    typedef MassMatrixDependentCode< MeshDependentDataType > coeff;
 };
 
 } // namespace mhfem

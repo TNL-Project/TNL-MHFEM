@@ -27,42 +27,49 @@ public:
     // number of independent values defining the matrix
     static constexpr int size = 1;
 
-    template< typename Vector >
+    template< typename MeshDependentData >
     __cuda_callable__
     static inline void
     update( const MeshType & mesh,
-            const typename Vector::RealType & diffusionCoefficient,
-            Vector & storage )
+            MeshDependentData & mdd,
+            const int & i,
+            const int & j,
+            const typename MeshDependentData::IndexType & K )
     {
-        tnlAssert( storage.getSize() == size, );
-        storage[ 0 ] = 2 * diffusionCoefficient * mesh.getHxInverse();
+        typename MeshDependentData::RealType* storage = mdd.b_ijK( i, j, K );
+        storage[ 0 ] = 2 * mdd.D_ijK( i, j, K ) * mesh.getHxInverse();
     }
 
-    template< typename Vector >
+    template< typename MeshDependentData >
     __cuda_callable__
-    static inline typename Vector::RealType
-    get( const int & e,
-         const int & f,
-         Vector & storage )
+    static inline typename MeshDependentData::RealType
+    b_ijKef( const MeshDependentData & mdd,
+             const int & i,
+             const int & j,
+             const typename MeshDependentData::IndexType & K,
+             const int & e,
+             const int & f )
     {
-        tnlAssert( storage.getSize() == size, );
         tnlAssert( e < 2 && f < 2, );
 
+        const typename MeshDependentData::RealType* storage = mdd.b_ijK( i, j, K );
         if( e == f )
             return storage[ 0 ];
         return 0.0;
     }
 
-    // optimized version returning diagonal entries
-    template< typename Vector >
+    template< typename MeshDependentData >
     __cuda_callable__
-    static inline typename Vector::RealType
-    get( const int & e,
-         Vector & storage )
+    static inline typename MeshDependentData::RealType
+    b_ijKe( const MeshDependentData & mdd,
+            const int & i,
+            const int & j,
+            const typename MeshDependentData::IndexType & K,
+            const int & e )
     {
-        tnlAssert( storage.getSize() == size, );
         tnlAssert( e < 2, );
 
+        const typename MeshDependentData::RealType* storage = mdd.b_ijK( i, j, K );
         return storage[ 0 ];
     }
 };
@@ -77,32 +84,35 @@ public:
     // number of independent values defining the matrix
     static constexpr int size = 2;
 
-    template< typename Vector >
+    template< typename MeshDependentData >
     __cuda_callable__
     static inline void
     update( const MeshType & mesh,
-            const typename Vector::RealType & diffusionCoefficient,
-            Vector & storage )
+            MeshDependentData & mdd,
+            const int & i,
+            const int & j,
+            const typename MeshDependentData::IndexType & K )
     {
-        tnlAssert( storage.getSize() == size, );
-
-        // TODO: check this
+        typename MeshDependentData::RealType* storage = mdd.b_ijK( i, j, K );
         // value for vertical faces (e=0, e=1)
-        storage[ 0 ] = 2 * diffusionCoefficient * mesh.getHy() * mesh.getHxInverse();
+        storage[ 0 ] = 2 * mdd.D_ijK( i, j, K ) * mesh.getHy() * mesh.getHxInverse();
         // value for horizontal faces (e=2, e=3)
-        storage[ 1 ] = 2 * diffusionCoefficient * mesh.getHx() * mesh.getHyInverse();
+        storage[ 1 ] = 2 * mdd.D_ijK( i, j, K ) * mesh.getHx() * mesh.getHyInverse();
     }
 
-    template< typename Vector >
+    template< typename MeshDependentData >
     __cuda_callable__
-    static inline typename Vector::RealType
-    get( const int & e,
-         const int & f,
-         Vector & storage )
+    static inline typename MeshDependentData::RealType
+    b_ijKef( const MeshDependentData & mdd,
+             const int & i,
+             const int & j,
+             const typename MeshDependentData::IndexType & K,
+             const int & e,
+             const int & f )
     {
-        tnlAssert( storage.getSize() == size, );
         tnlAssert( e < 4 && f < 4, );
 
+        const typename MeshDependentData::RealType* storage = mdd.b_ijK( i, j, K );
         // vertical face (e=0, e=1)
         if( e == f && e < 2 )
             return storage[ 0 ];
@@ -113,16 +123,18 @@ public:
         return 0.0;
     }
 
-    // optimized version returning diagonal entries
-    template< typename Vector >
+    template< typename MeshDependentData >
     __cuda_callable__
-    static inline typename Vector::RealType
-    get( const int & e,
-         Vector & storage )
+    static inline typename MeshDependentData::RealType
+    b_ijKe( const MeshDependentData & mdd,
+            const int & i,
+            const int & j,
+            const typename MeshDependentData::IndexType & K,
+            const int & e )
     {
-        tnlAssert( storage.getSize() == size, );
         tnlAssert( e < 4, );
 
+        const typename MeshDependentData::RealType* storage = mdd.b_ijK( i, j, K );
         // vertical face (e=0, e=1)
         if( e < 2 )
             return storage[ 0 ];

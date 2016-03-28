@@ -1,7 +1,5 @@
 #pragma once
 
-#include <core/vectors/tnlSharedVector.h>
-
 #include "MassMatrix.h"
 
 namespace mhfem
@@ -19,12 +17,11 @@ public:
     using DeviceType = typename MeshDependentData::DeviceType;
     using IndexType = typename MeshDependentData::IndexType;
     using MassMatrix = typename MeshDependentData::MassMatrix;
-    using SharedVectorType = tnlSharedVector< RealType, DeviceType, IndexType >;
 
     // NOTE: MeshDependentData cannot be const, because tnlSharedVector expects RealType*, does not work with const RealType*
     __cuda_callable__
     static inline RealType
-    A_ijKEF( MeshDependentData & mdd,
+    A_ijKEF( const MeshDependentData & mdd,
              const int & i,
              const int & j,
              const IndexType & K,
@@ -35,13 +32,28 @@ public:
     {
         RealType value = 0.0;
         for( int xxx = 0; xxx < MeshDependentData::NumberOfEquations; xxx++ ) {
-            SharedVectorType storage( mdd.b_ijK( i, xxx, K ), MassMatrix::size );
-            value -= MassMatrix::get( e, storage ) * mdd.R_ijKe( xxx, j, K, f );
+            value -= MassMatrix::b_ijKe( mdd, i, xxx, K, e ) * mdd.R_ijKe( xxx, j, K, f );
             // TODO: maybe the condition is useless, if we happen to add 0.0, there is no additional overhead involving global memory read
             if( xxx == j && E == F )
-                value += MassMatrix::get( e, storage );
+                value += MassMatrix::b_ijKe( mdd, i, xxx, K, e );
         }
         return value;
+    }
+
+    template< typename FaceVectorType >
+    __cuda_callable__
+    static inline RealType
+    R_ijKe( const MeshDependentData & mdd,
+            const FaceVectorType & faceIndexes,
+            const int & i,
+            const int & j,
+            const IndexType & K,
+            const int & e )
+    {
+        static_assert( FaceVectorType::size == MeshDependentData::FacesPerCell, "" );
+
+        const IndexType & E = faceIndexes[ e ];
+        return mdd.m_upw[ mdd.getDofIndex( i, E ) ] * MassMatrix::b_ijKe( mdd, i, j, K, e ) * mdd.current_tau; // TODO: - u_ijKe
     }
 };
 
@@ -53,12 +65,11 @@ public:
     using DeviceType = typename MeshDependentData::DeviceType;
     using IndexType = typename MeshDependentData::IndexType;
     using MassMatrix = typename MeshDependentData::MassMatrix;
-    using SharedVectorType = tnlSharedVector< RealType, DeviceType, IndexType >;
 
     // NOTE: MeshDependentData cannot be const, because tnlSharedVector expects RealType*, does not work with const RealType*
     __cuda_callable__
     static inline RealType
-    A_ijKEF( MeshDependentData & mdd,
+    A_ijKEF( const MeshDependentData & mdd,
              const int & i,
              const int & j,
              const IndexType & K,
@@ -69,11 +80,30 @@ public:
     {
         RealType value = 0.0;
         for( int xxx = 0; xxx < MeshDependentData::NumberOfEquations; xxx++ ) {
-            SharedVectorType storage( mdd.b_ijK( i, xxx, K ), MassMatrix::size );
-            value += MassMatrix::get( e, f, storage );
-            value -= MassMatrix::get( e, storage ) * mdd.R_ijKe( xxx, j, K, f );
+            value += MassMatrix::b_ijKef( mdd, i, xxx, K, e, f );
+            value -= MassMatrix::b_ijKe( mdd, i, xxx, K, e ) * mdd.R_ijKe( xxx, j, K, f );
         }
         return value;
+    }
+
+    template< typename FaceVectorType >
+    __cuda_callable__
+    static inline RealType
+    R_ijKe( const MeshDependentData & mdd,
+            const FaceVectorType & faceIndexes,
+            const int & i,
+            const int & j,
+            const IndexType & K,
+            const int & e )
+    {
+        static_assert( FaceVectorType::size == MeshDependentData::FacesPerCell, "" );
+
+        RealType R = 0.0;
+        for( int f = 0; f < mdd.FacesPerCell; f++ ) {
+            const IndexType & F = faceIndexes[ f ];
+            R += mdd.m_upw[ mdd.getDofIndex( i, F ) ] * MassMatrix::b_ijKef( i, j, K, f, e ) * mdd.current_tau; // TODO: - u_ijKe
+        }
+        return R;
     }
 };
 

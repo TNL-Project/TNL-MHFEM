@@ -28,8 +28,9 @@ public:
     typedef tnlSharedVector< RealType, DeviceType, IndexType > SharedVectorType;
 
     using MassMatrix = mhfem::MassMatrix< MeshType, MassLumping::enabled >;
+//    using MassMatrix = mhfem::MassMatrix< MeshType, MassLumping::disabled >;
 
-    enum { FacesPerCell = FacesPerCell< MeshType >::value };
+    static constexpr int FacesPerCell = FacesPerCell< MeshType >::value;
 
     // NOTE: children of BaseModel (i.e. ModelImplementation) must implement these methods
 //    bool init( const tnlParameterContainer & parameters,
@@ -119,9 +120,22 @@ public:
         // returns address of the first element of the mass matrix b_ijK
         return &b[ ((K * n + i) * n + j) * MassMatrix::size ];
     }
+    __cuda_callable__
+    const RealType* b_ijK( const int & i, const int & j, const IndexType & K ) const
+    {
+        // returns address of the first element of the mass matrix b_ijK
+        return &b[ ((K * n + i) * n + j) * MassMatrix::size ];
+    }
 
     __cuda_callable__
     RealType & R_ijKe( const int & i, const int & j, const IndexType & K, const int & e )
+    {
+//        return R1[ n * n * K * FacesPerCell + i * n * FacesPerCell + j * FacesPerCell + e ];
+        // stored in column-major orientation with respect to i,j
+        return R1[ n * n * K * FacesPerCell + n * j * FacesPerCell + n * e + i ];
+    }
+    __cuda_callable__
+    const RealType & R_ijKe( const int & i, const int & j, const IndexType & K, const int & e ) const
     {
 //        return R1[ n * n * K * FacesPerCell + i * n * FacesPerCell + j * FacesPerCell + e ];
         // stored in column-major orientation with respect to i,j

@@ -93,8 +93,7 @@ updateLinearSystem( const RealType & time,
         RealType bValue = - static_cast<const ModelImplementation*>(this)->getNeumannValue( mesh, i, E, time ) * getFaceSurface( mesh, E );
         bValue += mdd->w_iKe( i, K, e );
         for( int j = 0; j < MeshDependentDataType::NumberOfEquations; j++ ) {
-            SharedVectorType mass_matrix_storage( mdd->b_ijK( i, j, K ), MeshDependentDataType::MassMatrix::size );
-            bValue += MeshDependentDataType::MassMatrix::get( e, mass_matrix_storage ) * mdd->R_iK( j, K );
+            bValue += MeshDependentDataType::MassMatrix::b_ijKe( *mdd, i, j, K, e ) * mdd->R_iK( j, K );
         }
         b[ indexRow ] = bValue;
 
@@ -103,7 +102,7 @@ updateLinearSystem( const RealType & time,
         // but the getValue method returns only B_KEF
         for( int j = 0; j < MeshDependentDataType::NumberOfEquations; j++ ) {
             for( int f = 0; f < mdd->FacesPerCell; f++ ) {
-                matrixRow.setElement( j * mdd->FacesPerCell + f, mdd->getDofIndex( j, faceIndexes[ f ] ), hybrid::A_ijKEF( *mdd, i, j, K, E, e, faceIndexes[ f ], f ) );
+                matrixRow.setElement( j * mdd->FacesPerCell + f, mdd->getDofIndex( j, faceIndexes[ f ] ), coeff::A_ijKEF( *mdd, i, j, K, E, e, faceIndexes[ f ], f ) );
             }
         }
     }
