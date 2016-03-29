@@ -3,7 +3,11 @@
 #include <functors/tnlFunction.h>
 #include <core/vectors/tnlSharedVector.h>
 
+#include "MassMatrixDependentCode.h"
 #include "../mesh_helpers.h"
+
+namespace mhfem
+{
 
 // TODO: make mdd->getBoundaryMobility a parameter
 //       (it should be possible to upwind any quantity, not just mobility)
@@ -23,6 +27,7 @@ public:
     typedef tnlVector< RealType, DeviceType, IndexType> DofVectorType;
     typedef tnlSharedVector< RealType, DeviceType, IndexType > SharedVectorType;
     typedef tnlStaticVector< MeshDependentDataType::FacesPerCell, IndexType > FaceVectorType;
+    typedef MassMatrixDependentCode< MeshDependentDataType > coeff;
 
     void bind( MeshDependentDataType* mdd,
                BoundaryConditions* bc,
@@ -52,13 +57,7 @@ public:
             }
         }
 
-        RealType result = 0.0;
-        for( int j = 0; j < mdd->NumberOfEquations; j++ ) {
-            // FIXME: depends on mass-lumping
-            result += MeshDependentDataType::MassMatrix::b_ijKe( *mdd, i, j, K, e ) * ( mdd->Z_iK( j, K ) - Z_iF[ mdd->getDofIndex( j, E ) ] );
-        }
-        result += mdd->w_iKe( i, K, e );
-        return result;
+        return coeff::v_iKE( *mdd, Z_iF, faceIndexes, i, K, E, e );
     }
 
     __cuda_callable__
@@ -95,3 +94,5 @@ protected:
     // auxiliary vector shared with other objects
     SharedVectorType Z_iF;
 };
+
+} // namespace mhfem

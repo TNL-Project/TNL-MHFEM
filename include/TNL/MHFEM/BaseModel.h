@@ -84,6 +84,11 @@ public:
     {
         return Z[ i * numberOfCells + K ];
     }
+    __cuda_callable__
+    const RealType & Z_iK( const int & i, const IndexType & K ) const
+    {
+        return Z[ i * numberOfCells + K ];
+    }
 
     // accessors for coefficients
     // TODO: write accessors for m, m_upw, f
@@ -109,6 +114,11 @@ public:
 
     __cuda_callable__
     RealType & w_iKe( const int & i, const IndexType & K, const int & e )
+    {
+        return w[ n * K * FacesPerCell + i * FacesPerCell + e ];
+    }
+    __cuda_callable__
+    const RealType & w_iKe( const int & i, const IndexType & K, const int & e ) const
     {
         return w[ n * K * FacesPerCell + i * FacesPerCell + e ];
     }
