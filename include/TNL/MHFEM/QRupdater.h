@@ -4,9 +4,9 @@
 #include <core/vectors/tnlSharedVector.h>
 
 #include "MassMatrixDependentCode.h"
-#include "../mesh_helpers.h"
-#include "../LU.h"
-#include "../StaticMatrix.h"
+#include "../lib_general/mesh_helpers.h"
+#include "../lib_general/LU.h"
+#include "../lib_general/StaticMatrix.h"
 
 // TODO: bind with mesh-dependent data, e.g. as a subclass or local typedef
 

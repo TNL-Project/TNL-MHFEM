@@ -1,7 +1,7 @@
 #pragma once
 
 #include "BoundaryConditions.h"
-#include "../mesh_helpers.h"
+#include "../lib_general/mesh_helpers.h"
 
 namespace mhfem
 {

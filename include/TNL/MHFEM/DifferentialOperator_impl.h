@@ -2,7 +2,7 @@
 
 #include <mesh/tnlGrid.h>
 #include "DifferentialOperator.h"
-#include "../mesh_helpers.h"
+#include "../lib_general/mesh_helpers.h"
 
 namespace mhfem
 {

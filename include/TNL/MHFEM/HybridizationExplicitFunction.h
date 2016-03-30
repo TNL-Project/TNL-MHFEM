@@ -3,7 +3,7 @@
 #include <functors/tnlFunction.h>
 #include <core/vectors/tnlSharedVector.h>
 
-#include "../mesh_helpers.h"
+#include "../lib_general/mesh_helpers.h"
 
 namespace mhfem
 {

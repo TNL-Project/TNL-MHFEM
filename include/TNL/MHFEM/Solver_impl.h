@@ -4,10 +4,10 @@
 #include <matrices/tnlMatrixSetter.h>
 #include "Solver.h"
 
-#include "../mesh_helpers.h"
-#include "../GenericEnumerator.h"
-#include "../FaceAverageFunction.h"
-#include "../device_ptr.h"
+#include "../lib_general/mesh_helpers.h"
+#include "../lib_general/GenericEnumerator.h"
+#include "../lib_general/FaceAverageFunction.h"
+#include "../lib_general/device_ptr.h"
 
 #include <functors/tnlFunctionEnumerator.h>
 #include <solvers/pde/tnlNoTimeDiscretisation.h>

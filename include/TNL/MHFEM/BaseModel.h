@@ -4,7 +4,7 @@
 #include <core/vectors/tnlSharedVector.h>
 
 #include "MassMatrix.h"
-#include "../FacesPerCell.h"
+#include "../lib_general/FacesPerCell.h"
 
 namespace mhfem
 {
