@@ -90,7 +90,9 @@ public:
             R += getCellVolume( mesh, K ) * mdd.f[ i * K ] * mdd.current_tau;
             for( int e = 0; e < mdd.FacesPerCell; e++ ) {
                 const IndexType & E = faceIndexes[ e ];
-                R -= mdd.m_upw[ mdd.getDofIndex( i, E ) ] * mdd.w_iKe( i, K, e ) * mdd.current_tau;
+                // TODO: simplify updating the w coefficient
+                const RealType w_iKe = mdd.update_w( mesh, i, K, e );
+                R -= mdd.m_upw[ mdd.getDofIndex( i, E ) ] * w_iKe * mdd.current_tau;
             }
             mdd.R_iK( i, K ) = R;
         }
