@@ -56,7 +56,7 @@ updateLinearSystem( const RealType & time,
 
     // indexes of the right (cellIndexes[0]) and left (cellIndexes[1]) cells
     IndexType cellIndexes[ 2 ];
-    int numCells = getCellsForFace( mesh, E, cellIndexes );
+    const int numCells = getCellsForFace( mesh, E, cellIndexes );
 
     tnlAssert( numCells == 2,
                cerr << "assertion numCells == 2 failed" << endl; );
@@ -128,7 +128,7 @@ updateLinearSystem( const RealType & time,
 
     // indexes of the right/top (cellIndexes[0]) and left/bottom (cellIndexes[1]) cells
     IndexType cellIndexes[ 2 ];
-    int numCells = getCellsForFace( mesh, E, cellIndexes );
+    const int numCells = getCellsForFace( mesh, E, cellIndexes );
 
     tnlAssert( numCells == 2,
                cerr << "assertion numCells == 2 failed" << endl; );

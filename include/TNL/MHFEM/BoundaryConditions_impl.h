@@ -66,7 +66,7 @@ updateLinearSystem( const RealType & time,
     else {
         // for boundary faces returns only one valid cell index
         IndexType cellIndexes[ 2 ];
-        int numCells = getCellsForFace( mesh, E, cellIndexes );
+        const int numCells = getCellsForFace( mesh, E, cellIndexes );
         const IndexType & K = cellIndexes[ 0 ];
 
         tnlAssert( numCells == 1,
@@ -78,16 +78,7 @@ updateLinearSystem( const RealType & time,
         // prepare face indexes
         FaceVectorType faceIndexes;
         getFacesForCell( mesh, K, faceIndexes );
-
-        // find local index of face E
-        // TODO: simplify?
-        int e = 0;
-        for( int xxx = 0; xxx < mdd->FacesPerCell; xxx++ ) {
-            if( faceIndexes[ xxx ] == E ) {
-                e = xxx;
-                break;
-            }
-        }
+        const int e = getLocalIndex( faceIndexes, E );
 
         // set right hand side value
         RealType bValue = - static_cast<const ModelImplementation*>(this)->getNeumannValue( mesh, i, E, time ) * getFaceSurface( mesh, E );

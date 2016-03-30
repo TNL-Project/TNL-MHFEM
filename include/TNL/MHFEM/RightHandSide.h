@@ -34,7 +34,7 @@ public:
         const int i = mdd->indexDofToEqno( indexRow );
 
         IndexType cellIndexes[ 2 ];
-        int numCells = getCellsForFace( mesh, E, cellIndexes );
+        const int numCells = getCellsForFace( mesh, E, cellIndexes );
 
         tnlAssert( numCells == 2,
                    cerr << "assertion numCells == 2 failed" << endl; );
@@ -45,16 +45,9 @@ public:
             const IndexType & K = cellIndexes[ xxx ];
 
             // find local index of face E
-            // TODO: simplify
             FaceVectorType faceIndexes;
             getFacesForCell( mesh, K, faceIndexes );
-            int e = 0;
-            for( int xxx = 0; xxx < mdd->FacesPerCell; xxx++ ) {
-                if( faceIndexes[ xxx ] == E ) {
-                    e = xxx;
-                    break;
-                }
-            }
+            const int e = getLocalIndex( faceIndexes, E );
 
             result += mdd->w_iKe( i, K, e );
             for( int j = 0; j < mdd->NumberOfEquations; j++ ) {

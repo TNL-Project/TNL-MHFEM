@@ -46,16 +46,9 @@ public:
                           const IndexType & E ) const
     {
         // find local index of face E
-        // TODO: simplify
         FaceVectorType faceIndexes;
         getFacesForCell( mesh, K, faceIndexes );
-        int e = 0;
-        for( int xxx = 0; xxx < mdd->FacesPerCell; xxx++ ) {
-            if( faceIndexes[ xxx ] == E ) {
-                e = xxx;
-                break;
-            }
-        }
+        const int e = getLocalIndex( faceIndexes, E );
 
         return coeff::v_iKE( *mdd, Z_iF, faceIndexes, i, K, E, e );
     }
@@ -69,7 +62,7 @@ public:
         const int i = mdd->indexDofToEqno( indexRow );
 
         IndexType cellIndexes[ 2 ];
-        int numCells = getCellsForFace( mesh, E, cellIndexes );
+        const int numCells = getCellsForFace( mesh, E, cellIndexes );
         
         // index of the main element (left/bottom if indexFace is inner face, otherwise the element next to the boundary face)
         const IndexType & K1 = cellIndexes[ 0 ];
