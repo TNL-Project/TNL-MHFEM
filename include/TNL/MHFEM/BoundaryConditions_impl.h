@@ -91,6 +91,15 @@ updateLinearSystem( const RealType & time,
 
         // set right hand side value
         RealType bValue = - static_cast<const ModelImplementation*>(this)->getNeumannValue( mesh, i, E, time ) * getFaceSurface( mesh, E );
+
+        if( bValue != 0.0 ) {
+            // TODO: refactoring, general boundary conditions should not depend on mdd->rho()  (it's even assumed incompressible here)
+            if( i == 0 )
+                bValue /= mdd->rho( MeshDependentDataType::wetting, 0.0, 0.0 );
+            else
+                bValue /= mdd->rho( MeshDependentDataType::nonwetting, 0.0, 0.0 );
+        }
+
         bValue += mdd->w_iKe( i, K, e );
         for( int j = 0; j < MeshDependentDataType::NumberOfEquations; j++ ) {
             bValue += MeshDependentDataType::MassMatrix::b_ijKe( *mdd, i, j, K, e ) * mdd->R_iK( j, K );
@@ -98,8 +107,6 @@ updateLinearSystem( const RealType & time,
         b[ indexRow ] = bValue;
 
         // set non-zero elements
-        // FIXME: on the Neumann boundary, either q_KE = \rho_K u_KE or q_KE = \rho_E^upw u_KE,
-        // but the getValue method returns only B_KEF
         for( int j = 0; j < MeshDependentDataType::NumberOfEquations; j++ ) {
             for( int f = 0; f < mdd->FacesPerCell; f++ ) {
                 matrixRow.setElement( j * mdd->FacesPerCell + f, mdd->getDofIndex( j, faceIndexes[ f ] ), coeff::A_ijKEF( *mdd, i, j, K, E, e, faceIndexes[ f ], f ) );
