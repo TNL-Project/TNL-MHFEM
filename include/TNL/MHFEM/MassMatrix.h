@@ -78,7 +78,7 @@ class MassMatrix< tnlGrid< 1, MeshReal, Device, MeshIndex >, MassLumping::disabl
 {
 public:
     typedef tnlGrid< 1, MeshReal, Device, MeshIndex > MeshType;
-    static constexpr MassLumping lumping = MassLumping::enabled;
+    static constexpr MassLumping lumping = MassLumping::disabled;
 
     // number of independent values defining the matrix
     static constexpr int size = 1;
@@ -205,7 +205,7 @@ class MassMatrix< tnlGrid< 2, MeshReal, Device, MeshIndex >, MassLumping::disabl
 {
 public:
     typedef tnlGrid< 2, MeshReal, Device, MeshIndex > MeshType;
-    static constexpr MassLumping lumping = MassLumping::enabled;
+    static constexpr MassLumping lumping = MassLumping::disabled;
 
     // number of independent values defining the matrix
     static constexpr int size = 2;

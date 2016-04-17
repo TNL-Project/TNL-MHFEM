@@ -18,7 +18,6 @@ public:
     using IndexType = typename MeshDependentData::IndexType;
     using MassMatrix = typename MeshDependentData::MassMatrix;
 
-    // NOTE: MeshDependentData cannot be const, because tnlSharedVector expects RealType*, does not work with const RealType*
     __cuda_callable__
     static inline RealType
     A_ijKEF( const MeshDependentData & mdd,
@@ -120,7 +119,7 @@ public:
         RealType R = 0.0;
         for( int f = 0; f < mdd.FacesPerCell; f++ ) {
             const IndexType & F = faceIndexes[ f ];
-            R += mdd.m_upw[ mdd.getDofIndex( i, F ) ] * MassMatrix::b_ijKef( i, j, K, f, e ) * mdd.current_tau; // TODO: - u_ijKe
+            R += mdd.m_upw[ mdd.getDofIndex( i, F ) ] * MassMatrix::b_ijKef( mdd, i, j, K, f, e ) * mdd.current_tau; // TODO: - u_ijKe
         }
         return R;
     }
