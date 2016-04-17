@@ -86,8 +86,8 @@ public:
             for( int j = 0; j < mdd.NumberOfEquations; j++ ) {
                 R += mdd.N_ijK( i, j, K ) * mdd.Z_iK( j, K );
             }
+            R += mdd.f[ i * K ] * mdd.current_tau;
             R *= getCellVolume( mesh, K );
-            R += getCellVolume( mesh, K ) * mdd.f[ i * K ] * mdd.current_tau;
             for( int e = 0; e < mdd.FacesPerCell; e++ ) {
                 const IndexType & E = faceIndexes[ e ];
                 // TODO: simplify updating the w coefficient
