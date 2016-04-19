@@ -18,6 +18,7 @@ public:
     using IndexType = typename MeshDependentData::IndexType;
     using MassMatrix = typename MeshDependentData::MassMatrix;
 
+    // TODO: refactoring, A_ijKEF does not depend on mass-lumping
     __cuda_callable__
     static inline RealType
     A_ijKEF( const MeshDependentData & mdd,
@@ -29,12 +30,9 @@ public:
              const IndexType & F,
              const int & f )
     {
-        RealType value = 0.0;
+        RealType value = MassMatrix::b_ijKef( mdd, i, j, K, e, f );
         for( int xxx = 0; xxx < MeshDependentData::NumberOfEquations; xxx++ ) {
             value -= MassMatrix::b_ijKe( mdd, i, xxx, K, e ) * mdd.R_ijKe( xxx, j, K, f );
-            // TODO: maybe the condition is useless, if we happen to add 0.0, there is no additional overhead involving global memory read
-            if( xxx == j && E == F )
-                value += MassMatrix::b_ijKe( mdd, i, xxx, K, e );
         }
         return value;
     }
@@ -84,7 +82,7 @@ public:
     using IndexType = typename MeshDependentData::IndexType;
     using MassMatrix = typename MeshDependentData::MassMatrix;
 
-    // NOTE: MeshDependentData cannot be const, because tnlSharedVector expects RealType*, does not work with const RealType*
+    // TODO: refactoring, A_ijKEF does not depend on mass-lumping
     __cuda_callable__
     static inline RealType
     A_ijKEF( const MeshDependentData & mdd,
@@ -96,9 +94,8 @@ public:
              const IndexType & F,
              const int & f )
     {
-        RealType value = 0.0;
+        RealType value = MassMatrix::b_ijKef( mdd, i, j, K, e, f );
         for( int xxx = 0; xxx < MeshDependentData::NumberOfEquations; xxx++ ) {
-            value += MassMatrix::b_ijKef( mdd, i, xxx, K, e, f );
             value -= MassMatrix::b_ijKe( mdd, i, xxx, K, e ) * mdd.R_ijKe( xxx, j, K, f );
         }
         return value;
