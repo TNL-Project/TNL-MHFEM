@@ -167,7 +167,7 @@ setInitialCondition( const tnlParameterContainer & parameters,
     // initialize dofVector as an average of mdd.Z on neighbouring cells
     FaceAverageFunctionWithBoundary< MeshType, MeshDependentDataType, BoundaryConditions > faceAverageFunction;
     faceAverageFunction.bind( mddDevicePtr.get(), bcDevicePtr.get(), mdd.Z );
-    tnlFunctionEnumerator< MeshType, FaceAverageFunctionWithBoundary< MeshType, MeshDependentDataType, BoundaryConditions >, DofVectorType > faceAverageEnumerator;
+    tnlFunctionEvaluator< MeshType, FaceAverageFunctionWithBoundary< MeshType, MeshDependentDataType, BoundaryConditions >, DofVectorType > faceAverageEnumerator;
     faceAverageEnumerator.template enumerate< MeshType::Dimensions - 1, MeshDependentDataType::NumberOfEquations >(
             mesh,
             faceAverageFunction,
@@ -378,7 +378,7 @@ postIterate( const RealType & time,
     timer_explicit.start();
     HybridizationExplicitFunction< MeshType, MeshDependentDataType > functionZK;
     functionZK.bind( mddDevicePtr.get(), dofVector );
-    tnlFunctionEnumerator< MeshType, HybridizationExplicitFunction< MeshType, MeshDependentDataType >, DofVectorType > enumeratorZK;
+    tnlFunctionEvaluator< MeshType, HybridizationExplicitFunction< MeshType, MeshDependentDataType >, DofVectorType > enumeratorZK;
     enumeratorZK.template enumerate< MeshType::Dimensions, MeshDependentDataType::NumberOfEquations >(
             mesh,
             functionZK,
@@ -395,7 +395,7 @@ postIterate( const RealType & time,
     timer_upwind.start();
     Upwind< MeshType, MeshDependentDataType, BoundaryConditions > upwindFunction;
     upwindFunction.bind( mddDevicePtr.get(), bcDevicePtr.get(), dofVector );
-    tnlFunctionEnumerator< MeshType, Upwind< MeshType, MeshDependentDataType, BoundaryConditions >, DofVectorType > upwindEnumerator;
+    tnlFunctionEvaluator< MeshType, Upwind< MeshType, MeshDependentDataType, BoundaryConditions >, DofVectorType > upwindEnumerator;
     upwindEnumerator.template enumerate< MeshType::Dimensions - 1, MeshDependentDataType::NumberOfEquations >(
             mesh,
             upwindFunction,
@@ -405,7 +405,7 @@ postIterate( const RealType & time,
     // TODO
 //    FaceAverageFunction< MeshType, RealType, IndexType > faceAverageFunction;
 //    faceAverageFunction.bind( mdd.m );
-//    tnlFunctionEnumerator< MeshType, FaceAverageFunction< MeshType, RealType, IndexType >, DofVectorType > faceAverageEnumerator;
+//    tnlFunctionEvaluator< MeshType, FaceAverageFunction< MeshType, RealType, IndexType >, DofVectorType > faceAverageEnumerator;
 //    faceAverageEnumerator.template enumerate< MeshType::Dimensions - 1, MeshDependentDataType::NumberOfEquations >(
 //            mesh,
 //            faceAverageFunction,

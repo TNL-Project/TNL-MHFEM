@@ -1,6 +1,6 @@
 #pragma once
 
-#include <functors/tnlFunction.h>
+#include <functions/tnlDomain.h>
 #include <core/vectors/tnlSharedVector.h>
 
 #include "MassMatrixDependentCode.h"
@@ -15,7 +15,7 @@ template< typename Mesh,
           typename MeshDependentData,
           typename BoundaryConditions >
 class Upwind
-    : public tnlFunction< tnlGeneralFunction >
+    : public tnlDomain< Mesh::Dimensions - 1, MeshDomain >
 {
 public:
     typedef Mesh MeshType;

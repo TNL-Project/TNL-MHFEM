@@ -1,6 +1,6 @@
 #pragma once
 
-#include <functors/tnlFunction.h>
+#include <functions/tnlDomain.h>
 #include <core/vectors/tnlSharedVector.h>
 
 #include "../lib_general/mesh_helpers.h"
@@ -11,7 +11,7 @@ namespace mhfem
 template< typename Mesh,
           typename MeshDependentData >
 class HybridizationExplicitFunction
-    : public tnlFunction< tnlGeneralFunction >
+    : public tnlDomain< Mesh::Dimensions, MeshDomain >
 {
 public:
     typedef Mesh MeshType;

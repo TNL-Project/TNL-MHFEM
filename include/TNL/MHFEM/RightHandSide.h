@@ -1,6 +1,6 @@
 #pragma once
 
-#include <functors/tnlFunction.h>
+#include <functions/tnlDomain.h>
 
 #include "../lib_general/mesh_helpers.h"
 
@@ -10,7 +10,7 @@ namespace mhfem
 template< typename Mesh,
           typename MeshDependentData >
 class RightHandSide
-    : public tnlFunction< tnlGeneralFunction >
+    : public tnlDomain< Mesh::Dimensions - 1, MeshDomain >
 {
 public:
     typedef Mesh MeshType;
