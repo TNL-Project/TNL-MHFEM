@@ -51,6 +51,7 @@ public:
 
 //protected:
 
+    // TODO: split into update_b, update_RKF, update_RK for better parallelism
     struct update_R
     {
         template< int EntityDimension >

@@ -360,6 +360,7 @@ postIterate( const RealType & time,
              DofVectorType & dofVector,
              MeshDependentDataType & mdd )
 {
+    // TODO: copying the objects to GPU takes as long as the rest of this method!
     device_ptr< MeshDependentDataType, DeviceType > mddDevicePtr( mdd );
     device_ptr< BoundaryConditions, DeviceType > bcDevicePtr( boundaryConditions );
 
