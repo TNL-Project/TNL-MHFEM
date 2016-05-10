@@ -185,8 +185,9 @@ protected:
     IndexType numberOfFaces = 0;
 
 private:
+    // FIXME: n can't be static constexpr because according to nvcc, ModelImplementation is an incomplete type (works in GCC though)
     const int n = ModelImplementation::NumberOfEquations;
-    const int d = MeshType::Dimensions;
+    static constexpr int d = MeshType::Dimensions;
 };
 
 } // namespace mhfem
