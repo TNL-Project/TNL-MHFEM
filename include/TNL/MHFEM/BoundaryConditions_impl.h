@@ -83,14 +83,6 @@ updateLinearSystem( const RealType & time,
         // set right hand side value
         RealType bValue = - static_cast<const ModelImplementation*>(this)->getNeumannValue( mesh, i, E, time ) * getFaceSurface( mesh, E );
 
-        if( bValue != 0.0 ) {
-            // TODO: refactoring, general boundary conditions should not depend on mdd->rho()  (it's even assumed incompressible here)
-            if( i == 0 )
-                bValue /= mdd->rho( MeshDependentDataType::wetting, 0.0, 0.0 );
-            else
-                bValue /= mdd->rho( MeshDependentDataType::nonwetting, 0.0, 0.0 );
-        }
-
         bValue += mdd->w_iKe( i, K, e );
         for( int j = 0; j < MeshDependentDataType::NumberOfEquations; j++ ) {
             bValue += MeshDependentDataType::MassMatrix::b_ijKe( *mdd, i, j, K, e ) * mdd->R_iK( j, K );
