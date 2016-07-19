@@ -208,7 +208,16 @@ setupLinearSystem( const MeshType & mesh,
             differentialOperator,
             boundaryConditions,
             rowsLengths );
-    matrix.setDimensions( dofs, dofs );
+
+    // sanity check (doesn't happen if the traverser works, but this is pretty
+    // hard to debug and the check does not cost us much in initialization)
+    if( rowsLengths.min() <= 0 ) {
+        cerr << "Attempted to set invalid rowsLengths vector:" << endl << rowsLengths << endl;
+        return false;
+    }
+
+    if( ! matrix.setDimensions( dofs, dofs ) )
+        return false;
     if( ! matrix.setCompressedRowsLengths( rowsLengths ) )
         return false;
     return true;
