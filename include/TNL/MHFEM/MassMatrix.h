@@ -305,9 +305,9 @@ public:
         // value for n_x faces (e=0, e=1)
         storage[ 0 ] = 2 * mdd.D_ijK( i, j, K ) / ( mesh.getHx() * mesh.getHy() * mesh.getHz() ) * mesh.getHySquare() * mesh.getHzSquare();
         // value for n_y faces (e=2, e=3)
-        storage[ 0 ] = 2 * mdd.D_ijK( i, j, K ) / ( mesh.getHx() * mesh.getHy() * mesh.getHz() ) * mesh.getHxSquare() * mesh.getHzSquare();
+        storage[ 1 ] = 2 * mdd.D_ijK( i, j, K ) / ( mesh.getHx() * mesh.getHy() * mesh.getHz() ) * mesh.getHxSquare() * mesh.getHzSquare();
         // value for n_z faces (e=4, e=5)
-        storage[ 0 ] = 2 * mdd.D_ijK( i, j, K ) / ( mesh.getHx() * mesh.getHy() * mesh.getHz() ) * mesh.getHxSquare() * mesh.getHySquare();
+        storage[ 2 ] = 2 * mdd.D_ijK( i, j, K ) / ( mesh.getHx() * mesh.getHy() * mesh.getHz() ) * mesh.getHxSquare() * mesh.getHySquare();
     }
 
     template< typename MeshDependentData >
@@ -382,9 +382,9 @@ public:
         // value for n_x faces (e=0, e=1)
         storage[ 0 ] = 2 * mdd.D_ijK( i, j, K ) / ( mesh.getHx() * mesh.getHy() * mesh.getHz() ) * mesh.getHySquare() * mesh.getHzSquare();
         // value for n_y faces (e=2, e=3)
-        storage[ 0 ] = 2 * mdd.D_ijK( i, j, K ) / ( mesh.getHx() * mesh.getHy() * mesh.getHz() ) * mesh.getHxSquare() * mesh.getHzSquare();
+        storage[ 1 ] = 2 * mdd.D_ijK( i, j, K ) / ( mesh.getHx() * mesh.getHy() * mesh.getHz() ) * mesh.getHxSquare() * mesh.getHzSquare();
         // value for n_z faces (e=4, e=5)
-        storage[ 0 ] = 2 * mdd.D_ijK( i, j, K ) / ( mesh.getHx() * mesh.getHy() * mesh.getHz() ) * mesh.getHxSquare() * mesh.getHySquare();
+        storage[ 2 ] = 2 * mdd.D_ijK( i, j, K ) / ( mesh.getHx() * mesh.getHy() * mesh.getHz() ) * mesh.getHxSquare() * mesh.getHySquare();
     }
 
     template< typename MeshDependentData >
