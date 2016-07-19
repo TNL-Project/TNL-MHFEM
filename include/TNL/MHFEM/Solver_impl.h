@@ -2,15 +2,15 @@
 
 #include <core/mfilename.h>
 #include <matrices/tnlMatrixSetter.h>
-#include "Solver.h"
+#include <functors/tnlFunctionEnumerator.h>
+#include <solvers/pde/tnlNoTimeDiscretisation.h>
 
 #include "../lib_general/mesh_helpers.h"
 #include "../lib_general/GenericEnumerator.h"
 #include "../lib_general/FaceAverageFunction.h"
 #include "../lib_general/device_ptr.h"
 
-#include <functors/tnlFunctionEnumerator.h>
-#include <solvers/pde/tnlNoTimeDiscretisation.h>
+#include "Solver.h"
 #include "QRupdater.h"
 #include "HybridizationExplicitFunction.h"
 #include "Upwind.h"

@@ -1,6 +1,5 @@
 #pragma once
 
-#include <mesh/tnlGrid.h>
 #include <core/vectors/tnlSharedVector.h>
 
 #include "MassMatrixDependentCode.h"
