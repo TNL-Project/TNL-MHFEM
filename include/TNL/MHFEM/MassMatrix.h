@@ -1,6 +1,6 @@
 #pragma once
 
-#include <mesh/tnlGrid.h>
+#include <TNL/Meshes/Grid.h>
 
 #include "../lib_general/FacesPerCell.h"
 
@@ -19,10 +19,10 @@ class MassMatrix
 // NOTE: everything is only for D isotropic (represented by scalar value)
 
 template< typename MeshReal, typename Device, typename MeshIndex >
-class MassMatrix< tnlGrid< 1, MeshReal, Device, MeshIndex >, MassLumping::enabled >
+class MassMatrix< TNL::Meshes::Grid< 1, MeshReal, Device, MeshIndex >, MassLumping::enabled >
 {
 public:
-    typedef tnlGrid< 1, MeshReal, Device, MeshIndex > MeshType;
+    typedef TNL::Meshes::Grid< 1, MeshReal, Device, MeshIndex > MeshType;
     static constexpr MassLumping lumping = MassLumping::enabled;
 
     // number of independent values defining the matrix
@@ -76,10 +76,10 @@ public:
 };
 
 template< typename MeshReal, typename Device, typename MeshIndex >
-class MassMatrix< tnlGrid< 1, MeshReal, Device, MeshIndex >, MassLumping::disabled >
+class MassMatrix< TNL::Meshes::Grid< 1, MeshReal, Device, MeshIndex >, MassLumping::disabled >
 {
 public:
-    typedef tnlGrid< 1, MeshReal, Device, MeshIndex > MeshType;
+    typedef TNL::Meshes::Grid< 1, MeshReal, Device, MeshIndex > MeshType;
     static constexpr MassLumping lumping = MassLumping::disabled;
 
     // number of independent values defining the matrix
@@ -134,10 +134,10 @@ public:
 
 
 template< typename MeshReal, typename Device, typename MeshIndex >
-class MassMatrix< tnlGrid< 2, MeshReal, Device, MeshIndex >, MassLumping::enabled >
+class MassMatrix< TNL::Meshes::Grid< 2, MeshReal, Device, MeshIndex >, MassLumping::enabled >
 {
 public:
-    typedef tnlGrid< 2, MeshReal, Device, MeshIndex > MeshType;
+    typedef TNL::Meshes::Grid< 2, MeshReal, Device, MeshIndex > MeshType;
     static constexpr MassLumping lumping = MassLumping::enabled;
 
     // number of independent values defining the matrix
@@ -203,10 +203,10 @@ public:
 };
 
 template< typename MeshReal, typename Device, typename MeshIndex >
-class MassMatrix< tnlGrid< 2, MeshReal, Device, MeshIndex >, MassLumping::disabled >
+class MassMatrix< TNL::Meshes::Grid< 2, MeshReal, Device, MeshIndex >, MassLumping::disabled >
 {
 public:
-    typedef tnlGrid< 2, MeshReal, Device, MeshIndex > MeshType;
+    typedef TNL::Meshes::Grid< 2, MeshReal, Device, MeshIndex > MeshType;
     static constexpr MassLumping lumping = MassLumping::disabled;
 
     // number of independent values defining the matrix
@@ -283,10 +283,10 @@ public:
 
 
 template< typename MeshReal, typename Device, typename MeshIndex >
-class MassMatrix< tnlGrid< 3, MeshReal, Device, MeshIndex >, MassLumping::enabled >
+class MassMatrix< TNL::Meshes::Grid< 3, MeshReal, Device, MeshIndex >, MassLumping::enabled >
 {
 public:
-    typedef tnlGrid< 3, MeshReal, Device, MeshIndex > MeshType;
+    typedef TNL::Meshes::Grid< 3, MeshReal, Device, MeshIndex > MeshType;
     static constexpr MassLumping lumping = MassLumping::enabled;
 
     // number of independent values defining the matrix
@@ -360,10 +360,10 @@ public:
 };
 
 template< typename MeshReal, typename Device, typename MeshIndex >
-class MassMatrix< tnlGrid< 3, MeshReal, Device, MeshIndex >, MassLumping::disabled >
+class MassMatrix< TNL::Meshes::Grid< 3, MeshReal, Device, MeshIndex >, MassLumping::disabled >
 {
 public:
-    typedef tnlGrid< 3, MeshReal, Device, MeshIndex > MeshType;
+    typedef TNL::Meshes::Grid< 3, MeshReal, Device, MeshIndex > MeshType;
     static constexpr MassLumping lumping = MassLumping::disabled;
 
     // number of independent values defining the matrix

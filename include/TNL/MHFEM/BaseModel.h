@@ -1,7 +1,7 @@
 #pragma once
 
-#include <core/tnlObject.h>
-#include <core/vectors/tnlSharedVector.h>
+#include <TNL/Object.h>
+#include <TNL/Containers/SharedVector.h>
 
 #include "MassMatrix.h"
 #include "../lib_general/FacesPerCell.h"
@@ -14,7 +14,7 @@ template< typename Mesh,
           typename Index,
           typename ModelImplementation >
 class BaseModel :
-    public tnlObject
+    public TNL::Object
 {
 public:
     // TODO: for some arcane reason 'using ModelImplementation::MeshType' does not work, but 'IndexType n = ModelImplementation::NumberOfEquations' does
@@ -24,8 +24,8 @@ public:
     typedef Real RealType;
     typedef typename MeshType::DeviceType DeviceType;
     typedef Index IndexType;
-    typedef tnlVector< RealType, DeviceType, IndexType > DofVectorType;
-    typedef tnlSharedVector< RealType, DeviceType, IndexType > SharedVectorType;
+    typedef TNL::Containers::Vector< RealType, DeviceType, IndexType > DofVectorType;
+    typedef TNL::Containers::SharedVector< RealType, DeviceType, IndexType > SharedVectorType;
 
     using MassMatrix = mhfem::MassMatrix< MeshType, MassLumping::enabled >;
 //    using MassMatrix = mhfem::MassMatrix< MeshType, MassLumping::disabled >;
@@ -187,7 +187,7 @@ protected:
 private:
     // FIXME: n can't be static constexpr because according to nvcc, ModelImplementation is an incomplete type (works in GCC though)
     const int n = ModelImplementation::NumberOfEquations;
-    static constexpr int d = MeshType::Dimensions;
+    static constexpr int d = MeshType::meshDimensions;
 };
 
 } // namespace mhfem

@@ -1,6 +1,6 @@
 #pragma once
 
-#include <mesh/tnlGrid.h>
+#include <TNL/Meshes/Grid.h>
 #include "DifferentialOperator.h"
 #include "../lib_general/mesh_helpers.h"
 
@@ -12,7 +12,7 @@ template< typename MeshReal,
           typename MeshIndex,
           typename MeshDependentData >
 void
-DifferentialOperator< tnlGrid< 1, MeshReal, Device, MeshIndex >, MeshDependentData >::
+DifferentialOperator< TNL::Meshes::Grid< 1, MeshReal, Device, MeshIndex >, MeshDependentData >::
 bindMeshDependentData( MeshDependentDataType* mdd )
 {
     this->mdd = mdd;
@@ -24,7 +24,7 @@ template< typename MeshReal,
           typename MeshDependentData >
 __cuda_callable__
 typename MeshDependentData::IndexType
-DifferentialOperator< tnlGrid< 1, MeshReal, Device, MeshIndex >, MeshDependentData >::
+DifferentialOperator< TNL::Meshes::Grid< 1, MeshReal, Device, MeshIndex >, MeshDependentData >::
 getLinearSystemRowLength( const MeshType & mesh,
                           const IndexType & indexRow,
                           const CoordinatesType & coordinates ) const
@@ -39,7 +39,7 @@ template< typename MeshReal,
     template< typename Vector, typename Matrix >
 __cuda_callable__
 void
-DifferentialOperator< tnlGrid< 1, MeshReal, Device, MeshIndex >, MeshDependentData >::
+DifferentialOperator< TNL::Meshes::Grid< 1, MeshReal, Device, MeshIndex >, MeshDependentData >::
 updateLinearSystem( const RealType & time,
                     const RealType & tau,
                     const MeshType & mesh,
@@ -84,7 +84,7 @@ template< typename MeshReal,
           typename MeshIndex,
           typename MeshDependentData >
 void
-DifferentialOperator< tnlGrid< 2, MeshReal, Device, MeshIndex >, MeshDependentData >::
+DifferentialOperator< TNL::Meshes::Grid< 2, MeshReal, Device, MeshIndex >, MeshDependentData >::
 bindMeshDependentData( MeshDependentDataType* mdd )
 {
     this->mdd = mdd;
@@ -96,7 +96,7 @@ template< typename MeshReal,
           typename MeshDependentData >
 __cuda_callable__
 typename MeshDependentData::IndexType
-DifferentialOperator< tnlGrid< 2, MeshReal, Device, MeshIndex >, MeshDependentData >::
+DifferentialOperator< TNL::Meshes::Grid< 2, MeshReal, Device, MeshIndex >, MeshDependentData >::
 getLinearSystemRowLength( const MeshType & mesh,
                           const IndexType & indexRow,
                           const CoordinatesType & coordinates ) const
@@ -111,7 +111,7 @@ template< typename MeshReal,
     template< typename Vector, typename Matrix >
 __cuda_callable__
 void
-DifferentialOperator< tnlGrid< 2, MeshReal, Device, MeshIndex >, MeshDependentData >::
+DifferentialOperator< TNL::Meshes::Grid< 2, MeshReal, Device, MeshIndex >, MeshDependentData >::
 updateLinearSystem( const RealType & time,
                     const RealType & tau,
                     const MeshType & mesh,
@@ -185,7 +185,7 @@ template< typename MeshReal,
           typename MeshIndex,
           typename MeshDependentData >
 void
-DifferentialOperator< tnlGrid< 3, MeshReal, Device, MeshIndex >, MeshDependentData >::
+DifferentialOperator< TNL::Meshes::Grid< 3, MeshReal, Device, MeshIndex >, MeshDependentData >::
 bindMeshDependentData( MeshDependentDataType* mdd )
 {
     this->mdd = mdd;
@@ -197,7 +197,7 @@ template< typename MeshReal,
           typename MeshDependentData >
 __cuda_callable__
 typename MeshDependentData::IndexType
-DifferentialOperator< tnlGrid< 3, MeshReal, Device, MeshIndex >, MeshDependentData >::
+DifferentialOperator< TNL::Meshes::Grid< 3, MeshReal, Device, MeshIndex >, MeshDependentData >::
 getLinearSystemRowLength( const MeshType & mesh,
                           const IndexType & indexRow,
                           const CoordinatesType & coordinates ) const
@@ -212,7 +212,7 @@ template< typename MeshReal,
     template< typename Vector, typename Matrix >
 __cuda_callable__
 void
-DifferentialOperator< tnlGrid< 3, MeshReal, Device, MeshIndex >, MeshDependentData >::
+DifferentialOperator< TNL::Meshes::Grid< 3, MeshReal, Device, MeshIndex >, MeshDependentData >::
 updateLinearSystem( const RealType & time,
                     const RealType & tau,
                     const MeshType & mesh,

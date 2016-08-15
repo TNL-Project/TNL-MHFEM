@@ -1,7 +1,7 @@
 #pragma once
 
-#include <functions/tnlDomain.h>
-#include <core/vectors/tnlSharedVector.h>
+#include <TNL/Functions/Domain.h>
+#include <TNL/Containers/SharedVector.h>
 
 #include "MassMatrixDependentCode.h"
 #include "../lib_general/mesh_helpers.h"
@@ -15,7 +15,7 @@ template< typename Mesh,
           typename MeshDependentData,
           typename BoundaryConditions >
 class Upwind
-    : public tnlDomain< Mesh::Dimensions - 1, MeshDomain >
+    : public TNL::Functions::Domain< Mesh::meshDimensions - 1, TNL::Functions::MeshDomain >
 {
 public:
     typedef Mesh MeshType;
@@ -24,9 +24,9 @@ public:
     typedef typename MeshDependentDataType::RealType RealType;
     typedef typename MeshDependentDataType::DeviceType DeviceType;
     typedef typename MeshDependentDataType::IndexType IndexType;
-    typedef tnlVector< RealType, DeviceType, IndexType> DofVectorType;
-    typedef tnlSharedVector< RealType, DeviceType, IndexType > SharedVectorType;
-    typedef tnlStaticVector< MeshDependentDataType::FacesPerCell, IndexType > FaceVectorType;
+    typedef TNL::Containers::Vector< RealType, DeviceType, IndexType> DofVectorType;
+    typedef TNL::Containers::SharedVector< RealType, DeviceType, IndexType > SharedVectorType;
+    typedef TNL::Containers::StaticVector< MeshDependentDataType::FacesPerCell, IndexType > FaceVectorType;
     typedef MassMatrixDependentCode< MeshDependentDataType > coeff;
 
     void bind( MeshDependentDataType* mdd,

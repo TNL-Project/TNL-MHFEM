@@ -1,7 +1,7 @@
 #pragma once
 
-#include <core/vectors/tnlVector.h>
-#include <core/vectors/tnlStaticVector.h>
+#include <TNL/Containers/Vector.h>
+#include <TNL/Containers/StaticVector.h>
 
 #include "MassMatrixDependentCode.h"
 
@@ -20,8 +20,8 @@ public:
     typedef typename MeshType::DeviceType DeviceType;
     typedef typename MeshDependentDataType::RealType RealType;
     typedef typename MeshDependentDataType::IndexType IndexType;
-    typedef tnlVector< bool, DeviceType, IndexType > TagVectorType;
-    typedef tnlStaticVector< MeshDependentDataType::FacesPerCell, IndexType > FaceVectorType;
+    typedef TNL::Containers::Vector< bool, DeviceType, IndexType > TagVectorType;
+    typedef TNL::Containers::StaticVector< MeshDependentDataType::FacesPerCell, IndexType > FaceVectorType;
 
     // NOTE: children of BoundaryConditions (i.e. ModelImplementation) must implement these methods
 //    bool

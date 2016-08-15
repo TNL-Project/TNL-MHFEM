@@ -14,8 +14,8 @@ bool
 BaseModel< Mesh, Real, Index, ModelImplementation >::
 allocate( const MeshType & mesh )
 {
-    numberOfCells = mesh.getNumberOfCells();
-    numberOfFaces = FacesCounter< MeshType >::getNumberOfFaces( mesh );
+    numberOfCells = mesh.template getEntitiesCount< typename Mesh::Cell >();
+    numberOfFaces = mesh.template getEntitiesCount< typename Mesh::Face >();
 
     if( ! Z.setSize( n * numberOfCells ) )
         return false;

@@ -1,6 +1,6 @@
 #pragma once
 
-#include <core/vectors/tnlSharedVector.h>
+#include <TNL/Containers/SharedVector.h>
 
 #include "MassMatrixDependentCode.h"
 #include "../lib_general/mesh_helpers.h"
@@ -23,9 +23,9 @@ public:
     typedef typename MeshDependentDataType::RealType RealType;
     typedef typename MeshDependentData::DeviceType DeviceType;
     typedef typename MeshDependentDataType::IndexType IndexType;
-    typedef tnlVector< RealType, DeviceType, IndexType> DofVectorType;
-    typedef tnlSharedVector< RealType, DeviceType, IndexType > SharedVectorType;
-    typedef tnlStaticVector< MeshDependentDataType::FacesPerCell, IndexType > FaceVectorType;
+    typedef TNL::Containers::Vector< RealType, DeviceType, IndexType> DofVectorType;
+    typedef TNL::Containers::SharedVector< RealType, DeviceType, IndexType > SharedVectorType;
+    typedef TNL::Containers::StaticVector< MeshDependentDataType::FacesPerCell, IndexType > FaceVectorType;
     typedef StaticMatrix< MeshDependentDataType::NumberOfEquations, MeshDependentDataType::NumberOfEquations, RealType > LocalMatrixType;
     typedef typename MeshDependentDataType::MassMatrix MassMatrix;
     typedef MassMatrixDependentCode< MeshDependentDataType > coeff;
@@ -60,7 +60,7 @@ public:
                                    const IndexType & index,
                                    const CoordinatesType & coordinates )
         {
-            static_assert( EntityDimension == MeshType::Dimensions, "wrong EntityDimension in QRupdater::processEntity");
+            static_assert( EntityDimension == MeshType::meshDimensions, "wrong EntityDimension in QRupdater::processEntity");
 
             const IndexType cells = mesh.getNumberOfCells();
             const IndexType K = index % cells;
@@ -107,7 +107,7 @@ public:
                                    const IndexType & K,
                                    const CoordinatesType & coordinates )
         {
-            static_assert( EntityDimension == MeshType::Dimensions, "wrong EntityDimension in QRupdater::processEntity");
+            static_assert( EntityDimension == MeshType::meshDimensions, "wrong EntityDimension in QRupdater::processEntity");
 
             // get face indexes
             FaceVectorType faceIndexes;

@@ -1,7 +1,8 @@
 #pragma once
 
-#include <functions/tnlDomain.h>
-#include <core/vectors/tnlSharedVector.h>
+#include <TNL/Functions/Domain.h>
+#include <TNL/Containers/SharedVector.h>
+#include <TNL/Containers/StaticVector.h>
 
 #include "../lib_general/mesh_helpers.h"
 
@@ -11,7 +12,7 @@ namespace mhfem
 template< typename Mesh,
           typename MeshDependentData >
 class HybridizationExplicitFunction
-    : public tnlDomain< Mesh::Dimensions, MeshDomain >
+    : public TNL::Functions::Domain< Mesh::meshDimensions, TNL::Functions::MeshDomain >
 {
 public:
     typedef Mesh MeshType;
@@ -19,9 +20,9 @@ public:
     typedef typename MeshType::DeviceType DeviceType;
     typedef typename MeshDependentDataType::RealType RealType;
     typedef typename MeshDependentDataType::IndexType IndexType;
-    typedef tnlVector< RealType, DeviceType, IndexType> DofVectorType;
-    typedef tnlSharedVector< RealType, DeviceType, IndexType > SharedVectorType;
-    typedef tnlStaticVector< MeshDependentDataType::FacesPerCell, IndexType > FaceVectorType;
+    typedef TNL::Containers::Vector< RealType, DeviceType, IndexType> DofVectorType;
+    typedef TNL::Containers::SharedVector< RealType, DeviceType, IndexType > SharedVectorType;
+    typedef TNL::Containers::StaticVector< MeshDependentDataType::FacesPerCell, IndexType > FaceVectorType;
 
     void bind( MeshDependentDataType* mdd,
                DofVectorType & dofVector )

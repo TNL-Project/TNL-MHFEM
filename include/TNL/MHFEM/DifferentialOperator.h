@@ -1,6 +1,6 @@
 #pragma once
 
-#include <mesh/tnlGrid.h>
+#include <TNL/Meshes/Grid.h>
 
 #include "MassMatrixDependentCode.h"
 
@@ -17,16 +17,16 @@ template< typename MeshReal,
           typename Device,
           typename MeshIndex,
           typename MeshDependentData >
-class DifferentialOperator< tnlGrid< 1, MeshReal, Device, MeshIndex >, MeshDependentData >
+class DifferentialOperator< TNL::Meshes::Grid< 1, MeshReal, Device, MeshIndex >, MeshDependentData >
 {
 public:
-    typedef tnlGrid< 1, MeshReal, Device, MeshIndex > MeshType;
+    typedef TNL::Meshes::Grid< 1, MeshReal, Device, MeshIndex > MeshType;
     typedef typename MeshType::CoordinatesType CoordinatesType;
     typedef MeshDependentData MeshDependentDataType;
     typedef Device DeviceType;
     typedef typename MeshDependentDataType::RealType RealType;
     typedef typename MeshDependentDataType::IndexType IndexType;
-    typedef tnlStaticVector< MeshDependentDataType::FacesPerCell, IndexType > FaceVectorType;
+    typedef TNL::Containers::StaticVector< MeshDependentDataType::FacesPerCell, IndexType > FaceVectorType;
 
     void bindMeshDependentData( MeshDependentDataType* mdd );
 
@@ -55,16 +55,16 @@ template< typename MeshReal,
           typename Device,
           typename MeshIndex,
           typename MeshDependentData >
-class DifferentialOperator< tnlGrid< 2, MeshReal, Device, MeshIndex >, MeshDependentData >
+class DifferentialOperator< TNL::Meshes::Grid< 2, MeshReal, Device, MeshIndex >, MeshDependentData >
 {
 public:
-    typedef tnlGrid< 2, MeshReal, Device, MeshIndex > MeshType;
+    typedef TNL::Meshes::Grid< 2, MeshReal, Device, MeshIndex > MeshType;
     typedef typename MeshType::CoordinatesType CoordinatesType;
     typedef MeshDependentData MeshDependentDataType;
     typedef Device DeviceType;
     typedef typename MeshDependentDataType::RealType RealType;
     typedef typename MeshDependentDataType::IndexType IndexType;
-    typedef tnlStaticVector< MeshDependentDataType::FacesPerCell, IndexType > FaceVectorType;
+    typedef TNL::Containers::StaticVector< MeshDependentDataType::FacesPerCell, IndexType > FaceVectorType;
 
     void bindMeshDependentData( MeshDependentDataType* mdd );
 
@@ -93,16 +93,16 @@ template< typename MeshReal,
           typename Device,
           typename MeshIndex,
           typename MeshDependentData >
-class DifferentialOperator< tnlGrid< 3, MeshReal, Device, MeshIndex >, MeshDependentData >
+class DifferentialOperator< TNL::Meshes::Grid< 3, MeshReal, Device, MeshIndex >, MeshDependentData >
 {
 public:
-    typedef tnlGrid< 3, MeshReal, Device, MeshIndex > MeshType;
+    typedef TNL::Meshes::Grid< 3, MeshReal, Device, MeshIndex > MeshType;
     typedef typename MeshType::CoordinatesType CoordinatesType;
     typedef MeshDependentData MeshDependentDataType;
     typedef Device DeviceType;
     typedef typename MeshDependentDataType::RealType RealType;
     typedef typename MeshDependentDataType::IndexType IndexType;
-    typedef tnlStaticVector< MeshDependentDataType::FacesPerCell, IndexType > FaceVectorType;
+    typedef TNL::Containers::StaticVector< MeshDependentDataType::FacesPerCell, IndexType > FaceVectorType;
 
     void bindMeshDependentData( MeshDependentDataType* mdd );
 

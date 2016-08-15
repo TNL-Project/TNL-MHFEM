@@ -1,6 +1,6 @@
 #pragma once
 
-#include <functions/tnlDomain.h>
+#include <TNL/Functions/Domain.h>
 
 #include "../lib_general/mesh_helpers.h"
 
@@ -10,7 +10,7 @@ namespace mhfem
 template< typename Mesh,
           typename MeshDependentData >
 class RightHandSide
-    : public tnlDomain< Mesh::Dimensions - 1, MeshDomain >
+    : public TNL::Functions::Domain< Mesh::meshDimensions - 1, TNL::Functions::MeshDomain >
 {
 public:
     typedef Mesh MeshType;
@@ -18,7 +18,7 @@ public:
     typedef typename MeshType::DeviceType DeviceType;
     typedef typename MeshDependentDataType::RealType RealType;
     typedef typename MeshDependentDataType::IndexType IndexType;
-    typedef tnlStaticVector< MeshDependentDataType::FacesPerCell, IndexType > FaceVectorType;
+    typedef TNL::Containers::StaticVector< MeshDependentDataType::FacesPerCell, IndexType > FaceVectorType;
 
     void bindMeshDependentData( MeshDependentDataType* mdd )
     {

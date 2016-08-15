@@ -1,12 +1,14 @@
 #pragma once
 
-#include <solvers/tnlSolverMonitor.h>
-#include <core/tnlLogger.h>
-#include <core/vectors/tnlVector.h>
-#include <core/vectors/tnlSharedVector.h>
-#include <solvers/pde/tnlLinearSystemAssembler.h>
-#include <problems/tnlPDEProblem.h>
-#include <core/tnlTimerRT.h>
+#include <TNL/Solvers/SolverMonitor.h>
+#include <TNL/Logger.h>
+#include <TNL/Containers/Vector.h>
+#include <TNL/Containers/SharedVector.h>
+#include <TNL/SharedPointer.h>
+#include <TNL/Solvers/PDE/LinearSystemAssembler.h>
+#include <TNL/Problems/PDEProblem.h>
+#include <TNL/Functions/MeshFunction.h>
+#include <TNL/TimerRT.h>
 
 namespace mhfem
 {
@@ -18,92 +20,101 @@ template< typename Mesh,
           typename RightHandSide,
           typename Matrix >
 class Solver :
-    public tnlPDEProblem< Mesh,
-                          typename MeshDependentData::RealType,
-                          typename MeshDependentData::DeviceType,
-                          typename MeshDependentData::IndexType >
+    public TNL::Problems::PDEProblem< Mesh,
+                                      typename MeshDependentData::RealType,
+                                      typename MeshDependentData::DeviceType,
+                                      typename MeshDependentData::IndexType >
 {
 public:
+    typedef typename MeshDependentData::RealType RealType;
+    typedef typename MeshDependentData::DeviceType DeviceType;
+    typedef typename MeshDependentData::IndexType IndexType;
+
     typedef Mesh MeshType;
-    typedef typename MeshType::CoordinatesType CoordinatesType;
+    typedef TNL::SharedPointer< MeshType, DeviceType > MeshPointer;
     typedef MeshDependentData MeshDependentDataType;
-    typedef typename MeshDependentDataType::RealType RealType;
-    typedef typename MeshDependentDataType::DeviceType DeviceType;
-    typedef typename MeshDependentDataType::IndexType IndexType;
-    typedef tnlVector< RealType, DeviceType, IndexType > DofVectorType;
-    typedef tnlSharedVector< RealType, DeviceType, IndexType > SharedVectorType;
+    typedef TNL::SharedPointer< MeshDependentDataType, DeviceType > MeshDependentDataPointer;
+    typedef TNL::Containers::Vector< RealType, DeviceType, IndexType > DofVectorType;
+    typedef TNL::SharedPointer< DofVectorType > DofVectorPointer;
+    typedef TNL::SharedPointer< DifferentialOperator > DifferentialOperatorPointer;
+    typedef TNL::SharedPointer< BoundaryConditions > BoundaryConditionsPointer;
+    typedef TNL::SharedPointer< RightHandSide, DeviceType > RightHandSidePointer;
     typedef Matrix MatrixType;
-    typedef typename MatrixType::CompressedRowsLengthsVector CompressedRowsLengthsVectorType;
+    typedef TNL::SharedPointer< MatrixType > MatrixPointer;
 
-    static tnlString getTypeStatic();
+    typedef TNL::Containers::SharedVector< RealType, DeviceType, IndexType > SharedVectorType;
+    typedef typename MeshType::CoordinatesType CoordinatesType;
+    typedef TNL::Functions::MeshFunction< Mesh, Mesh::meshDimensions - 1 > MeshFunctionType;
 
-    tnlString getPrologHeader() const;
+    static TNL::String getTypeStatic();
 
-    void writeProlog( tnlLogger & logger,
-                      const tnlParameterContainer & parameters ) const;
+    TNL::String getPrologHeader() const;
 
-    tnlSolverMonitor< RealType, IndexType >* getSolverMonitor();
+    void writeProlog( TNL::Logger & logger,
+                      const TNL::Config::ParameterContainer & parameters ) const;
 
-    bool setup( const tnlParameterContainer & parameters );
+    TNL::Solvers::SolverMonitor< RealType, IndexType >* getSolverMonitor();
 
-    bool setInitialCondition( const tnlParameterContainer & parameters,
-                              const MeshType & mesh,
-                              DofVectorType & dofs,
+    bool setup( const TNL::Config::ParameterContainer & parameters );
+
+    bool setInitialCondition( const TNL::Config::ParameterContainer & parameters,
+                              const MeshPointer & meshPointer,
+                              DofVectorPointer & dofsPointer,
                               MeshDependentDataType & mdd );
 
-    bool setupLinearSystem( const MeshType & mesh,
-                            MatrixType & matrix );
+    bool setupLinearSystem( const MeshPointer & meshPointer,
+                            MatrixPointer & matrixPointer );
 
     bool makeSnapshot( const RealType & time,
                        const IndexType & step,
-                       const MeshType & mesh,
-                       DofVectorType & dofs,
+                       const MeshPointer & meshPointer,
+                       DofVectorPointer & dofsPointer,
                        MeshDependentDataType & mdd );
 
-    IndexType getDofs( const MeshType & mesh ) const;
+    IndexType getDofs( const MeshPointer & mesh ) const;
 
-    void bindDofs( const MeshType & mesh,
-                   DofVectorType & dofs );
+    void bindDofs( const MeshPointer & meshPointer,
+                   DofVectorPointer & dofs );
 
-    bool setMeshDependentData( const MeshType& mesh,
+    bool setMeshDependentData( const Mesh & mesh,
                                MeshDependentDataType & mdd );
 
-    void bindMeshDependentData( const MeshType& mesh,
+    void bindMeshDependentData( const Mesh & mesh,
                                 MeshDependentDataType & mdd );
 
     bool preIterate( const RealType & time,
                      const RealType & tau,
-                     const MeshType & mesh,
-                     DofVectorType & dofs,
+                     const MeshPointer & meshPointer,
+                     DofVectorPointer & dofsPointer,
                      MeshDependentDataType & mdd );
 
     void assemblyLinearSystem( const RealType & time,
                                const RealType & tau,
-                               const MeshType & mesh,
-                               DofVectorType & dofs,
-                               MatrixType & matrix,
-                               DofVectorType & rightHandSide,
+                               const MeshPointer & meshPointer,
+                               DofVectorPointer & dofsPointer,
+                               MatrixPointer & matrixPointer,
+                               DofVectorPointer & rightHandSidePointer,
                                MeshDependentDataType & mdd );
 
     bool postIterate( const RealType & time,
                       const RealType & tau,
-                      const MeshType & mesh,
-                      DofVectorType & dofs,
+                      const MeshPointer & meshPointer,
+                      DofVectorPointer & dofsPointer,
                       MeshDependentDataType & mdd );
 
-    bool writeEpilog( tnlLogger & logger );
+    bool writeEpilog( TNL::Logger & logger );
 
 protected:
     // prefix for snapshots
-    ::tnlString outputPrefix;
+    TNL::String outputPrefix;
 
-    DifferentialOperator differentialOperator;
+    DifferentialOperatorPointer differentialOperatorPointer;
 
-    BoundaryConditions boundaryConditions;
+    BoundaryConditionsPointer boundaryConditionsPointer;
 
-    RightHandSide rightHandSide;
+    RightHandSidePointer rightHandSidePointer;
 
-    tnlTimerRT timer_R, timer_Q, timer_explicit, timer_nonlinear, timer_upwind;
+    TNL::TimerRT timer_R, timer_Q, timer_explicit, timer_nonlinear, timer_upwind;
 };
 
 } // namespace mhfem
