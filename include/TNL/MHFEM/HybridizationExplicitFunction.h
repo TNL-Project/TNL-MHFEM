@@ -1,7 +1,7 @@
 #pragma once
 
 #include <TNL/Functions/Domain.h>
-#include <TNL/Containers/SharedVector.h>
+#include <TNL/SharedPointer.h>
 #include <TNL/Containers/StaticVector.h>
 
 #include "../lib_general/mesh_helpers.h"
@@ -21,14 +21,13 @@ public:
     typedef typename MeshDependentDataType::RealType RealType;
     typedef typename MeshDependentDataType::IndexType IndexType;
     typedef TNL::Containers::Vector< RealType, DeviceType, IndexType> DofVectorType;
-    typedef TNL::Containers::SharedVector< RealType, DeviceType, IndexType > SharedVectorType;
     typedef TNL::Containers::StaticVector< MeshDependentDataType::FacesPerCell, IndexType > FaceVectorType;
 
     void bind( MeshDependentDataType* mdd,
-               DofVectorType & dofVector )
+               TNL::SharedPointer< DofVectorType > & dofVector )
     {
         this->mdd = mdd;
-        this->dofVector.bind( dofVector.getData(), dofVector.getSize() );
+        this->dofVector = dofVector;
     }
 
     __cuda_callable__
@@ -58,7 +57,7 @@ public:
 
 protected:
     MeshDependentDataType* mdd;
-    SharedVectorType dofVector;
+    TNL::SharedPointer< DofVectorType > dofVector;
 };
 
 } // namespace mhfem

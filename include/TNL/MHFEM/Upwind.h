@@ -1,7 +1,7 @@
 #pragma once
 
 #include <TNL/Functions/Domain.h>
-#include <TNL/Containers/SharedVector.h>
+#include <TNL/SharedPointer.h>
 
 #include "MassMatrixDependentCode.h"
 #include "../lib_general/mesh_helpers.h"
@@ -25,17 +25,16 @@ public:
     typedef typename MeshDependentDataType::DeviceType DeviceType;
     typedef typename MeshDependentDataType::IndexType IndexType;
     typedef TNL::Containers::Vector< RealType, DeviceType, IndexType> DofVectorType;
-    typedef TNL::Containers::SharedVector< RealType, DeviceType, IndexType > SharedVectorType;
     typedef TNL::Containers::StaticVector< MeshDependentDataType::FacesPerCell, IndexType > FaceVectorType;
     typedef MassMatrixDependentCode< MeshDependentDataType > coeff;
 
     void bind( MeshDependentDataType* mdd,
-               BoundaryConditions* bc,
-               DofVectorType & Z_iF )
+               TNL::SharedPointer< BoundaryConditions > & bc,
+               TNL::SharedPointer< DofVectorType > & Z_iF )
     {
         this->mdd = mdd;
         this->bc = bc;
-        this->Z_iF.bind( Z_iF.getData(), Z_iF.getSize() );
+        this->Z_iF = Z_iF;
     }
 
     // FIXME: velocities should be pre-calculated before determining upwind values and updating the pressure values
@@ -83,9 +82,8 @@ public:
 
 protected:
     MeshDependentDataType* mdd;
-    BoundaryConditions* bc;
-    // auxiliary vector shared with other objects
-    SharedVectorType Z_iF;
+    TNL::SharedPointer< BoundaryConditions > bc;
+    TNL::SharedPointer< DofVectorType > Z_iF;
 };
 
 } // namespace mhfem

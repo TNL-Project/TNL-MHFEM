@@ -158,7 +158,7 @@ setInitialCondition( const TNL::Config::ParameterContainer & parameters,
     if( ! boundaryConditionsPointer->init( parameters, *meshPointer ) )
         return false;
 
-    if( ! mdd.init( parameters, *meshPointer, *boundaryConditionsPointer ) )
+    if( ! mdd.init( parameters, meshPointer, boundaryConditionsPointer ) )
         return false;
 
     device_ptr< MeshDependentDataType, DeviceType > mddDevicePtr( mdd );
@@ -219,7 +219,7 @@ setupLinearSystem( const MeshPointer & meshPointer,
 
     if( ! matrixPointer->setDimensions( dofs, dofs ) )
         return false;
-    if( ! matrixPointer->setCompressedRowsLengths( rowLengthsPointer ) )
+    if( ! matrixPointer->setCompressedRowsLengths( *rowLengthsPointer ) )
         return false;
     return true;
 }
@@ -373,7 +373,7 @@ postIterate( const RealType & time,
     // TODO: copying the objects to GPU takes as long as the rest of this method!
     device_ptr< MeshDependentDataType, DeviceType > mddDevicePtr( mdd );
 
-    this->boundaryConditions.bindMeshDependentData( mddDevicePtr.get() );
+    this->boundaryConditionsPointer->bindMeshDependentData( mddDevicePtr.get() );
 
     timer_explicit.start();
     HybridizationExplicitFunction< MeshType, MeshDependentDataType > functionZK;
