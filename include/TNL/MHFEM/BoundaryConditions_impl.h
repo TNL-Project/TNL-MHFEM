@@ -26,7 +26,7 @@ getLinearSystemRowLength( const MeshType & mesh,
                           const IndexType & indexDof,
                           const CoordinatesType & coordinates ) const
 {
-    const IndexType faces = FacesCounter< MeshType >::getNumberOfFaces( mesh );
+    const IndexType faces = mesh.template getEntitiesCount< typename Mesh::Face >();
 
     // TODO: completely depends on the indexation of vectors in MeshDependentData, probably should be generalized
     const IndexType E = indexDof % faces;
@@ -121,7 +121,8 @@ isDirichletBoundary( const MeshType & mesh, const int & i, const IndexType & fac
 {
     if( ! isBoundaryFace( mesh, face ) )
         return false;
-    return dirichletTags[ i * FacesCounter< MeshType >::getNumberOfFaces( mesh ) + face ];
+    const IndexType faces = mesh.template getEntitiesCount< typename Mesh::Face >();
+    return dirichletTags[ i * faces + face ];
 }
 
 } // namespace mhfem

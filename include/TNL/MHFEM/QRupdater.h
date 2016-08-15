@@ -62,7 +62,7 @@ public:
         {
             static_assert( EntityDimension == MeshType::meshDimensions, "wrong EntityDimension in QRupdater::processEntity");
 
-            const IndexType cells = mesh.getNumberOfCells();
+            const IndexType cells = mesh.template getEntitiesCount< typename Mesh::Cell >();
             const IndexType K = index % cells;
             const int i = index / cells;
 

@@ -36,7 +36,7 @@ public:
                        const IndexType & index,
                        const RealType & time ) const
     {
-        const IndexType cells = mesh.getNumberOfCells();
+        const IndexType cells = mesh.template getEntitiesCount< typename Mesh::Cell >();
         const IndexType K = index % cells;
         const int i = index / cells;
 
