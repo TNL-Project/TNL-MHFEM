@@ -243,8 +243,11 @@ setMatrixElements( DofVectorPointer & u,
     getFacesForCell( mesh, cellIndexes[ 0 ], faceIndexesK0 );
     getFacesForCell( mesh, cellIndexes[ 1 ], faceIndexesK1 );
 
+    const auto & orientation = entity.getOrientation();
+
     // TODO: write something like isNxFace/isNyFace/isNzFace
-    if( E < mesh.template getNumberOfFaces< 1, 0, 0 >() ) {
+//    if( E < mesh.template getNumberOfFaces< 1, 0, 0 >() ) {
+    if( orientation.x() ) {
         //        K1   K0
         //      ___________
         //      | 6  |  7 |
@@ -266,7 +269,8 @@ setMatrixElements( DofVectorPointer & u,
             matrixRow.setElement( j * 11 + 10, mdd->getDofIndex( j, faceIndexesK0[ 5 ] ), coeff::A_ijKEF( *mdd, i, j, cellIndexes[ 0 ], E, 0, faceIndexesK0[ 5 ], 5 ) );
         }
     }
-    else if( E < mesh.template getNumberOfFaces< 1, 1, 0 >() ) {
+//    else if( E < mesh.template getNumberOfFaces< 1, 1, 0 >() ) {
+    else if( orientation.y() ) {
         //      ______
         //      | 7  |
         //     2|   3| K0

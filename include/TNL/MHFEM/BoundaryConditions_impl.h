@@ -27,7 +27,7 @@ getLinearSystemRowLength( const MeshType & mesh,
                           const typename MeshType::Face & entity,
                           const int & i ) const
 {
-    if( this->isDirichletBoundary( mesh, i, E ) )
+    if( this->isDirichletBoundary( mesh, i, entity ) )
         return 1;
     return MeshDependentDataType::FacesPerCell * MeshDependentDataType::NumberOfEquations;
 }
@@ -54,7 +54,7 @@ setMatrixElements( DofVectorPointer & u,
     typename Matrix::MatrixRow matrixRow = matrix.getRow( indexRow );
 
     // Dirichlet boundary
-    if( isDirichletBoundary( mesh, i, E ) ) {
+    if( isDirichletBoundary( mesh, i, entity ) ) {
         matrixRow.setElement( 0, indexRow, 1.0 );
         b[ indexRow ] = static_cast<const ModelImplementation*>(this)->getDirichletValue( mesh, i, E, time );
     }
@@ -77,7 +77,7 @@ setMatrixElements( DofVectorPointer & u,
         const int e = getLocalIndex( faceIndexes, E );
 
         // set right hand side value
-        RealType bValue = - static_cast<const ModelImplementation*>(this)->getNeumannValue( mesh, i, E, time ) * getFaceSurface( mesh, E );
+        RealType bValue = - static_cast<const ModelImplementation*>(this)->getNeumannValue( mesh, i, E, time ) * getFaceSurface( mesh, entity );
 
         bValue += mdd->w_iKe( i, K, e );
         for( int j = 0; j < MeshDependentDataType::NumberOfEquations; j++ ) {
@@ -100,9 +100,9 @@ template< typename Mesh,
 __cuda_callable__
 bool
 BoundaryConditions< Mesh, MeshDependentData, ModelImplementation >::
-isNeumannBoundary( const MeshType & mesh, const int & i, const IndexType & face ) const
+isNeumannBoundary( const MeshType & mesh, const int & i, const typename Mesh::Face & face ) const
 {
-    if( ! isBoundaryFace( mesh, face ) )
+    if( ! face.isBoundaryEntity() )
         return false;
     return ! isDirichletBoundary( mesh, i, face );
 }
@@ -113,12 +113,12 @@ template< typename Mesh,
 __cuda_callable__
 bool
 BoundaryConditions< Mesh, MeshDependentData, ModelImplementation >::
-isDirichletBoundary( const MeshType & mesh, const int & i, const IndexType & face ) const
+isDirichletBoundary( const MeshType & mesh, const int & i, const typename Mesh::Face & face ) const
 {
-    if( ! isBoundaryFace( mesh, face ) )
+    if( ! face.isBoundaryEntity() )
         return false;
     const IndexType faces = mesh.template getEntitiesCount< typename Mesh::Face >();
-    return dirichletTags[ i * faces + face ];
+    return dirichletTags[ i * faces + face.getIndex() ];
 }
 
 } // namespace mhfem

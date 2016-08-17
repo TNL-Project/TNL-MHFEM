@@ -71,10 +71,10 @@ public:
                             Vector & b ) const;
 
     __cuda_callable__
-    bool isNeumannBoundary( const MeshType & mesh, const int & i, const IndexType & face ) const;
+    bool isNeumannBoundary( const MeshType & mesh, const int & i, const typename Mesh::Face & face ) const;
 
     __cuda_callable__
-    bool isDirichletBoundary( const MeshType & mesh, const int & i, const IndexType & face ) const;
+    bool isDirichletBoundary( const MeshType & mesh, const int & i, const typename Mesh::Face & face ) const;
 
 protected:
     MeshDependentDataType* mdd;

@@ -38,7 +38,7 @@ public:
             const typename MeshDependentData::IndexType & K )
     {
         typename MeshDependentData::RealType* storage = mdd.b_ijK( i, j, K );
-        storage[ 0 ] = 2 * mdd.D_ijK( i, j, K ) * mesh.getHxInverse();
+        storage[ 0 ] = 2 * mdd.D_ijK( i, j, K ) * mesh.template getSpaceStepsProducts< -1 >();  // h_x^-1
     }
 
     template< typename MeshDependentData >
@@ -95,7 +95,7 @@ public:
             const typename MeshDependentData::IndexType & K )
     {
         typename MeshDependentData::RealType* storage = mdd.b_ijK( i, j, K );
-        storage[ 0 ] = 2 * mdd.D_ijK( i, j, K ) * mesh.getHxInverse();
+        storage[ 0 ] = 2 * mdd.D_ijK( i, j, K ) * mesh.template getSpaceStepsProducts< -1 >();  // h_x^-1
     }
 
     template< typename MeshDependentData >
@@ -154,9 +154,9 @@ public:
     {
         typename MeshDependentData::RealType* storage = mdd.b_ijK( i, j, K );
         // value for vertical faces (e=0, e=1)
-        storage[ 0 ] = 2 * mdd.D_ijK( i, j, K ) * mesh.getHy() * mesh.getHxInverse();
+        storage[ 0 ] = 2 * mdd.D_ijK( i, j, K ) * mesh.template getSpaceStepsProducts< -1, 1 >();  // h_y / h_x
         // value for horizontal faces (e=2, e=3)
-        storage[ 1 ] = 2 * mdd.D_ijK( i, j, K ) * mesh.getHx() * mesh.getHyInverse();
+        storage[ 1 ] = 2 * mdd.D_ijK( i, j, K ) * mesh.template getSpaceStepsProducts< 1, -1 >();  // h_x / h_y
     }
 
     template< typename MeshDependentData >
@@ -223,9 +223,9 @@ public:
     {
         typename MeshDependentData::RealType* storage = mdd.b_ijK( i, j, K );
         // value for vertical faces (e=0, e=1)
-        storage[ 0 ] = 2 * mdd.D_ijK( i, j, K ) * mesh.getHy() * mesh.getHxInverse();
+        storage[ 0 ] = 2 * mdd.D_ijK( i, j, K ) * mesh.template getSpaceStepsProducts< -1, 1 >();  // h_y / h_x
         // value for horizontal faces (e=2, e=3)
-        storage[ 1 ] = 2 * mdd.D_ijK( i, j, K ) * mesh.getHx() * mesh.getHyInverse();
+        storage[ 1 ] = 2 * mdd.D_ijK( i, j, K ) * mesh.template getSpaceStepsProducts< 1, -1 >();  // h_x / h_y
     }
 
     template< typename MeshDependentData >
@@ -303,11 +303,11 @@ public:
     {
         typename MeshDependentData::RealType* storage = mdd.b_ijK( i, j, K );
         // value for n_x faces (e=0, e=1)
-        storage[ 0 ] = 2 * mdd.D_ijK( i, j, K ) / ( mesh.getHx() * mesh.getHy() * mesh.getHz() ) * mesh.getHySquare() * mesh.getHzSquare();
+        storage[ 0 ] = 2 * mdd.D_ijK( i, j, K ) * mesh.template getSpaceStepsProducts< -1, 1, 1 >();  // h_y * h_z / h_x
         // value for n_y faces (e=2, e=3)
-        storage[ 1 ] = 2 * mdd.D_ijK( i, j, K ) / ( mesh.getHx() * mesh.getHy() * mesh.getHz() ) * mesh.getHxSquare() * mesh.getHzSquare();
+        storage[ 1 ] = 2 * mdd.D_ijK( i, j, K ) * mesh.template getSpaceStepsProducts< 1, -1, 1 >();  // h_x * h_z / h_y
         // value for n_z faces (e=4, e=5)
-        storage[ 2 ] = 2 * mdd.D_ijK( i, j, K ) / ( mesh.getHx() * mesh.getHy() * mesh.getHz() ) * mesh.getHxSquare() * mesh.getHySquare();
+        storage[ 2 ] = 2 * mdd.D_ijK( i, j, K ) * mesh.template getSpaceStepsProducts< 1, 1, -1 >();  // h_x * h_y / h_z
     }
 
     template< typename MeshDependentData >
@@ -380,11 +380,11 @@ public:
     {
         typename MeshDependentData::RealType* storage = mdd.b_ijK( i, j, K );
         // value for n_x faces (e=0, e=1)
-        storage[ 0 ] = 2 * mdd.D_ijK( i, j, K ) / ( mesh.getHx() * mesh.getHy() * mesh.getHz() ) * mesh.getHySquare() * mesh.getHzSquare();
+        storage[ 0 ] = 2 * mdd.D_ijK( i, j, K ) * mesh.template getSpaceStepsProducts< -1, 1, 1 >();  // h_y * h_z / h_x
         // value for n_y faces (e=2, e=3)
-        storage[ 1 ] = 2 * mdd.D_ijK( i, j, K ) / ( mesh.getHx() * mesh.getHy() * mesh.getHz() ) * mesh.getHxSquare() * mesh.getHzSquare();
+        storage[ 1 ] = 2 * mdd.D_ijK( i, j, K ) * mesh.template getSpaceStepsProducts< 1, -1, 1 >();  // h_x * h_z / h_y
         // value for n_z faces (e=4, e=5)
-        storage[ 2 ] = 2 * mdd.D_ijK( i, j, K ) / ( mesh.getHx() * mesh.getHy() * mesh.getHz() ) * mesh.getHxSquare() * mesh.getHySquare();
+        storage[ 2 ] = 2 * mdd.D_ijK( i, j, K ) * mesh.template getSpaceStepsProducts< 1, 1, -1 >();  // h_x * h_y / h_z
     }
 
     template< typename MeshDependentData >

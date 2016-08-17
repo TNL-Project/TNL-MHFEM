@@ -86,7 +86,7 @@ public:
                 R += mdd.N_ijK( i, j, K ) * mdd.Z_iK( j, K );
             }
             R += mdd.f[ i * K ] * mdd.current_tau;
-            R *= getCellVolume( mesh, K );
+            R *= entity.getMeasure();
             for( int e = 0; e < mdd.FacesPerCell; e++ ) {
                 const IndexType & E = faceIndexes[ e ];
                 // TODO: simplify updating the w coefficient
@@ -121,7 +121,7 @@ public:
                 bool singular = true;
 
                 for( int j = 0; j < mdd.NumberOfEquations; j++ ) {
-                    RealType value = getCellVolume( mesh, K ) * mdd.N_ijK( i, j, K );
+                    RealType value = entity.getMeasure() * mdd.N_ijK( i, j, K );
                     for( int e = 0; e < mdd.FacesPerCell; e++ ) {
                         const IndexType & E = faceIndexes[ e ];
                         value += mdd.m_upw[ mdd.getDofIndex( i, E ) ] * MassMatrix::b_ijKe( mdd, i, j, K, e ) * mdd.current_tau;
