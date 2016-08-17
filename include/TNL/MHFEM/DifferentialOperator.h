@@ -1,6 +1,7 @@
 #pragma once
 
 #include <TNL/Meshes/Grid.h>
+#include <TNL/Operators/Operator.h>
 
 #include "MassMatrixDependentCode.h"
 
@@ -18,6 +19,14 @@ template< typename MeshReal,
           typename MeshIndex,
           typename MeshDependentData >
 class DifferentialOperator< TNL::Meshes::Grid< 1, MeshReal, Device, MeshIndex >, MeshDependentData >
+    : public TNL::Operators::Operator< TNL::Meshes::Grid< 1, MeshReal, Device, MeshIndex >,
+                                       TNL::Functions::MeshInteriorDomain,
+                                       TNL::Meshes::Grid< 1, MeshReal, Device, MeshIndex >::getMeshDimensions() - 1,
+                                       TNL::Meshes::Grid< 1, MeshReal, Device, MeshIndex >::getMeshDimensions() - 1,
+                                       typename MeshDependentData::RealType,
+                                       typename MeshDependentData::IndexType,
+                                       MeshDependentData::NumberOfEquations,
+                                       MeshDependentData::NumberOfEquations >
 {
 public:
     typedef TNL::Meshes::Grid< 1, MeshReal, Device, MeshIndex > MeshType;
@@ -32,19 +41,19 @@ public:
 
     __cuda_callable__
     IndexType getLinearSystemRowLength( const MeshType & mesh,
-                                        const IndexType & indexRow,
-                                        const CoordinatesType & coordinates ) const;
+                                        const IndexType & indexEntity,
+                                        const typename MeshType::Face & entity,
+                                        const int & i ) const;
 
-    template< typename Vector, typename Matrix >
+    template< typename DofFunctionPointer, typename Vector, typename Matrix >
     __cuda_callable__
-    void updateLinearSystem( const RealType & time,
-                             const RealType & tau,
-                             const MeshType & mesh,
-                             const IndexType & indexRow,
-                             const CoordinatesType & coordinates,
-                             Vector & u,
-                             Vector & b,
-                             Matrix & matrix ) const;
+    void setMatrixElements( DofFunctionPointer & u,
+                            const typename MeshType::Face & entity,
+                            const RealType & time,
+                            const RealType & tau,
+                            const int & i,
+                            Matrix & matrix,
+                            Vector & b ) const;
 
 protected:
     MeshDependentDataType* mdd;
@@ -56,6 +65,14 @@ template< typename MeshReal,
           typename MeshIndex,
           typename MeshDependentData >
 class DifferentialOperator< TNL::Meshes::Grid< 2, MeshReal, Device, MeshIndex >, MeshDependentData >
+    : public TNL::Operators::Operator< TNL::Meshes::Grid< 1, MeshReal, Device, MeshIndex >,
+                                       TNL::Functions::MeshInteriorDomain,
+                                       TNL::Meshes::Grid< 1, MeshReal, Device, MeshIndex >::getMeshDimensions() - 1,
+                                       TNL::Meshes::Grid< 1, MeshReal, Device, MeshIndex >::getMeshDimensions() - 1,
+                                       typename MeshDependentData::RealType,
+                                       typename MeshDependentData::IndexType,
+                                       MeshDependentData::NumberOfEquations,
+                                       MeshDependentData::NumberOfEquations >
 {
 public:
     typedef TNL::Meshes::Grid< 2, MeshReal, Device, MeshIndex > MeshType;
@@ -70,19 +87,19 @@ public:
 
     __cuda_callable__
     IndexType getLinearSystemRowLength( const MeshType & mesh,
-                                        const IndexType & indexRow,
-                                        const CoordinatesType & coordinates ) const;
+                                        const IndexType & indexEntity,
+                                        const typename MeshType::Face & entity,
+                                        const int & i ) const;
 
-    template< typename Vector, typename Matrix >
+    template< typename DofFunctionPointer, typename Vector, typename Matrix >
     __cuda_callable__
-    void updateLinearSystem( const RealType & time,
-                             const RealType & tau,
-                             const MeshType & mesh,
-                             const IndexType & indexRow,
-                             const CoordinatesType & coordinates,
-                             Vector & u,
-                             Vector & b,
-                             Matrix & matrix ) const;
+    void setMatrixElements( DofFunctionPointer & u,
+                            const typename MeshType::Face & entity,
+                            const RealType & time,
+                            const RealType & tau,
+                            const int & i,
+                            Matrix & matrix,
+                            Vector & b ) const;
 
 protected:
     MeshDependentDataType* mdd;
@@ -94,6 +111,14 @@ template< typename MeshReal,
           typename MeshIndex,
           typename MeshDependentData >
 class DifferentialOperator< TNL::Meshes::Grid< 3, MeshReal, Device, MeshIndex >, MeshDependentData >
+    : public TNL::Operators::Operator< TNL::Meshes::Grid< 1, MeshReal, Device, MeshIndex >,
+                                       TNL::Functions::MeshInteriorDomain,
+                                       TNL::Meshes::Grid< 1, MeshReal, Device, MeshIndex >::getMeshDimensions() - 1,
+                                       TNL::Meshes::Grid< 1, MeshReal, Device, MeshIndex >::getMeshDimensions() - 1,
+                                       typename MeshDependentData::RealType,
+                                       typename MeshDependentData::IndexType,
+                                       MeshDependentData::NumberOfEquations,
+                                       MeshDependentData::NumberOfEquations >
 {
 public:
     typedef TNL::Meshes::Grid< 3, MeshReal, Device, MeshIndex > MeshType;
@@ -108,19 +133,19 @@ public:
 
     __cuda_callable__
     IndexType getLinearSystemRowLength( const MeshType & mesh,
-                                        const IndexType & indexRow,
-                                        const CoordinatesType & coordinates ) const;
+                                        const IndexType & indexEntity,
+                                        const typename MeshType::Face & entity,
+                                        const int & i ) const;
 
-    template< typename Vector, typename Matrix >
+    template< typename DofFunctionPointer, typename Vector, typename Matrix >
     __cuda_callable__
-    void updateLinearSystem( const RealType & time,
-                             const RealType & tau,
-                             const MeshType & mesh,
-                             const IndexType & indexRow,
-                             const CoordinatesType & coordinates,
-                             Vector & u,
-                             Vector & b,
-                             Matrix & matrix ) const;
+    void setMatrixElements( DofFunctionPointer & u,
+                            const typename MeshType::Face & entity,
+                            const RealType & time,
+                            const RealType & tau,
+                            const int & i,
+                            Matrix & matrix,
+                            Vector & b ) const;
 
 protected:
     MeshDependentDataType* mdd;

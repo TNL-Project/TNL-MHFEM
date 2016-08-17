@@ -26,8 +26,9 @@ __cuda_callable__
 typename MeshDependentData::IndexType
 DifferentialOperator< TNL::Meshes::Grid< 1, MeshReal, Device, MeshIndex >, MeshDependentData >::
 getLinearSystemRowLength( const MeshType & mesh,
-                          const IndexType & indexRow,
-                          const CoordinatesType & coordinates ) const
+                          const IndexType & indexEntity,
+                          const typename MeshType::Face & entity,
+                          const int & i ) const
 {
     return 3 * MeshDependentDataType::NumberOfEquations;
 }
@@ -36,30 +37,30 @@ template< typename MeshReal,
           typename Device,
           typename MeshIndex,
           typename MeshDependentData >
-    template< typename Vector, typename Matrix >
+    template< typename DofFunctionPointer, typename Vector, typename Matrix >
 __cuda_callable__
 void
 DifferentialOperator< TNL::Meshes::Grid< 1, MeshReal, Device, MeshIndex >, MeshDependentData >::
-updateLinearSystem( const RealType & time,
-                    const RealType & tau,
-                    const MeshType & mesh,
-                    const IndexType & indexRow,
-                    const CoordinatesType & coordinates,
-                    Vector & u,
-                    Vector & b,
-                    Matrix & matrix ) const
+setMatrixElements( DofFunctionPointer & u,
+                   const typename MeshType::Face & entity,
+                   const RealType & time,
+                   const RealType & tau,
+                   const int & i,
+                   Matrix & matrix,
+                   Vector & b ) const
 {
-    typename Matrix::MatrixRow matrixRow = matrix.getRow( indexRow );
+    const IndexType E = entity.getIndex();
+    const MeshType & mesh = entity.getMesh();
+    const IndexType indexRow = i * mesh.template getEntitiesCount< typename MeshType::Face >() + E;
 
-    const IndexType E = mdd->indexDofToFace( indexRow );
-    const int i = mdd->indexDofToEqno( indexRow );
+    typename Matrix::MatrixRow matrixRow = matrix.getRow( indexRow );
 
     // indexes of the right (cellIndexes[0]) and left (cellIndexes[1]) cells
     IndexType cellIndexes[ 2 ];
     const int numCells = getCellsForFace( mesh, E, cellIndexes );
 
     tnlAssert( numCells == 2,
-               cerr << "assertion numCells == 2 failed" << endl; );
+               std::cerr << "assertion numCells == 2 failed" << std::endl; );
 
     // indexes of the faces, sorted according the following diagrams
     FaceVectorType faceIndexesK0;
@@ -98,8 +99,9 @@ __cuda_callable__
 typename MeshDependentData::IndexType
 DifferentialOperator< TNL::Meshes::Grid< 2, MeshReal, Device, MeshIndex >, MeshDependentData >::
 getLinearSystemRowLength( const MeshType & mesh,
-                          const IndexType & indexRow,
-                          const CoordinatesType & coordinates ) const
+                          const IndexType & indexEntity,
+                          const typename MeshType::Face & entity,
+                          const int & i ) const
 {
     return 7 * MeshDependentDataType::NumberOfEquations;
 }
@@ -108,30 +110,30 @@ template< typename MeshReal,
           typename Device,
           typename MeshIndex,
           typename MeshDependentData >
-    template< typename Vector, typename Matrix >
+    template< typename DofVectorPointer, typename Vector, typename Matrix >
 __cuda_callable__
 void
 DifferentialOperator< TNL::Meshes::Grid< 2, MeshReal, Device, MeshIndex >, MeshDependentData >::
-updateLinearSystem( const RealType & time,
-                    const RealType & tau,
-                    const MeshType & mesh,
-                    const IndexType & indexRow,
-                    const CoordinatesType & coordinates,
-                    Vector & u,
-                    Vector & b,
-                    Matrix & matrix ) const
+setMatrixElements( DofVectorPointer & u,
+                   const typename MeshType::Face & entity,
+                   const RealType & time,
+                   const RealType & tau,
+                   const int & i,
+                   Matrix & matrix,
+                   Vector & b ) const
 {
-    typename Matrix::MatrixRow matrixRow = matrix.getRow( indexRow );
+    const IndexType E = entity.getIndex();
+    const MeshType & mesh = entity.getMesh();
+    const IndexType indexRow = i * mesh.template getEntitiesCount< typename MeshType::Face >() + E;
 
-    const IndexType E = mdd->indexDofToFace( indexRow );
-    const int i = mdd->indexDofToEqno( indexRow );
+    typename Matrix::MatrixRow matrixRow = matrix.getRow( indexRow );
 
     // indexes of the right/top (cellIndexes[0]) and left/bottom (cellIndexes[1]) cells
     IndexType cellIndexes[ 2 ];
     const int numCells = getCellsForFace( mesh, E, cellIndexes );
 
     tnlAssert( numCells == 2,
-               cerr << "assertion numCells == 2 failed" << endl; );
+               std::cerr << "assertion numCells == 2 failed" << std::endl; );
 
     // face indexes for both cells
     FaceVectorType faceIndexesK0;
@@ -199,8 +201,9 @@ __cuda_callable__
 typename MeshDependentData::IndexType
 DifferentialOperator< TNL::Meshes::Grid< 3, MeshReal, Device, MeshIndex >, MeshDependentData >::
 getLinearSystemRowLength( const MeshType & mesh,
-                          const IndexType & indexRow,
-                          const CoordinatesType & coordinates ) const
+                          const IndexType & indexEntity,
+                          const typename MeshType::Face & entity,
+                          const int & i ) const
 {
     return 11 * MeshDependentDataType::NumberOfEquations;
 }
@@ -209,30 +212,30 @@ template< typename MeshReal,
           typename Device,
           typename MeshIndex,
           typename MeshDependentData >
-    template< typename Vector, typename Matrix >
+    template< typename DofVectorPointer, typename Vector, typename Matrix >
 __cuda_callable__
 void
 DifferentialOperator< TNL::Meshes::Grid< 3, MeshReal, Device, MeshIndex >, MeshDependentData >::
-updateLinearSystem( const RealType & time,
-                    const RealType & tau,
-                    const MeshType & mesh,
-                    const IndexType & indexRow,
-                    const CoordinatesType & coordinates,
-                    Vector & u,
-                    Vector & b,
-                    Matrix & matrix ) const
+setMatrixElements( DofVectorPointer & u,
+                   const typename MeshType::Face & entity,
+                   const RealType & time,
+                   const RealType & tau,
+                   const int & i,
+                   Matrix & matrix,
+                   Vector & b ) const
 {
-    typename Matrix::MatrixRow matrixRow = matrix.getRow( indexRow );
+    const IndexType E = entity.getIndex();
+    const MeshType & mesh = entity.getMesh();
+    const IndexType indexRow = i * mesh.template getEntitiesCount< typename MeshType::Face >() + E;
 
-    const IndexType E = mdd->indexDofToFace( indexRow );
-    const int i = mdd->indexDofToEqno( indexRow );
+    typename Matrix::MatrixRow matrixRow = matrix.getRow( indexRow );
 
     // indexes of the right/top (cellIndexes[0]) and left/bottom (cellIndexes[1]) cells
     IndexType cellIndexes[ 2 ];
     const int numCells = getCellsForFace( mesh, E, cellIndexes );
 
     tnlAssert( numCells == 2,
-               cerr << "assertion numCells == 2 failed" << endl; );
+               std::cerr << "assertion numCells == 2 failed" << std::endl; );
 
     // face indexes for both cells
     FaceVectorType faceIndexesK0;

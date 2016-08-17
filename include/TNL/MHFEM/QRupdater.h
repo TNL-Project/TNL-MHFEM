@@ -53,18 +53,17 @@ public:
     // TODO: split into update_b, update_RKF, update_RK for better parallelism
     struct update_R
     {
-        template< int EntityDimension >
+        template< typename EntityType >
         __cuda_callable__
         static void processEntity( const MeshType & mesh,
                                    MeshDependentDataType & mdd,
-                                   const IndexType & index,
-                                   const CoordinatesType & coordinates )
+                                   const EntityType & entity,
+                                   const int & i )
         {
-            static_assert( EntityDimension == MeshType::meshDimensions, "wrong EntityDimension in QRupdater::processEntity");
+            static_assert( EntityType::getDimensions() == MeshType::meshDimensions,
+                           "wrong entity dimensions in QRupdater::processEntity");
 
-            const IndexType cells = mesh.template getEntitiesCount< typename Mesh::Cell >();
-            const IndexType K = index % cells;
-            const int i = index / cells;
+            const IndexType K = entity.getIndex();
 
             // get face indexes
             FaceVectorType faceIndexes;
@@ -100,14 +99,17 @@ public:
 
     struct update_Q
     {
-        template< int EntityDimension >
+        template< typename EntityType >
         __cuda_callable__
         static void processEntity( const MeshType & mesh,
                                    MeshDependentDataType & mdd,
-                                   const IndexType & K,
-                                   const CoordinatesType & coordinates )
+                                   const EntityType & entity,
+                                   const int & _component )
         {
-            static_assert( EntityDimension == MeshType::meshDimensions, "wrong EntityDimension in QRupdater::processEntity");
+            static_assert( EntityType::getDimensions() == MeshType::meshDimensions,
+                           "wrong entity dimensions in QRupdater::processEntity");
+
+            const IndexType K = entity.getIndex();
 
             // get face indexes
             FaceVectorType faceIndexes;

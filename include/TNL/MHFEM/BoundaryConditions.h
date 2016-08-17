@@ -2,6 +2,7 @@
 
 #include <TNL/Containers/Vector.h>
 #include <TNL/Containers/StaticVector.h>
+#include <TNL/Operators/Operator.h>
 
 #include "MassMatrixDependentCode.h"
 
@@ -12,6 +13,14 @@ template< typename Mesh,
           typename MeshDependentData,
           typename ModelImplementation >
 class BoundaryConditions
+    : public TNL::Operators::Operator< Mesh,
+                                       TNL::Functions::MeshInteriorDomain,
+                                       Mesh::getMeshDimensions() - 1,
+                                       Mesh::getMeshDimensions() - 1,
+                                       typename MeshDependentData::RealType,
+                                       typename MeshDependentData::IndexType,
+                                       MeshDependentData::NumberOfEquations,
+                                       MeshDependentData::NumberOfEquations >
 {
 public:
     typedef Mesh MeshType;
@@ -47,18 +56,19 @@ public:
 
     __cuda_callable__
     IndexType getLinearSystemRowLength( const MeshType & mesh,
-                                        const IndexType & indexRow,
-                                        const CoordinatesType & coordinates ) const;
+                                        const IndexType & indexEntity,
+                                        const typename MeshType::Face & entity,
+                                        const int & i ) const;
 
-    template< typename Vector, typename Matrix >
+    template< typename DofFunctionPointer, typename Vector, typename Matrix >
     __cuda_callable__
-    void updateLinearSystem( const RealType & time,
-                             const MeshType & mesh,
-                             const IndexType & indexRow,
-                             const CoordinatesType & coordinates,
-                             Vector & u,
-                             Vector & b,
-                             Matrix & matrix ) const;
+    void setMatrixElements( DofFunctionPointer & u,
+                            const typename MeshType::Face & entity,
+                            const RealType & time,
+                            const RealType & tau,
+                            const int & i,
+                            Matrix & matrix,
+                            Vector & b ) const;
 
     __cuda_callable__
     bool isNeumannBoundary( const MeshType & mesh, const int & i, const IndexType & face ) const;

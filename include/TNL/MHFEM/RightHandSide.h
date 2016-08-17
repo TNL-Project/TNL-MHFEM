@@ -1,6 +1,7 @@
 #pragma once
 
 #include <TNL/Functions/Domain.h>
+#include <TNL/Functions/Range.h>
 
 #include "../lib_general/mesh_helpers.h"
 
@@ -10,7 +11,8 @@ namespace mhfem
 template< typename Mesh,
           typename MeshDependentData >
 class RightHandSide
-    : public TNL::Functions::Domain< Mesh::meshDimensions - 1, TNL::Functions::MeshDomain >
+    : public TNL::Functions::Domain< Mesh::meshDimensions, TNL::Functions::MeshDomain >,
+      public TNL::Functions::Range< typename MeshDependentData::RealType, MeshDependentData::NumberOfEquations >
 {
 public:
     typedef Mesh MeshType;
@@ -20,24 +22,30 @@ public:
     typedef typename MeshDependentDataType::IndexType IndexType;
     typedef TNL::Containers::StaticVector< MeshDependentDataType::FacesPerCell, IndexType > FaceVectorType;
 
+    static constexpr int getEntitiesDimensions() { return Mesh::meshDimensions - 1; }
+ 
     void bindMeshDependentData( MeshDependentDataType* mdd )
     {
         this->mdd = mdd;
     }
 
+    template< typename EntityType >
     __cuda_callable__
-    RealType getValue( const MeshType & mesh,
-                       const IndexType & indexRow,
-                       const RealType & time ) const
+    RealType operator()( const EntityType & entity,
+                         const RealType & time,
+                         const int & i ) const
     {
-        const IndexType E = mdd->indexDofToFace( indexRow );
-        const int i = mdd->indexDofToEqno( indexRow );
+        static_assert( EntityType::getDimensions() == getEntitiesDimensions(),
+                       "This function is defined on faces." );
+
+        const MeshType & mesh = entity.getMesh();
+        const IndexType E = entity.getIndex();
 
         IndexType cellIndexes[ 2 ];
         const int numCells = getCellsForFace( mesh, E, cellIndexes );
 
         tnlAssert( numCells == 2,
-                   cerr << "assertion numCells == 2 failed" << endl; );
+                   std::cerr << "assertion numCells == 2 failed" << std::endl; );
 
         // prepare right hand side value
         RealType result = 0.0;

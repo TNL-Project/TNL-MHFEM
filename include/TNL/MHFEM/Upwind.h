@@ -1,6 +1,7 @@
 #pragma once
 
 #include <TNL/Functions/Domain.h>
+#include <TNL/Functions/Range.h>
 #include <TNL/SharedPointer.h>
 
 #include "MassMatrixDependentCode.h"
@@ -15,7 +16,8 @@ template< typename Mesh,
           typename MeshDependentData,
           typename BoundaryConditions >
 class Upwind
-    : public TNL::Functions::Domain< Mesh::meshDimensions - 1, TNL::Functions::MeshDomain >
+    : public TNL::Functions::Domain< Mesh::meshDimensions, TNL::Functions::MeshDomain >,
+      public TNL::Functions::Range< typename MeshDependentData::RealType, MeshDependentData::NumberOfEquations >
 {
 public:
     typedef Mesh MeshType;
@@ -28,6 +30,8 @@ public:
     typedef TNL::Containers::StaticVector< MeshDependentDataType::FacesPerCell, IndexType > FaceVectorType;
     typedef MassMatrixDependentCode< MeshDependentDataType > coeff;
 
+    static constexpr int getEntitiesDimensions() { return Mesh::meshDimensions - 1; }
+ 
     void bind( MeshDependentDataType* mdd,
                TNL::SharedPointer< BoundaryConditions > & bc,
                TNL::SharedPointer< DofVectorType > & Z_iF )
@@ -52,13 +56,17 @@ public:
         return coeff::v_iKE( *mdd, Z_iF, faceIndexes, i, K, E, e );
     }
 
+    template< typename EntityType >
     __cuda_callable__
-    RealType getValue( const MeshType & mesh,
-                       const IndexType & indexRow,
-                       const RealType & time ) const
+    RealType operator()( const EntityType & entity,
+                         const RealType & time,
+                         const int & i ) const
     {
-        const IndexType E = mdd->indexDofToFace( indexRow );
-        const int i = mdd->indexDofToEqno( indexRow );
+        static_assert( EntityType::getDimensions() == getEntitiesDimensions(),
+                       "This function is defined on faces." );
+
+        const MeshType & mesh = entity.getMesh();
+        const IndexType E = entity.getIndex();
 
         IndexType cellIndexes[ 2 ];
         const int numCells = getCellsForFace( mesh, E, cellIndexes );

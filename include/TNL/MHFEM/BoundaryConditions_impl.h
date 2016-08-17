@@ -23,15 +23,10 @@ __cuda_callable__
 typename MeshDependentData::IndexType
 BoundaryConditions< Mesh, MeshDependentData, ModelImplementation >::
 getLinearSystemRowLength( const MeshType & mesh,
-                          const IndexType & indexDof,
-                          const CoordinatesType & coordinates ) const
+                          const IndexType & E,
+                          const typename MeshType::Face & entity,
+                          const int & i ) const
 {
-    const IndexType faces = mesh.template getEntitiesCount< typename Mesh::Face >();
-
-    // TODO: completely depends on the indexation of vectors in MeshDependentData, probably should be generalized
-    const IndexType E = indexDof % faces;
-    const int i = indexDof / faces;
-
     if( this->isDirichletBoundary( mesh, i, E ) )
         return 1;
     return MeshDependentDataType::FacesPerCell * MeshDependentDataType::NumberOfEquations;
@@ -40,22 +35,23 @@ getLinearSystemRowLength( const MeshType & mesh,
 template< typename Mesh,
           typename MeshDependentData,
           typename ModelImplementation >
-    template< typename Vector, typename Matrix >
+    template< typename DofVectorPointer, typename Vector, typename Matrix >
 __cuda_callable__
 void
 BoundaryConditions< Mesh, MeshDependentData, ModelImplementation >::
-updateLinearSystem( const RealType & time,
-                    const MeshType & mesh,
-                    const IndexType & indexRow,
-                    const CoordinatesType & coordinates,
-                    Vector & u,
-                    Vector & b,
-                    Matrix & matrix ) const
+setMatrixElements( DofVectorPointer & u,
+                   const typename MeshType::Face & entity,
+                   const RealType & time,
+                   const RealType & tau,
+                   const int & i,
+                   Matrix & matrix,
+                   Vector & b ) const
 {
-    typename Matrix::MatrixRow matrixRow = matrix.getRow( indexRow );
+    const IndexType E = entity.getIndex();
+    const MeshType & mesh = entity.getMesh();
+    const IndexType indexRow = i * mesh.template getEntitiesCount< typename MeshType::Face >() + E;
 
-    const IndexType E = mdd->indexDofToFace( indexRow );
-    const int i = mdd->indexDofToEqno( indexRow );
+    typename Matrix::MatrixRow matrixRow = matrix.getRow( indexRow );
 
     // Dirichlet boundary
     if( isDirichletBoundary( mesh, i, E ) ) {
@@ -70,10 +66,10 @@ updateLinearSystem( const RealType & time,
         const IndexType & K = cellIndexes[ 0 ];
 
         tnlAssert( numCells == 1,
-                   cerr << "assertion numCells == 1 failed" << endl
-                        << "E = " << E << endl
-                        << "K0 = " << cellIndexes[ 0 ] << endl
-                        << "K1 = " << cellIndexes[ 1 ] << endl; );
+                   std::cerr << "assertion numCells == 1 failed" << std::endl
+                             << "E = " << E << std::endl
+                             << "K0 = " << cellIndexes[ 0 ] << std::endl
+                             << "K1 = " << cellIndexes[ 1 ] << std::endl; );
 
         // prepare face indexes
         FaceVectorType faceIndexes;

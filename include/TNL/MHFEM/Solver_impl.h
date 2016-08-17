@@ -113,7 +113,9 @@ void
 Solver< Mesh, MeshDependentData, DifferentialOperator, BoundaryConditions, RightHandSide, Matrix >::
 bindDofs( const MeshPointer & meshPointer,
           DofVectorPointer & dofVectorPointer )
-{ }
+{
+    dofFunctionPointer->bind( meshPointer, dofVectorPointer );
+}
 
 template< typename Mesh,
           typename MeshDependentData,
@@ -137,7 +139,7 @@ template< typename Mesh,
           typename Matrix >
 void
 Solver< Mesh, MeshDependentData, DifferentialOperator, BoundaryConditions, RightHandSide, Matrix >::
-bindMeshDependentData( const MeshPointer & mesh,
+bindMeshDependentData( const Mesh & mesh,
                        MeshDependentDataType & mdd )
 { }
 
@@ -155,6 +157,8 @@ setInitialCondition( const TNL::Config::ParameterContainer & parameters,
                      DofVectorPointer & dofVectorPointer,
                      MeshDependentDataType & mdd )
 {
+    bindDofs( meshPointer, dofVectorPointer );
+
     if( ! boundaryConditionsPointer->init( parameters, *meshPointer ) )
         return false;
 
@@ -166,11 +170,13 @@ setInitialCondition( const TNL::Config::ParameterContainer & parameters,
     // initialize dofVector as an average of mdd.Z on neighbouring cells
     FaceAverageFunctionWithBoundary< MeshType, MeshDependentDataType, BoundaryConditions > faceAverageFunction;
     faceAverageFunction.bind( mddDevicePtr.get(), boundaryConditionsPointer, mdd.Z );
-    TNL::Functions::MeshFunctionEvaluator< MeshType, FaceAverageFunctionWithBoundary< MeshType, MeshDependentDataType, BoundaryConditions >, DofVectorType > faceAverageEnumerator;
-    faceAverageEnumerator.template enumerate< MeshType::meshDimensions - 1, MeshDependentDataType::NumberOfEquations >(
-            meshPointer,
-            faceAverageFunction,
-            dofVectorPointer );
+    TNL::Functions::MeshFunctionEvaluator< DofFunction,
+                                           FaceAverageFunctionWithBoundary< MeshType, MeshDependentDataType, BoundaryConditions > >
+            faceAverageEvaluator;
+    // TODO: MeshFunctionEvaluator does not know smart pointers
+    faceAverageEvaluator.evaluate(
+            *dofFunctionPointer,    // out
+            faceAverageFunction );  // in
 
     timer_R.reset();
     timer_Q.reset();
@@ -204,7 +210,7 @@ setupLinearSystem( const MeshPointer & meshPointer,
         return false;
 
     TNL::Matrices::MatrixSetter< MeshType, DifferentialOperator, BoundaryConditions, CompressedRowsLengthsVectorType > matrixSetter;
-    matrixSetter.template getCompressedRowsLengths< typename Mesh::Face, MeshDependentDataType::NumberOfEquations >(
+    matrixSetter.template getCompressedRowsLengths< typename Mesh::Face >(
             meshPointer,
             differentialOperatorPointer,
             boundaryConditionsPointer,
@@ -238,6 +244,8 @@ makeSnapshot( const RealType & time,
               DofVectorPointer & dofVectorPointer,
               MeshDependentDataType & mdd )
 {
+    bindDofs( meshPointer, dofVectorPointer );
+
     std::cout << std::endl << "Writing output at time " << time << " step " << step << std::endl;
 
     const IndexType cells = meshPointer->template getEntitiesCount< typename Mesh::Cell >();
@@ -270,25 +278,19 @@ preIterate( const RealType & time,
             DofVectorPointer & dofVectorPointer,
             MeshDependentDataType & mdd )
 {
+    bindDofs( meshPointer, dofVectorPointer );
+
     // FIXME: nasty hack to pass tau to QRupdater
     mdd.current_tau = tau;
 
-//    TNL::Meshes::Traverser< MeshType, MeshType::meshDimensions > traverser;
-//    traverser.template processInteriorEntities< MeshDependentDataType, QRupdater< MeshType, MeshDependentDataType > >( mesh, mdd );
-//    traverser.template processBoundaryEntities< MeshDependentDataType, QRupdater< MeshType, MeshDependentDataType > >( mesh, mdd );
-
-    TNL::Meshes::Traverser< MeshType, MeshType::meshDimensions, MeshDependentDataType::NumberOfEquations > traverserND;
+    TNL::Meshes::Traverser< MeshType, typename MeshType::Cell, MeshDependentDataType::NumberOfEquations > traverserND;
     timer_R.start();
-//    traverserND.template processInteriorEntities< MeshDependentDataType, typename QRupdater< MeshType, MeshDependentDataType >::update_R >( mesh, mdd );
-//    traverserND.template processBoundaryEntities< MeshDependentDataType, typename QRupdater< MeshType, MeshDependentDataType >::update_R >( mesh, mdd );
-    traverserND.template processAllEntities< MeshDependentDataType, typename QRupdater< MeshType, MeshDependentDataType >::update_R >( *meshPointer, mdd );
+    traverserND.template processAllEntities< MeshDependentDataType, typename QRupdater< MeshType, MeshDependentDataType >::update_R >( meshPointer, mdd );
     timer_R.stop();
 
-    TNL::Meshes::Traverser< MeshType, MeshType::meshDimensions > traverser;
+    TNL::Meshes::Traverser< MeshType, typename MeshType::Cell > traverser;
     timer_Q.start();
-//    traverser.template processInteriorEntities< MeshDependentDataType, typename QRupdater< MeshType, MeshDependentDataType >::update_Q >( mesh, mdd );
-//    traverser.template processBoundaryEntities< MeshDependentDataType, typename QRupdater< MeshType, MeshDependentDataType >::update_Q >( mesh, mdd );
-    traverser.template processAllEntities< MeshDependentDataType, typename QRupdater< MeshType, MeshDependentDataType >::update_Q >( *meshPointer, mdd );
+    traverser.template processAllEntities< MeshDependentDataType, typename QRupdater< MeshType, MeshDependentDataType >::update_Q >( meshPointer, mdd );
     timer_Q.stop();
 
     return true;
@@ -310,6 +312,8 @@ assemblyLinearSystem( const RealType & time,
                       DofVectorPointer & bPointer,
                       MeshDependentDataType & mdd )
 {
+    bindDofs( meshPointer, dofVectorPointer );
+
     device_ptr< MeshDependentDataType, DeviceType > mddDevicePtr( mdd );
 
     // bind mesh-dependent data
@@ -318,15 +322,15 @@ assemblyLinearSystem( const RealType & time,
     this->rightHandSidePointer->bindMeshDependentData( mddDevicePtr.get() );
 
     // initialize system assembler for stationary problem
-    TNL::Solvers::PDE::LinearSystemAssembler< MeshType, MeshFunctionType, DifferentialOperator, BoundaryConditions, RightHandSide, TNL::Solvers::PDE::NoTimeDiscretisation, MatrixType, DofVectorType > systemAssembler;
-    systemAssembler.template assembly< MeshType::meshDimensions - 1, MeshDependentDataType::NumberOfEquations >(
+    TNL::Solvers::PDE::LinearSystemAssembler< MeshType, DofFunction, DifferentialOperator, BoundaryConditions, RightHandSide, TNL::Solvers::PDE::NoTimeDiscretisation, MatrixType, DofVectorType > systemAssembler;
+    systemAssembler.template assembly< typename MeshType::Face >(
             time,
             tau,
             meshPointer,
             this->differentialOperatorPointer,
             this->boundaryConditionsPointer,
             this->rightHandSidePointer,
-            dofVectorPointer,
+            dofFunctionPointer,
             matrixPointer,
             bPointer );
 
@@ -370,36 +374,50 @@ postIterate( const RealType & time,
              DofVectorPointer & dofVectorPointer,
              MeshDependentDataType & mdd )
 {
+    bindDofs( meshPointer, dofVectorPointer );
+
     // TODO: copying the objects to GPU takes as long as the rest of this method!
     device_ptr< MeshDependentDataType, DeviceType > mddDevicePtr( mdd );
 
     this->boundaryConditionsPointer->bindMeshDependentData( mddDevicePtr.get() );
 
     timer_explicit.start();
+    // output
+    TNL::Functions::MeshFunction< MeshType, MeshType::meshDimensions, RealType, MeshDependentDataType::NumberOfEquations > meshFunctionZK;
+    meshFunctionZK.bind( meshPointer, mdd.Z );
+    // input
     HybridizationExplicitFunction< MeshType, MeshDependentDataType > functionZK;
     functionZK.bind( mddDevicePtr.get(), dofVectorPointer );
-    tnlFunctionEvaluator< MeshType, HybridizationExplicitFunction< MeshType, MeshDependentDataType >, DofVectorType > enumeratorZK;
-    enumeratorZK.template enumerate< MeshType::meshDimensions, MeshDependentDataType::NumberOfEquations >(
-            meshPointer,
-            functionZK,
-            mdd.Z );
+    // evaluator
+    TNL::Functions::MeshFunctionEvaluator< TNL::Functions::MeshFunction< MeshType, MeshType::meshDimensions, RealType, MeshDependentDataType::NumberOfEquations >,
+                                           HybridizationExplicitFunction< MeshType, MeshDependentDataType > >
+                                         evaluatorZK;
+    evaluatorZK.evaluate(
+            meshFunctionZK,
+            functionZK );
     timer_explicit.stop();
 
     // update non-linear terms
     timer_nonlinear.start();
     GenericEnumerator< MeshType, MeshDependentDataType > genericEnumerator;
-    genericEnumerator.template enumerate< &MeshDependentDataType::updateNonLinearTerms, MeshType::meshDimensions >( meshPointer, mdd );
+    genericEnumerator.template enumerate< &MeshDependentDataType::updateNonLinearTerms, typename MeshType::Cell >( meshPointer, mdd );
     timer_nonlinear.stop();
 
     // update upwind density values
     timer_upwind.start();
+    // output
+    DofFunction upwindMeshFunction;
+    upwindMeshFunction.bind( meshPointer, mdd.m_upw );
+    // input
     Upwind< MeshType, MeshDependentDataType, BoundaryConditions > upwindFunction;
     upwindFunction.bind( mddDevicePtr.get(), boundaryConditionsPointer, dofVectorPointer );
-    tnlFunctionEvaluator< MeshType, Upwind< MeshType, MeshDependentDataType, BoundaryConditions >, DofVectorType > upwindEnumerator;
-    upwindEnumerator.template enumerate< MeshType::meshDimensions - 1, MeshDependentDataType::NumberOfEquations >(
-            meshPointer,
-            upwindFunction,
-            mdd.m_upw );
+    // evaluator
+    TNL::Functions::MeshFunctionEvaluator< DofFunction,
+                                           Upwind< MeshType, MeshDependentDataType, BoundaryConditions > >
+                                         upwindEvaluator;
+    upwindEvaluator.evaluate(
+            upwindMeshFunction,
+            upwindFunction );
     timer_upwind.stop();
 
     // TODO

@@ -36,6 +36,8 @@ public:
     typedef TNL::SharedPointer< MeshDependentDataType, DeviceType > MeshDependentDataPointer;
     typedef TNL::Containers::Vector< RealType, DeviceType, IndexType > DofVectorType;
     typedef TNL::SharedPointer< DofVectorType > DofVectorPointer;
+    typedef TNL::Functions::MeshFunction< Mesh, Mesh::meshDimensions - 1, RealType, MeshDependentDataType::NumberOfEquations > DofFunction;
+    typedef TNL::SharedPointer< DofFunction > DofFunctionPointer;
     typedef TNL::SharedPointer< DifferentialOperator > DifferentialOperatorPointer;
     typedef TNL::SharedPointer< BoundaryConditions > BoundaryConditionsPointer;
     typedef TNL::SharedPointer< RightHandSide, DeviceType > RightHandSidePointer;
@@ -44,7 +46,6 @@ public:
 
     typedef TNL::Containers::SharedVector< RealType, DeviceType, IndexType > SharedVectorType;
     typedef typename MeshType::CoordinatesType CoordinatesType;
-    typedef TNL::Functions::MeshFunction< Mesh, Mesh::meshDimensions - 1 > MeshFunctionType;
 
     static TNL::String getTypeStatic();
 
@@ -107,6 +108,8 @@ public:
 protected:
     // prefix for snapshots
     TNL::String outputPrefix;
+
+    DofFunctionPointer dofFunctionPointer;
 
     DifferentialOperatorPointer differentialOperatorPointer;
 

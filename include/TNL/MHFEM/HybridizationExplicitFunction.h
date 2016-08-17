@@ -1,6 +1,7 @@
 #pragma once
 
 #include <TNL/Functions/Domain.h>
+#include <TNL/Functions/Range.h>
 #include <TNL/SharedPointer.h>
 #include <TNL/Containers/StaticVector.h>
 
@@ -12,7 +13,8 @@ namespace mhfem
 template< typename Mesh,
           typename MeshDependentData >
 class HybridizationExplicitFunction
-    : public TNL::Functions::Domain< Mesh::meshDimensions, TNL::Functions::MeshDomain >
+    : public TNL::Functions::Domain< Mesh::meshDimensions, TNL::Functions::MeshDomain >,
+      public TNL::Functions::Range< typename MeshDependentData::RealType, MeshDependentData::NumberOfEquations >
 {
 public:
     typedef Mesh MeshType;
@@ -23,6 +25,8 @@ public:
     typedef TNL::Containers::Vector< RealType, DeviceType, IndexType> DofVectorType;
     typedef TNL::Containers::StaticVector< MeshDependentDataType::FacesPerCell, IndexType > FaceVectorType;
 
+    static constexpr int getEntitiesDimensions() { return Mesh::meshDimensions; }
+ 
     void bind( MeshDependentDataType* mdd,
                TNL::SharedPointer< DofVectorType > & dofVector )
     {
@@ -30,14 +34,17 @@ public:
         this->dofVector = dofVector;
     }
 
+    template< typename EntityType >
     __cuda_callable__
-    RealType getValue( const MeshType & mesh,
-                       const IndexType & index,
-                       const RealType & time ) const
+    RealType operator()( const EntityType & entity,
+                         const RealType & time,
+                         const int & i ) const
     {
-        const IndexType cells = mesh.template getEntitiesCount< typename Mesh::Cell >();
-        const IndexType K = index % cells;
-        const int i = index / cells;
+        static_assert( EntityType::getDimensions() == getEntitiesDimensions(),
+                       "This function is defined on cells." );
+
+        const auto & mesh = entity.getMesh();
+        const IndexType K = entity.getIndex();
 
         RealType result = 0.0;
         FaceVectorType faceIndexes;
