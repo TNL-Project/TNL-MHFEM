@@ -69,7 +69,7 @@ public:
         const IndexType E = entity.getIndex();
 
         IndexType cellIndexes[ 2 ];
-        const int numCells = getCellsForFace( mesh, E, cellIndexes );
+        const int numCells = getCellsForFace( mesh, entity, cellIndexes );
         
         // index of the main element (left/bottom if indexFace is inner face, otherwise the element next to the boundary face)
         const IndexType & K1 = cellIndexes[ 0 ];
@@ -84,7 +84,7 @@ public:
         else {
             // TODO: check if the value is available (we need to know the density on \Gamma_c ... part of the boundary where the fluid flows in)
 //            return mdd->m_iK( i, K1 );
-            return mdd->getBoundaryMobility( mesh, *bc, i, E, time );
+            return mdd->getBoundaryMobility( mesh, *bc, i, entity, time );
         }
     }
 

@@ -57,7 +57,7 @@ setMatrixElements( DofFunctionPointer & u,
 
     // indexes of the right (cellIndexes[0]) and left (cellIndexes[1]) cells
     IndexType cellIndexes[ 2 ];
-    const int numCells = getCellsForFace( mesh, E, cellIndexes );
+    const int numCells = getCellsForFace( mesh, entity, cellIndexes );
 
     tnlAssert( numCells == 2,
                std::cerr << "assertion numCells == 2 failed" << std::endl; );
@@ -130,7 +130,7 @@ setMatrixElements( DofVectorPointer & u,
 
     // indexes of the right/top (cellIndexes[0]) and left/bottom (cellIndexes[1]) cells
     IndexType cellIndexes[ 2 ];
-    const int numCells = getCellsForFace( mesh, E, cellIndexes );
+    const int numCells = getCellsForFace( mesh, entity, cellIndexes );
 
     tnlAssert( numCells == 2,
                std::cerr << "assertion numCells == 2 failed" << std::endl; );
@@ -141,7 +141,10 @@ setMatrixElements( DofVectorPointer & u,
     getFacesForCell( mesh, cellIndexes[ 0 ], faceIndexesK0 );
     getFacesForCell( mesh, cellIndexes[ 1 ], faceIndexesK1 );
 
-    if( isVerticalFace( mesh, E ) ) {
+    const auto & orientation = entity.getOrientation();
+
+//    if( isVerticalFace( mesh, E ) ) {
+    if( orientation.x() ) {
         //        K1   K0
         //      ___________
         //      | 6  |  7 |
@@ -232,7 +235,7 @@ setMatrixElements( DofVectorPointer & u,
 
     // indexes of the right/top (cellIndexes[0]) and left/bottom (cellIndexes[1]) cells
     IndexType cellIndexes[ 2 ];
-    const int numCells = getCellsForFace( mesh, E, cellIndexes );
+    const int numCells = getCellsForFace( mesh, entity, cellIndexes );
 
     tnlAssert( numCells == 2,
                std::cerr << "assertion numCells == 2 failed" << std::endl; );

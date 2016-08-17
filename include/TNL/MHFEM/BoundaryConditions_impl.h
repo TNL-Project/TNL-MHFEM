@@ -62,7 +62,7 @@ setMatrixElements( DofVectorPointer & u,
     else {
         // for boundary faces returns only one valid cell index
         IndexType cellIndexes[ 2 ];
-        const int numCells = getCellsForFace( mesh, E, cellIndexes );
+        const int numCells = getCellsForFace( mesh, entity, cellIndexes );
         const IndexType & K = cellIndexes[ 0 ];
 
         tnlAssert( numCells == 1,
