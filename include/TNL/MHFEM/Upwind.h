@@ -53,7 +53,7 @@ public:
         getFacesForCell( mesh, K, faceIndexes );
         const int e = getLocalIndex( faceIndexes, E );
 
-        return coeff::v_iKE( *mdd, Z_iF, faceIndexes, i, K, E, e );
+        return coeff::v_iKE( *mdd, *Z_iF, faceIndexes, i, K, E, e );
     }
 
     template< typename EntityType >

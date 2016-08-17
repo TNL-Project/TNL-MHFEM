@@ -53,7 +53,7 @@ public:
         for( int f = 0; f < mdd->FacesPerCell; f++ ) {
             const IndexType F = faceIndexes[ f ];
             for( int j = 0; j < mdd->NumberOfEquations; j++ ) {
-                result += mdd->R_ijKe( i, j, K, f ) * dofVector[ mdd->getDofIndex( j, F ) ];
+                result += mdd->R_ijKe( i, j, K, f ) * (*dofVector)[ mdd->getDofIndex( j, F ) ];
             }
         }
 
