@@ -334,8 +334,8 @@ assemblyLinearSystem( const RealType & time,
             matrixPointer,
             bPointer );
 
-//    matrix.print( std::cout );
-//    std::cout << b << std::endl;
+//    (*matrixPointer).print( std::cout );
+//    std::cout << *bPointer << std::endl;
 //    if( time > tau )
 //        abort();
 
