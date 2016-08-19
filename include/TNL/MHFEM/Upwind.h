@@ -53,7 +53,10 @@ public:
         getFacesForCell( mesh, K, faceIndexes );
         const int e = getLocalIndex( faceIndexes, E );
 
-        return coeff::v_iKE( *mdd, *Z_iF, faceIndexes, i, K, E, e );
+        // dereference the smart pointer on device
+        const auto & Z_iF = this->Z_iF.template getData< DeviceType >();
+
+        return coeff::v_iKE( *mdd, Z_iF, faceIndexes, i, K, E, e );
     }
 
     template< typename EntityType >
@@ -82,9 +85,12 @@ public:
             return mdd->m_iK( i, K2 );
         }
         else {
+            // dereference the smart pointer on device
+            const auto & bc = this->bc.template getData< DeviceType >();
+
             // TODO: check if the value is available (we need to know the density on \Gamma_c ... part of the boundary where the fluid flows in)
 //            return mdd->m_iK( i, K1 );
-            return mdd->getBoundaryMobility( mesh, *bc, i, entity, time );
+            return mdd->getBoundaryMobility( mesh, bc, i, entity, time );
         }
     }
 
