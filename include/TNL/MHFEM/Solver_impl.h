@@ -66,8 +66,7 @@ template< typename Mesh,
           typename BoundaryConditions,
           typename RightHandSide,
           typename Matrix >
-TNL::Solvers::SolverMonitor< typename Solver< Mesh, MeshDependentData, DifferentialOperator, BoundaryConditions, RightHandSide, Matrix >::RealType,
-                  typename Solver< Mesh, MeshDependentData, DifferentialOperator, BoundaryConditions, RightHandSide, Matrix >::IndexType >*
+TNL::Solvers::SolverMonitor*
 Solver< Mesh, MeshDependentData, DifferentialOperator, BoundaryConditions, RightHandSide, Matrix >::
 getSolverMonitor()
 {

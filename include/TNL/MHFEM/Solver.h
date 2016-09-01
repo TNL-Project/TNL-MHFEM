@@ -54,7 +54,7 @@ public:
     void writeProlog( TNL::Logger & logger,
                       const TNL::Config::ParameterContainer & parameters ) const;
 
-    TNL::Solvers::SolverMonitor< RealType, IndexType >* getSolverMonitor();
+    TNL::Solvers::SolverMonitor* getSolverMonitor();
 
     bool setup( const TNL::Config::ParameterContainer & parameters );
 
