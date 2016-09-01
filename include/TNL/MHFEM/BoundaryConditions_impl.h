@@ -47,6 +47,8 @@ setMatrixElements( DofVectorPointer & u,
                    Matrix & matrix,
                    Vector & b ) const
 {
+    tnlAssert( entity.isBoundaryEntity(), );
+
     const IndexType E = entity.getIndex();
     const MeshType & mesh = entity.getMesh();
     const IndexType indexRow = i * mesh.template getEntitiesCount< typename MeshType::Face >() + E;
