@@ -167,14 +167,13 @@ setInitialCondition( const TNL::Config::ParameterContainer & parameters,
     device_ptr< MeshDependentDataType, DeviceType > mddDevicePtr( mdd );
 
     // initialize dofVector as an average of mdd.Z on neighbouring cells
-    FaceAverageFunctionWithBoundary< MeshType, MeshDependentDataType, BoundaryConditions > faceAverageFunction;
-    faceAverageFunction.bind( mddDevicePtr.get(), boundaryConditionsPointer, mdd.Z );
-    TNL::Functions::MeshFunctionEvaluator< DofFunction,
-                                           FaceAverageFunctionWithBoundary< MeshType, MeshDependentDataType, BoundaryConditions > >
-            faceAverageEvaluator;
-    // TODO: MeshFunctionEvaluator does not know smart pointers
+    using FaceAverageFunction = FaceAverageFunctionWithBoundary< MeshType, MeshDependentDataType, BoundaryConditions >;
+    // TODO: this might as well be a class attribute
+    TNL::SharedPointer< FaceAverageFunction, DeviceType > faceAverageFunction;
+    faceAverageFunction->bind( mddDevicePtr.get(), boundaryConditionsPointer, mdd.Z );
+    TNL::Functions::MeshFunctionEvaluator< DofFunction, FaceAverageFunction > faceAverageEvaluator;
     faceAverageEvaluator.evaluate(
-            *dofFunctionPointer,    // out
+            dofFunctionPointer,     // out
             faceAverageFunction );  // in
 
     timer_R.reset();
@@ -382,18 +381,17 @@ postIterate( const RealType & time,
 
     timer_explicit.start();
     // output
-    TNL::Functions::MeshFunction< MeshType, MeshType::meshDimensions, RealType, MeshDependentDataType::NumberOfEquations > meshFunctionZK;
-    meshFunctionZK.bind( meshPointer, mdd.Z );
+    using ZkMeshFunction = TNL::Functions::MeshFunction< MeshType, MeshType::meshDimensions, RealType, MeshDependentDataType::NumberOfEquations >;
+    // TODO: might be class attribute
+    TNL::SharedPointer< ZkMeshFunction, DeviceType > meshFunctionZK;
+    meshFunctionZK->bind( meshPointer, mdd.Z );
     // input
-    HybridizationExplicitFunction< MeshType, MeshDependentDataType > functionZK;
-    functionZK.bind( mddDevicePtr.get(), dofVectorPointer );
+    using HybridizationFunction = HybridizationExplicitFunction< MeshType, MeshDependentDataType >;
+    TNL::SharedPointer< HybridizationFunction, DeviceType > functionZK;
+    functionZK->bind( mddDevicePtr.get(), dofVectorPointer );
     // evaluator
-    TNL::Functions::MeshFunctionEvaluator< TNL::Functions::MeshFunction< MeshType, MeshType::meshDimensions, RealType, MeshDependentDataType::NumberOfEquations >,
-                                           HybridizationExplicitFunction< MeshType, MeshDependentDataType > >
-                                         evaluatorZK;
-    evaluatorZK.evaluate(
-            meshFunctionZK,
-            functionZK );
+    TNL::Functions::MeshFunctionEvaluator< ZkMeshFunction, HybridizationFunction > evaluatorZK;
+    evaluatorZK.evaluate( meshFunctionZK, functionZK );
     timer_explicit.stop();
 
     // update non-linear terms
@@ -405,18 +403,15 @@ postIterate( const RealType & time,
     // update upwind density values
     timer_upwind.start();
     // output
-    DofFunction upwindMeshFunction;
-    upwindMeshFunction.bind( meshPointer, mdd.m_upw );
+    TNL::SharedPointer< DofFunction, DeviceType > upwindMeshFunction;
+    upwindMeshFunction->bind( meshPointer, mdd.m_upw );
     // input
-    Upwind< MeshType, MeshDependentDataType, BoundaryConditions > upwindFunction;
-    upwindFunction.bind( mddDevicePtr.get(), boundaryConditionsPointer, dofVectorPointer );
+    using UpwindFunction = Upwind< MeshType, MeshDependentDataType, BoundaryConditions >;
+    TNL::SharedPointer< UpwindFunction, DeviceType > upwindFunction;
+    upwindFunction->bind( mddDevicePtr.get(), boundaryConditionsPointer, dofVectorPointer );
     // evaluator
-    TNL::Functions::MeshFunctionEvaluator< DofFunction,
-                                           Upwind< MeshType, MeshDependentDataType, BoundaryConditions > >
-                                         upwindEvaluator;
-    upwindEvaluator.evaluate(
-            upwindMeshFunction,
-            upwindFunction );
+    TNL::Functions::MeshFunctionEvaluator< DofFunction, UpwindFunction > upwindEvaluator;
+    upwindEvaluator.evaluate( upwindMeshFunction, upwindFunction );
     timer_upwind.stop();
 
     // TODO
