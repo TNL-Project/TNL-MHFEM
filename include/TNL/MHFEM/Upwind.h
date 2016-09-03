@@ -32,7 +32,7 @@ public:
 
     static constexpr int getEntitiesDimensions() { return Mesh::meshDimensions - 1; }
  
-    void bind( MeshDependentDataType* mdd,
+    void bind( TNL::SharedPointer< MeshDependentDataType > mdd,
                TNL::SharedPointer< BoundaryConditions > & bc,
                TNL::SharedPointer< DofVectorType > & Z_iF )
     {
@@ -53,10 +53,11 @@ public:
         getFacesForCell( mesh, K, faceIndexes );
         const int e = getLocalIndex( faceIndexes, E );
 
-        // dereference the smart pointer on device
+        // dereference the smart pointers on device
+        const auto & mdd = this->mdd.template getData< DeviceType >();
         const auto & Z_iF = this->Z_iF.template getData< DeviceType >();
 
-        return coeff::v_iKE( *mdd, Z_iF, faceIndexes, i, K, E, e );
+        return coeff::v_iKE( mdd, Z_iF, faceIndexes, i, K, E, e );
     }
 
     template< typename EntityType >
@@ -68,6 +69,9 @@ public:
         static_assert( EntityType::getDimensions() == getEntitiesDimensions(),
                        "This function is defined on faces." );
 
+        // dereference the smart pointer on device
+        const auto & mdd = this->mdd.template getData< DeviceType >();
+
         const MeshType & mesh = entity.getMesh();
         const IndexType E = entity.getIndex();
 
@@ -78,24 +82,24 @@ public:
         const IndexType & K1 = cellIndexes[ 0 ];
 
         if( getVelocity( mesh, i, K1, E ) >= 0 ) {
-            return mdd->m_iK( i, K1 );
+            return mdd.m_iK( i, K1 );
         }
         else if( numCells == 2 ) {
             const IndexType & K2 = cellIndexes[ 1 ];
-            return mdd->m_iK( i, K2 );
+            return mdd.m_iK( i, K2 );
         }
         else {
             // dereference the smart pointer on device
             const auto & bc = this->bc.template getData< DeviceType >();
 
             // TODO: check if the value is available (we need to know the density on \Gamma_c ... part of the boundary where the fluid flows in)
-//            return mdd->m_iK( i, K1 );
-            return mdd->getBoundaryMobility( mesh, bc, i, entity, time );
+//            return mdd.m_iK( i, K1 );
+            return mdd.getBoundaryMobility( mesh, bc, i, entity, time );
         }
     }
 
 protected:
-    MeshDependentDataType* mdd;
+    TNL::SharedPointer< MeshDependentDataType > mdd;
     TNL::SharedPointer< BoundaryConditions > bc;
     TNL::SharedPointer< DofVectorType > Z_iF;
 };

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <TNL/SharedPointer.h>
 #include <TNL/Containers/Vector.h>
 #include <TNL/Containers/StaticVector.h>
 #include <TNL/Operators/Operator.h>
@@ -52,7 +53,7 @@ public:
 //                       const IndexType & E,
 //                       const RealType & time ) const;
 
-    void bindMeshDependentData( MeshDependentDataType* mdd );
+    void bindMeshDependentData( TNL::SharedPointer< MeshDependentDataType > & mdd );
 
     __cuda_callable__
     IndexType getLinearSystemRowLength( const MeshType & mesh,
@@ -77,7 +78,7 @@ public:
     bool isDirichletBoundary( const MeshType & mesh, const int & i, const typename Mesh::Face & face ) const;
 
 protected:
-    MeshDependentDataType* mdd;
+    TNL::SharedPointer< MeshDependentDataType > mdd;
 
     // vector holding tags to differentiate the boundary condition based on the face index
     // (true indicates Dirichlet boundary)

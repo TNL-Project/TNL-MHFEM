@@ -8,7 +8,7 @@
 #include <TNL/Solvers/PDE/LinearSystemAssembler.h>
 #include <TNL/Problems/PDEProblem.h>
 #include <TNL/Functions/MeshFunction.h>
-#include <TNL/TimerRT.h>
+#include <TNL/Timer.h>
 
 namespace mhfem
 {
@@ -61,7 +61,7 @@ public:
     bool setInitialCondition( const TNL::Config::ParameterContainer & parameters,
                               const MeshPointer & meshPointer,
                               DofVectorPointer & dofsPointer,
-                              MeshDependentDataType & mdd );
+                              MeshDependentDataPointer & mdd );
 
     bool setupLinearSystem( const MeshPointer & meshPointer,
                             MatrixPointer & matrixPointer );
@@ -70,24 +70,24 @@ public:
                        const IndexType & step,
                        const MeshPointer & meshPointer,
                        DofVectorPointer & dofsPointer,
-                       MeshDependentDataType & mdd );
+                       MeshDependentDataPointer & mdd );
 
     IndexType getDofs( const MeshPointer & mesh ) const;
 
     void bindDofs( const MeshPointer & meshPointer,
                    DofVectorPointer & dofs );
 
-    bool setMeshDependentData( const Mesh & mesh,
-                               MeshDependentDataType & mdd );
+    bool setMeshDependentData( const MeshPointer & meshPointer,
+                               MeshDependentDataPointer & mdd );
 
-    void bindMeshDependentData( const Mesh & mesh,
-                                MeshDependentDataType & mdd );
+    void bindMeshDependentData( const MeshPointer & meshPointer,
+                                MeshDependentDataPointer & mdd );
 
     bool preIterate( const RealType & time,
                      const RealType & tau,
                      const MeshPointer & meshPointer,
                      DofVectorPointer & dofsPointer,
-                     MeshDependentDataType & mdd );
+                     MeshDependentDataPointer & mdd );
 
     void assemblyLinearSystem( const RealType & time,
                                const RealType & tau,
@@ -95,13 +95,13 @@ public:
                                DofVectorPointer & dofsPointer,
                                MatrixPointer & matrixPointer,
                                DofVectorPointer & rightHandSidePointer,
-                               MeshDependentDataType & mdd );
+                               MeshDependentDataPointer & mdd );
 
     bool postIterate( const RealType & time,
                       const RealType & tau,
                       const MeshPointer & meshPointer,
                       DofVectorPointer & dofsPointer,
-                      MeshDependentDataType & mdd );
+                      MeshDependentDataPointer & mdd );
 
     bool writeEpilog( TNL::Logger & logger );
 
@@ -117,7 +117,7 @@ protected:
 
     RightHandSidePointer rightHandSidePointer;
 
-    TNL::TimerRT timer_R, timer_Q, timer_explicit, timer_nonlinear, timer_upwind;
+    TNL::Timer timer_R, timer_Q, timer_explicit, timer_nonlinear, timer_upwind;
 };
 
 } // namespace mhfem

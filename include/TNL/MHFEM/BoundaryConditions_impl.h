@@ -11,7 +11,7 @@ template< typename Mesh,
           typename ModelImplementation >
 void
 BoundaryConditions< Mesh, MeshDependentData, ModelImplementation >::
-bindMeshDependentData( MeshDependentDataType* mdd )
+bindMeshDependentData( TNL::SharedPointer< MeshDependentDataType > & mdd )
 {
     this->mdd = mdd;
 }
@@ -78,19 +78,22 @@ setMatrixElements( DofVectorPointer & u,
         getFacesForCell( mesh, K, faceIndexes );
         const int e = getLocalIndex( faceIndexes, E );
 
+        // dereference the smart pointer on device
+        const auto & mdd = this->mdd.template getData< DeviceType >();
+
         // set right hand side value
         RealType bValue = - static_cast<const ModelImplementation*>(this)->getNeumannValue( mesh, i, E, time ) * getFaceSurface( mesh, entity );
 
-        bValue += mdd->w_iKe( i, K, e );
+        bValue += mdd.w_iKe( i, K, e );
         for( int j = 0; j < MeshDependentDataType::NumberOfEquations; j++ ) {
-            bValue += MeshDependentDataType::MassMatrix::b_ijKe( *mdd, i, j, K, e ) * mdd->R_iK( j, K );
+            bValue += MeshDependentDataType::MassMatrix::b_ijKe( mdd, i, j, K, e ) * mdd.R_iK( j, K );
         }
         b[ indexRow ] = bValue;
 
         // set non-zero elements
         for( int j = 0; j < MeshDependentDataType::NumberOfEquations; j++ ) {
-            for( int f = 0; f < mdd->FacesPerCell; f++ ) {
-                matrixRow.setElement( j * mdd->FacesPerCell + f, mdd->getDofIndex( j, faceIndexes[ f ] ), coeff::A_ijKEF( *mdd, i, j, K, E, e, faceIndexes[ f ], f ) );
+            for( int f = 0; f < MeshDependentDataType::FacesPerCell; f++ ) {
+                matrixRow.setElement( j * MeshDependentDataType::FacesPerCell + f, mdd.getDofIndex( j, faceIndexes[ f ] ), coeff::A_ijKEF( mdd, i, j, K, E, e, faceIndexes[ f ], f ) );
             }
         }
     }

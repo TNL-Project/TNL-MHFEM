@@ -105,6 +105,13 @@ public:
         return m[ i * numberOfCells + K ];
     }
 
+    __cuda_callable__
+    const RealType & m_iK( const int & i, const IndexType & K ) const
+    {
+//        return m[ n * K + i ];
+        return m[ i * numberOfCells + K ];
+    }
+
     // NOTE: only for D isotropic (represented by scalar value)
     __cuda_callable__
     RealType & D_ijK( const int & i, const int & j, const IndexType & K )
@@ -154,6 +161,12 @@ public:
 
     __cuda_callable__
     RealType & R_iK( const int & i, const IndexType & K )
+    {
+        return R2[ n * K + i ];
+    }
+
+    __cuda_callable__
+    const RealType & R_iK( const int & i, const IndexType & K ) const
     {
         return R2[ n * K + i ];
     }

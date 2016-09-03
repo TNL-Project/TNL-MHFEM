@@ -1,5 +1,6 @@
 #pragma once
 
+#include <TNL/SharedPointer.h>
 #include <TNL/Meshes/Grid.h>
 #include <TNL/Operators/Operator.h>
 
@@ -37,7 +38,7 @@ public:
     typedef typename MeshDependentDataType::IndexType IndexType;
     typedef TNL::Containers::StaticVector< MeshDependentDataType::FacesPerCell, IndexType > FaceVectorType;
 
-    void bindMeshDependentData( MeshDependentDataType* mdd );
+    void bindMeshDependentData( TNL::SharedPointer< MeshDependentDataType > & mdd );
 
     __cuda_callable__
     IndexType getLinearSystemRowLength( const MeshType & mesh,
@@ -56,7 +57,7 @@ public:
                             Vector & b ) const;
 
 protected:
-    MeshDependentDataType* mdd;
+    TNL::SharedPointer< MeshDependentDataType > mdd;
     typedef MassMatrixDependentCode< MeshDependentDataType > coeff;
 };
 
@@ -83,7 +84,7 @@ public:
     typedef typename MeshDependentDataType::IndexType IndexType;
     typedef TNL::Containers::StaticVector< MeshDependentDataType::FacesPerCell, IndexType > FaceVectorType;
 
-    void bindMeshDependentData( MeshDependentDataType* mdd );
+    void bindMeshDependentData( TNL::SharedPointer< MeshDependentDataType > & mdd );
 
     __cuda_callable__
     IndexType getLinearSystemRowLength( const MeshType & mesh,
@@ -102,7 +103,7 @@ public:
                             Vector & b ) const;
 
 protected:
-    MeshDependentDataType* mdd;
+    TNL::SharedPointer< MeshDependentDataType > mdd;
     typedef MassMatrixDependentCode< MeshDependentDataType > coeff;
 };
 
@@ -129,7 +130,7 @@ public:
     typedef typename MeshDependentDataType::IndexType IndexType;
     typedef TNL::Containers::StaticVector< MeshDependentDataType::FacesPerCell, IndexType > FaceVectorType;
 
-    void bindMeshDependentData( MeshDependentDataType* mdd );
+    void bindMeshDependentData( TNL::SharedPointer< MeshDependentDataType > & mdd );
 
     __cuda_callable__
     IndexType getLinearSystemRowLength( const MeshType & mesh,
@@ -148,7 +149,7 @@ public:
                             Vector & b ) const;
 
 protected:
-    MeshDependentDataType* mdd;
+    TNL::SharedPointer< MeshDependentDataType > mdd;
     typedef MassMatrixDependentCode< MeshDependentDataType > coeff;
 };
 

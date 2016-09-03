@@ -1,5 +1,6 @@
 #pragma once
 
+#include <TNL/SharedPointer.h>
 #include <TNL/Functions/Domain.h>
 #include <TNL/Functions/Range.h>
 
@@ -24,7 +25,7 @@ public:
 
     static constexpr int getEntitiesDimensions() { return Mesh::meshDimensions - 1; }
  
-    void bindMeshDependentData( MeshDependentDataType* mdd )
+    void bindMeshDependentData( TNL::SharedPointer< MeshDependentDataType > & mdd )
     {
         this->mdd = mdd;
     }
@@ -37,6 +38,9 @@ public:
     {
         static_assert( EntityType::getDimensions() == getEntitiesDimensions(),
                        "This function is defined on faces." );
+
+        // dereference the smart pointer on device
+        const auto & mdd = this->mdd.template getData< DeviceType >();
 
         const MeshType & mesh = entity.getMesh();
         const IndexType E = entity.getIndex();
@@ -57,16 +61,16 @@ public:
             getFacesForCell( mesh, K, faceIndexes );
             const int e = getLocalIndex( faceIndexes, E );
 
-            result += mdd->w_iKe( i, K, e );
-            for( int j = 0; j < mdd->NumberOfEquations; j++ ) {
-                result += MeshDependentDataType::MassMatrix::b_ijKe( *mdd, i, j, K, e ) * mdd->R_iK( j, K );
+            result += mdd.w_iKe( i, K, e );
+            for( int j = 0; j < MeshDependentDataType::NumberOfEquations; j++ ) {
+                result += MeshDependentDataType::MassMatrix::b_ijKe( mdd, i, j, K, e ) * mdd.R_iK( j, K );
             }
         }
         return result;
     }
 
 protected:
-    MeshDependentDataType* mdd;
+    TNL::SharedPointer< MeshDependentDataType > mdd;
 };
 
 } // namespace mhfem

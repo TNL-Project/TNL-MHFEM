@@ -27,7 +27,7 @@ public:
 
     static constexpr int getEntitiesDimensions() { return Mesh::meshDimensions; }
  
-    void bind( MeshDependentDataType* mdd,
+    void bind( TNL::SharedPointer< MeshDependentDataType > & mdd,
                TNL::SharedPointer< DofVectorType > & dofVector )
     {
         this->mdd = mdd;
@@ -50,23 +50,24 @@ public:
         FaceVectorType faceIndexes;
         getFacesForCell( mesh, K, faceIndexes );
 
-        // dereference the smart pointer on device
+        // dereference the smart pointers on device
+        const auto & mdd = this->mdd.template getData< DeviceType >();
         const auto & dofVector = this->dofVector.template getData< DeviceType >();
 
-        for( int f = 0; f < mdd->FacesPerCell; f++ ) {
+        for( int f = 0; f < MeshDependentDataType::FacesPerCell; f++ ) {
             const IndexType F = faceIndexes[ f ];
-            for( int j = 0; j < mdd->NumberOfEquations; j++ ) {
-                result += mdd->R_ijKe( i, j, K, f ) * dofVector[ mdd->getDofIndex( j, F ) ];
+            for( int j = 0; j < MeshDependentDataType::NumberOfEquations; j++ ) {
+                result += mdd.R_ijKe( i, j, K, f ) * dofVector[ mdd.getDofIndex( j, F ) ];
             }
         }
 
-        result += mdd->R_iK( i, K );
+        result += mdd.R_iK( i, K );
 
         return result;
     }
 
 protected:
-    MeshDependentDataType* mdd;
+    TNL::SharedPointer< MeshDependentDataType > mdd;
     TNL::SharedPointer< DofVectorType > dofVector;
 };
 
