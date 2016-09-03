@@ -1,7 +1,6 @@
 #pragma once
 
 #include <TNL/Object.h>
-#include <TNL/Containers/SharedVector.h>
 
 #include "MassMatrix.h"
 #include "../lib_general/FacesPerCell.h"
@@ -25,7 +24,6 @@ public:
     typedef typename MeshType::DeviceType DeviceType;
     typedef Index IndexType;
     typedef TNL::Containers::Vector< RealType, DeviceType, IndexType > DofVectorType;
-    typedef TNL::Containers::SharedVector< RealType, DeviceType, IndexType > SharedVectorType;
 
     using MassMatrix = mhfem::MassMatrix< MeshType, MassLumping::enabled >;
 //    using MassMatrix = mhfem::MassMatrix< MeshType, MassLumping::disabled >;

@@ -34,11 +34,11 @@ public:
  
     void bind( TNL::SharedPointer< MeshDependentDataType > mdd,
                TNL::SharedPointer< BoundaryConditions > & bc,
-               TNL::SharedPointer< DofVectorType > & Z_iF )
+               DofVectorType & Z_iF )
     {
         this->mdd = mdd;
         this->bc = bc;
-        this->Z_iF = Z_iF;
+        this->Z_iF.bind( Z_iF );
     }
 
     // FIXME: velocities should be pre-calculated before determining upwind values and updating the pressure values
@@ -53,9 +53,8 @@ public:
         getFacesForCell( mesh, K, faceIndexes );
         const int e = getLocalIndex( faceIndexes, E );
 
-        // dereference the smart pointers on device
+        // dereference the smart pointer on device
         const auto & mdd = this->mdd.template getData< DeviceType >();
-        const auto & Z_iF = this->Z_iF.template getData< DeviceType >();
 
         return coeff::v_iKE( mdd, Z_iF, faceIndexes, i, K, E, e );
     }
@@ -101,7 +100,7 @@ public:
 protected:
     TNL::SharedPointer< MeshDependentDataType > mdd;
     TNL::SharedPointer< BoundaryConditions > bc;
-    TNL::SharedPointer< DofVectorType > Z_iF;
+    DofVectorType Z_iF;
 };
 
 } // namespace mhfem

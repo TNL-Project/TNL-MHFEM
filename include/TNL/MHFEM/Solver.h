@@ -3,7 +3,6 @@
 #include <TNL/Solvers/SolverMonitor.h>
 #include <TNL/Logger.h>
 #include <TNL/Containers/Vector.h>
-#include <TNL/Containers/SharedVector.h>
 #include <TNL/SharedPointer.h>
 #include <TNL/Solvers/PDE/LinearSystemAssembler.h>
 #include <TNL/Problems/PDEProblem.h>
@@ -43,9 +42,6 @@ public:
     typedef TNL::SharedPointer< RightHandSide, DeviceType > RightHandSidePointer;
     typedef Matrix MatrixType;
     typedef TNL::SharedPointer< MatrixType > MatrixPointer;
-
-    typedef TNL::Containers::SharedVector< RealType, DeviceType, IndexType > SharedVectorType;
-    typedef typename MeshType::CoordinatesType CoordinatesType;
 
     static TNL::String getTypeStatic();
 

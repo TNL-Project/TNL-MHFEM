@@ -28,10 +28,10 @@ public:
     static constexpr int getEntitiesDimensions() { return Mesh::meshDimensions; }
  
     void bind( TNL::SharedPointer< MeshDependentDataType > & mdd,
-               TNL::SharedPointer< DofVectorType > & dofVector )
+               DofVectorType & dofVector )
     {
         this->mdd = mdd;
-        this->dofVector = dofVector;
+        this->dofVector.bind( dofVector );
     }
 
     template< typename EntityType >
@@ -52,7 +52,6 @@ public:
 
         // dereference the smart pointers on device
         const auto & mdd = this->mdd.template getData< DeviceType >();
-        const auto & dofVector = this->dofVector.template getData< DeviceType >();
 
         for( int f = 0; f < MeshDependentDataType::FacesPerCell; f++ ) {
             const IndexType F = faceIndexes[ f ];
@@ -68,7 +67,7 @@ public:
 
 protected:
     TNL::SharedPointer< MeshDependentDataType > mdd;
-    TNL::SharedPointer< DofVectorType > dofVector;
+    DofVectorType dofVector;
 };
 
 } // namespace mhfem

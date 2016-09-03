@@ -377,7 +377,7 @@ postIterate( const RealType & time,
     // input
     using HybridizationFunction = HybridizationExplicitFunction< MeshType, MeshDependentDataType >;
     TNL::SharedPointer< HybridizationFunction, DeviceType > functionZK;
-    functionZK->bind( mdd, dofVectorPointer );
+    functionZK->bind( mdd, *dofVectorPointer );
     // evaluator
     TNL::Functions::MeshFunctionEvaluator< ZkMeshFunction, HybridizationFunction > evaluatorZK;
     evaluatorZK.evaluate( meshFunctionZK, functionZK );
@@ -397,7 +397,7 @@ postIterate( const RealType & time,
     // input
     using UpwindFunction = Upwind< MeshType, MeshDependentDataType, BoundaryConditions >;
     TNL::SharedPointer< UpwindFunction, DeviceType > upwindFunction;
-    upwindFunction->bind( mdd, boundaryConditionsPointer, dofVectorPointer );
+    upwindFunction->bind( mdd, boundaryConditionsPointer, *dofVectorPointer );
     // evaluator
     TNL::Functions::MeshFunctionEvaluator< DofFunction, UpwindFunction > upwindEvaluator;
     upwindEvaluator.evaluate( upwindMeshFunction, upwindFunction );
