@@ -28,7 +28,8 @@ public:
     using MassMatrix = mhfem::MassMatrix< MeshType, MassLumping::enabled >;
 //    using MassMatrix = mhfem::MassMatrix< MeshType, MassLumping::disabled >;
 
-    static constexpr int FacesPerCell = FacesPerCell< MeshType >::value;
+    using FPC = ::FacesPerCell< MeshType >;
+    static constexpr int FacesPerCell = FPC::value;
 
     // NOTE: children of BaseModel (i.e. ModelImplementation) must implement these methods
 //    bool init( const tnlParameterContainer & parameters,
