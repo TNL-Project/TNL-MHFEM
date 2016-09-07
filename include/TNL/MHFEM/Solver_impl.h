@@ -282,12 +282,12 @@ preIterate( const RealType & time,
 
     TNL::Meshes::Traverser< MeshType, typename MeshType::Cell, MeshDependentDataType::NumberOfEquations > traverserND;
     timer_R.start();
-    traverserND.template processAllEntities< MeshDependentDataType, typename QRupdater< MeshType, MeshDependentDataType >::update_R >( meshPointer, *mdd );
+    traverserND.template processAllEntities< MeshDependentDataType, typename QRupdater< MeshType, MeshDependentDataType >::update_R >( meshPointer, mdd );
     timer_R.stop();
 
     TNL::Meshes::Traverser< MeshType, typename MeshType::Cell > traverser;
     timer_Q.start();
-    traverser.template processAllEntities< MeshDependentDataType, typename QRupdater< MeshType, MeshDependentDataType >::update_Q >( meshPointer, *mdd );
+    traverser.template processAllEntities< MeshDependentDataType, typename QRupdater< MeshType, MeshDependentDataType >::update_Q >( meshPointer, mdd );
     timer_Q.stop();
 
     return true;
@@ -386,7 +386,7 @@ postIterate( const RealType & time,
     // update non-linear terms
     timer_nonlinear.start();
     GenericEnumerator< MeshType, MeshDependentDataType > genericEnumerator;
-    genericEnumerator.template enumerate< &MeshDependentDataType::updateNonLinearTerms, typename MeshType::Cell >( meshPointer, *mdd );
+    genericEnumerator.template enumerate< &MeshDependentDataType::updateNonLinearTerms, typename MeshType::Cell >( meshPointer, mdd );
     timer_nonlinear.stop();
 
     // update upwind density values
