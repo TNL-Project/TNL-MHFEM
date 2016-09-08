@@ -30,7 +30,7 @@ public:
     typedef typename MeshType::DeviceType DeviceType;
     typedef typename MeshDependentDataType::RealType RealType;
     typedef typename MeshDependentDataType::IndexType IndexType;
-    typedef TNL::Containers::Vector< bool, DeviceType, IndexType > TagVectorType;
+    typedef TNL::Containers::Array< bool, DeviceType, IndexType > TagArrayType;
     typedef TNL::Containers::StaticVector< MeshDependentDataType::FacesPerCell, IndexType > FaceVectorType;
 
     // NOTE: children of BoundaryConditions (i.e. ModelImplementation) must implement these methods
@@ -82,7 +82,7 @@ protected:
 
     // vector holding tags to differentiate the boundary condition based on the face index
     // (true indicates Dirichlet boundary)
-    TagVectorType dirichletTags;
+    TagArrayType dirichletTags;
 
     typedef MassMatrixDependentCode< MeshDependentDataType > coeff;
 };
