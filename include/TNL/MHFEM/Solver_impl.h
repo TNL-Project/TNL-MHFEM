@@ -1,6 +1,6 @@
 #pragma once
 
-#include <TNL/core/mfilename.h>
+#include <TNL/FileName.h>
 #include <TNL/Matrices/MatrixSetter.h>
 #include <TNL/Functions/MeshFunction.h>
 #include <TNL/Solvers/PDE/NoTimeDiscretisation.h>
@@ -80,7 +80,9 @@ template< typename Mesh,
           typename Matrix >
 bool
 Solver< Mesh, MeshDependentData, DifferentialOperator, BoundaryConditions, RightHandSide, Matrix >::
-setup( const TNL::Config::ParameterContainer & parameters )
+setup( const MeshPointer & meshPointer,
+       const TNL::Config::ParameterContainer & parameters,
+       const TNL::String & prefix )
 {
     // prefix for snapshots
     outputPrefix = parameters.getParameter< TNL::String >( "output-prefix" ) + TNL::String("-");

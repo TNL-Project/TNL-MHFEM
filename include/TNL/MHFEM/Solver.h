@@ -52,7 +52,9 @@ public:
 
     TNL::Solvers::SolverMonitor* getSolverMonitor();
 
-    bool setup( const TNL::Config::ParameterContainer & parameters );
+    bool setup( const MeshPointer & meshPointer,
+                const TNL::Config::ParameterContainer & parameters,
+                const TNL::String & prefix );
 
     bool setInitialCondition( const TNL::Config::ParameterContainer & parameters,
                               const MeshPointer & meshPointer,
