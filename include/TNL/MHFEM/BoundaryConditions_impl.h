@@ -27,6 +27,7 @@ getLinearSystemRowLength( const MeshType & mesh,
                           const typename MeshType::Face & entity,
                           const int & i ) const
 {
+    tnlAssert( entity.isBoundaryEntity(), );
     if( this->isDirichletBoundary( mesh, i, entity ) )
         return 1;
     return MeshDependentDataType::FacesPerCell * MeshDependentDataType::NumberOfEquations;

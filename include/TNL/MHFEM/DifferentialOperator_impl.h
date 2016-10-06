@@ -30,6 +30,7 @@ getLinearSystemRowLength( const MeshType & mesh,
                           const typename MeshType::Face & entity,
                           const int & i ) const
 {
+    tnlAssert( ! entity.isBoundaryEntity(), );
     return 3 * MeshDependentDataType::NumberOfEquations;
 }
 
@@ -49,6 +50,8 @@ setMatrixElements( DofFunctionPointer & u,
                    Matrix & matrix,
                    Vector & b ) const
 {
+    tnlAssert( ! entity.isBoundaryEntity(), );
+
     const IndexType E = entity.getIndex();
     const MeshType & mesh = entity.getMesh();
     const IndexType indexRow = i * mesh.template getEntitiesCount< typename MeshType::Face >() + E;
@@ -106,6 +109,7 @@ getLinearSystemRowLength( const MeshType & mesh,
                           const typename MeshType::Face & entity,
                           const int & i ) const
 {
+    tnlAssert( ! entity.isBoundaryEntity(), );
     return 7 * MeshDependentDataType::NumberOfEquations;
 }
 
@@ -125,6 +129,8 @@ setMatrixElements( DofVectorPointer & u,
                    Matrix & matrix,
                    Vector & b ) const
 {
+    tnlAssert( ! entity.isBoundaryEntity(), );
+
     const IndexType E = entity.getIndex();
     const MeshType & mesh = entity.getMesh();
     const IndexType indexRow = i * mesh.template getEntitiesCount< typename MeshType::Face >() + E;
@@ -214,6 +220,7 @@ getLinearSystemRowLength( const MeshType & mesh,
                           const typename MeshType::Face & entity,
                           const int & i ) const
 {
+    tnlAssert( ! entity.isBoundaryEntity(), );
     return 11 * MeshDependentDataType::NumberOfEquations;
 }
 
@@ -233,6 +240,8 @@ setMatrixElements( DofVectorPointer & u,
                    Matrix & matrix,
                    Vector & b ) const
 {
+    tnlAssert( ! entity.isBoundaryEntity(), );
+
     const IndexType E = entity.getIndex();
     const MeshType & mesh = entity.getMesh();
     const IndexType indexRow = i * mesh.template getEntitiesCount< typename MeshType::Face >() + E;
