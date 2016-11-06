@@ -3,7 +3,6 @@
 #include <TNL/FileName.h>
 #include <TNL/Matrices/MatrixSetter.h>
 #include <TNL/Functions/MeshFunction.h>
-#include <TNL/Solvers/PDE/NoTimeDiscretisation.h>
 
 #include "../lib_general/mesh_helpers.h"
 #include "../lib_general/GenericEnumerator.h"
@@ -315,7 +314,6 @@ assemblyLinearSystem( const RealType & time,
     bindMeshDependentData( meshPointer, mdd );
 
     // initialize system assembler for stationary problem
-    TNL::Solvers::PDE::LinearSystemAssembler< MeshType, DofFunction, DifferentialOperator, BoundaryConditions, RightHandSide, TNL::Solvers::PDE::NoTimeDiscretisation, MatrixType, DofVectorType > systemAssembler;
     systemAssembler.template assembly< typename MeshType::Face >(
             time,
             tau,

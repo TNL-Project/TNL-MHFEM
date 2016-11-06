@@ -5,6 +5,7 @@
 #include <TNL/Containers/Vector.h>
 #include <TNL/SharedPointer.h>
 #include <TNL/Solvers/PDE/LinearSystemAssembler.h>
+#include <TNL/Solvers/PDE/NoTimeDiscretisation.h>
 #include <TNL/Problems/PDEProblem.h>
 #include <TNL/Functions/MeshFunction.h>
 #include <TNL/Timer.h>
@@ -114,6 +115,8 @@ protected:
     BoundaryConditionsPointer boundaryConditionsPointer;
 
     RightHandSidePointer rightHandSidePointer;
+
+    TNL::Solvers::PDE::LinearSystemAssembler< MeshType, DofFunction, DifferentialOperator, BoundaryConditions, RightHandSide, TNL::Solvers::PDE::NoTimeDiscretisation, MatrixType, DofVectorType > systemAssembler;
 
     TNL::Timer timer_R, timer_Q, timer_explicit, timer_nonlinear, timer_upwind;
 };
