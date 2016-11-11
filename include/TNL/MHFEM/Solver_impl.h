@@ -10,8 +10,6 @@
 
 #include "Solver.h"
 #include "QRupdater.h"
-#include "HybridizationExplicitFunction.h"
-#include "Upwind.h"
 
 namespace mhfem
 {
@@ -369,17 +367,11 @@ postIterate( const RealType & time,
     bindMeshDependentData( meshPointer, mdd );
 
     timer_explicit.start();
-    // output
-    using ZkMeshFunction = TNL::Functions::MeshFunction< MeshType, MeshType::meshDimensions, RealType, MeshDependentDataType::NumberOfEquations >;
-    // TODO: might be class attribute
-    TNL::SharedPointer< ZkMeshFunction, DeviceType > meshFunctionZK;
+    // bind output
     meshFunctionZK->bind( meshPointer, mdd->Z );
-    // input
-    using HybridizationFunction = HybridizationExplicitFunction< MeshType, MeshDependentDataType >;
-    TNL::SharedPointer< HybridizationFunction, DeviceType > functionZK;
+    // bind inputs
     functionZK->bind( mdd, *dofVectorPointer );
-    // evaluator
-    TNL::Functions::MeshFunctionEvaluator< ZkMeshFunction, HybridizationFunction > evaluatorZK;
+    // evaluate
     evaluatorZK.evaluate( meshFunctionZK, functionZK );
     timer_explicit.stop();
 
@@ -391,15 +383,11 @@ postIterate( const RealType & time,
 
     // update upwind density values
     timer_upwind.start();
-    // output
-    TNL::SharedPointer< DofFunction, DeviceType > upwindMeshFunction;
+    // bind output
     upwindMeshFunction->bind( meshPointer, mdd->m_upw );
-    // input
-    using UpwindFunction = Upwind< MeshType, MeshDependentDataType, BoundaryConditions >;
-    TNL::SharedPointer< UpwindFunction, DeviceType > upwindFunction;
+    // bind inputs
     upwindFunction->bind( mdd, boundaryConditionsPointer, *dofVectorPointer );
-    // evaluator
-    TNL::Functions::MeshFunctionEvaluator< DofFunction, UpwindFunction > upwindEvaluator;
+    // evaluate
     upwindEvaluator.evaluate( upwindMeshFunction, upwindFunction );
     timer_upwind.stop();
 

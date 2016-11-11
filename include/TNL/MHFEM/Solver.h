@@ -10,6 +10,9 @@
 #include <TNL/Functions/MeshFunction.h>
 #include <TNL/Timer.h>
 
+#include "HybridizationExplicitFunction.h"
+#include "Upwind.h"
+
 namespace mhfem
 {
 
@@ -108,6 +111,9 @@ protected:
     // prefix for snapshots
     TNL::String outputPrefix;
 
+    // timers for profiling
+    TNL::Timer timer_R, timer_Q, timer_explicit, timer_nonlinear, timer_upwind;
+
     DofFunctionPointer dofFunctionPointer;
 
     DifferentialOperatorPointer differentialOperatorPointer;
@@ -116,9 +122,37 @@ protected:
 
     RightHandSidePointer rightHandSidePointer;
 
-    TNL::Solvers::PDE::LinearSystemAssembler< MeshType, DofFunction, DifferentialOperator, BoundaryConditions, RightHandSide, TNL::Solvers::PDE::NoTimeDiscretisation, MatrixType, DofVectorType > systemAssembler;
+    // cached instance for assemblyLinearSystem
+    using LinearSystemAssembler = TNL::Solvers::PDE::LinearSystemAssembler
+                                  < MeshType,
+                                    DofFunction,
+                                    DifferentialOperator,
+                                    BoundaryConditions,
+                                    RightHandSide,
+                                    TNL::Solvers::PDE::NoTimeDiscretisation,
+                                    MatrixType,
+                                    DofVectorType >;
+    LinearSystemAssembler systemAssembler;
 
-    TNL::Timer timer_R, timer_Q, timer_explicit, timer_nonlinear, timer_upwind;
+
+    // cached instances for postIterate method
+
+    // output
+    using ZkMeshFunction = TNL::Functions::MeshFunction< MeshType, MeshType::meshDimensions, RealType, MeshDependentDataType::NumberOfEquations >;
+    TNL::SharedPointer< ZkMeshFunction, DeviceType > meshFunctionZK;
+    // input
+    using HybridizationFunction = HybridizationExplicitFunction< MeshType, MeshDependentDataType >;
+    TNL::SharedPointer< HybridizationFunction, DeviceType > functionZK;
+    // evaluator
+    TNL::Functions::MeshFunctionEvaluator< ZkMeshFunction, HybridizationFunction > evaluatorZK;
+
+    // output
+    TNL::SharedPointer< DofFunction, DeviceType > upwindMeshFunction;
+    // input
+    using UpwindFunction = Upwind< MeshType, MeshDependentDataType, BoundaryConditions >;
+    TNL::SharedPointer< UpwindFunction, DeviceType > upwindFunction;
+    // evaluator
+    TNL::Functions::MeshFunctionEvaluator< DofFunction, UpwindFunction > upwindEvaluator;
 };
 
 } // namespace mhfem
