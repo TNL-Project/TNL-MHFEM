@@ -385,8 +385,8 @@ postIterate( const RealType & time,
 
     // update non-linear terms
     timer_nonlinear.start();
-    GenericEnumerator< MeshType, MeshDependentDataType > genericEnumerator;
-    genericEnumerator.template enumerate< &MeshDependentDataType::updateNonLinearTerms, typename MeshType::Cell >( meshPointer, mdd );
+    GenericEnumerator< MeshType, MeshDependentDataType >::
+        template enumerate< &MeshDependentDataType::updateNonLinearTerms, typename MeshType::Cell >( meshPointer, mdd );
     timer_nonlinear.stop();
 
     // update upwind density values
