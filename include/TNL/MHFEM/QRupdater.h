@@ -50,7 +50,28 @@ public:
 
 //protected:
 
-    // TODO: split into update_b, update_RKF, update_RK for better parallelism
+    struct update_b
+    {
+        template< typename EntityType >
+        __cuda_callable__
+        static void processEntity( const MeshType & mesh,
+                                   MeshDependentDataType & mdd,
+                                   const EntityType & entity,
+                                   const int & i )
+        {
+            static_assert( EntityType::getDimensions() == MeshType::meshDimensions,
+                           "wrong entity dimensions in QRupdater::processEntity");
+
+            const IndexType K = entity.getIndex();
+
+            // update coefficients b_ijKE
+            for( int j = 0; j < mdd.NumberOfEquations; j++ ) {
+                MassMatrix::update( mesh, mdd, i, j, K );
+            }
+        }
+    };
+
+    // TODO: split into update_RKF, update_RK for better parallelism?
     struct update_R
     {
         template< typename EntityType >
@@ -69,10 +90,8 @@ public:
             FaceVectorType faceIndexes;
             getFacesForCell( mesh, K, faceIndexes );
 
-            // update coefficients b_ijKE and R_ijKE
+            // update coefficients R_ijKE
             for( int j = 0; j < mdd.NumberOfEquations; j++ ) {
-                MassMatrix::update( mesh, mdd, i, j, K );
-
                 for( int e = 0; e < mdd.FacesPerCell; e++ ) {
                     // assuming that the b_ijKe coefficient (accessed with MassMatrix::get( e, storage ) )
                     // can be cached in L1 or L2 cache even on CUDA

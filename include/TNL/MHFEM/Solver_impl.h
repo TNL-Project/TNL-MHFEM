@@ -83,6 +83,8 @@ setup( const MeshPointer & meshPointer,
 {
     // prefix for snapshots
     outputPrefix = parameters.getParameter< TNL::String >( "output-prefix" ) + TNL::String("-");
+    // for condition in preIterate
+    initialTime = parameters.getParameter< double >( "initial-time" );
 
     return true;
 }
@@ -164,7 +166,7 @@ setInitialCondition( const TNL::Config::ParameterContainer & parameters,
     if( ! boundaryConditionsPointer->init( parameters, *meshPointer ) )
         return false;
 
-    if( ! mdd->init( parameters, meshPointer, boundaryConditionsPointer, mdd ) )
+    if( ! mdd->init( parameters, meshPointer ) )
         return false;
 
     // initialize dofVector as an average of mdd.Z on neighbouring cells
@@ -276,17 +278,58 @@ preIterate( const RealType & time,
     bindDofs( meshPointer, dofVectorPointer );
     bindMeshDependentData( meshPointer, mdd );
 
+    // update non-linear terms
+    timer_nonlinear.start();
+    GenericEnumerator< MeshType, MeshDependentDataType >::
+        template enumerate< &MeshDependentDataType::updateNonLinearTerms, typename MeshType::Cell >( meshPointer, mdd );
+    timer_nonlinear.stop();
+
+    // update coefficients b_ijKEF which are needed for upwinding
+    TNL::Meshes::Traverser< MeshType, typename MeshType::Cell, MeshDependentDataType::NumberOfEquations > traverser_Ki;
+    timer_b.start();
+    traverser_Ki.template processAllEntities< MeshDependentDataType, typename QRupdater< MeshType, MeshDependentDataType >::update_b >( meshPointer, mdd );
+    timer_b.stop();
+
+    if( time == this->initialTime ) {
+        // initialize m_upw as an average of m on neighbouring cells
+
+        // this is done only once, so the instances are not cached as class attributes
+        // bind output
+        upwindMeshFunction->bind( meshPointer, mdd->m_upw );
+        // input
+        using FaceAverageFunction = MobilityFaceAverageFunction< MeshType, MeshDependentDataType, BoundaryConditions >;
+        TNL::SharedPointer< FaceAverageFunction, DeviceType > faceAverageFunction;
+        faceAverageFunction->bind( mdd, boundaryConditionsPointer, mdd->m );
+        // evaluator
+        TNL::Functions::MeshFunctionEvaluator< DofFunction, FaceAverageFunction > faceAverageEvaluator;
+        faceAverageEvaluator.evaluate(
+                upwindMeshFunction,     // out
+                faceAverageFunction );  // in
+    }
+    else {
+        // update upwind density values
+        timer_upwind.start();
+        // bind output
+        upwindMeshFunction->bind( meshPointer, mdd->m_upw );
+        // bind inputs
+        upwindFunction->bind( mdd, boundaryConditionsPointer, *dofVectorPointer );
+        // evaluate
+        upwindEvaluator.evaluate(
+                upwindMeshFunction,     // out
+                upwindFunction );       // in
+        timer_upwind.stop();
+    }
+
     // FIXME: nasty hack to pass tau to QRupdater
     mdd->current_tau = tau;
 
-    TNL::Meshes::Traverser< MeshType, typename MeshType::Cell, MeshDependentDataType::NumberOfEquations > traverserND;
     timer_R.start();
-    traverserND.template processAllEntities< MeshDependentDataType, typename QRupdater< MeshType, MeshDependentDataType >::update_R >( meshPointer, mdd );
+    traverser_Ki.template processAllEntities< MeshDependentDataType, typename QRupdater< MeshType, MeshDependentDataType >::update_R >( meshPointer, mdd );
     timer_R.stop();
 
-    TNL::Meshes::Traverser< MeshType, typename MeshType::Cell > traverser;
+    TNL::Meshes::Traverser< MeshType, typename MeshType::Cell > traverser_K;
     timer_Q.start();
-    traverser.template processAllEntities< MeshDependentDataType, typename QRupdater< MeshType, MeshDependentDataType >::update_Q >( meshPointer, mdd );
+    traverser_K.template processAllEntities< MeshDependentDataType, typename QRupdater< MeshType, MeshDependentDataType >::update_Q >( meshPointer, mdd );
     timer_Q.stop();
 
     return true;
@@ -375,31 +418,6 @@ postIterate( const RealType & time,
     evaluatorZK.evaluate( meshFunctionZK, functionZK );
     timer_explicit.stop();
 
-    // update non-linear terms
-    timer_nonlinear.start();
-    GenericEnumerator< MeshType, MeshDependentDataType >::
-        template enumerate< &MeshDependentDataType::updateNonLinearTerms, typename MeshType::Cell >( meshPointer, mdd );
-    timer_nonlinear.stop();
-
-    // update upwind density values
-    timer_upwind.start();
-    // bind output
-    upwindMeshFunction->bind( meshPointer, mdd->m_upw );
-    // bind inputs
-    upwindFunction->bind( mdd, boundaryConditionsPointer, *dofVectorPointer );
-    // evaluate
-    upwindEvaluator.evaluate( upwindMeshFunction, upwindFunction );
-    timer_upwind.stop();
-
-    // TODO
-//    FaceAverageFunction< MeshType, RealType, IndexType > faceAverageFunction;
-//    faceAverageFunction.bind( mdd->m );
-//    tnlFunctionEvaluator< MeshType, FaceAverageFunction< MeshType, RealType, IndexType >, DofVectorType > faceAverageEnumerator;
-//    faceAverageEnumerator.template enumerate< MeshType::meshDimensions - 1, MeshDependentDataType::NumberOfEquations >(
-//            mesh,
-//            faceAverageFunction,
-//            mdd->m_upw );
-
 //    std::cout << "solution (Z_iE): " << std::endl << dofVector << std::endl;
 //    std::cout << "solution (Z_iK): " << std::endl << mdd->Z << std::endl;
 
@@ -416,11 +434,12 @@ bool
 Solver< Mesh, MeshDependentData, DifferentialOperator, BoundaryConditions, RightHandSide, Matrix >::
 writeEpilog( TNL::Logger & logger )
 {
+    logger.writeParameter< double >( "nonlinear update time:", timer_nonlinear.getRealTime() );
+    logger.writeParameter< double >( "update_b time:", timer_b.getRealTime() );
+    logger.writeParameter< double >( "upwind update time:", timer_upwind.getRealTime() );
     logger.writeParameter< double >( "update_R time:", timer_R.getRealTime() );
     logger.writeParameter< double >( "update_Q time:", timer_Q.getRealTime() );
     logger.writeParameter< double >( "Z_iF -> Z_iK update time:", timer_explicit.getRealTime() );
-    logger.writeParameter< double >( "nonlinear update time:", timer_nonlinear.getRealTime() );
-    logger.writeParameter< double >( "upwind update time:", timer_upwind.getRealTime() );
     return true;
 }
 
