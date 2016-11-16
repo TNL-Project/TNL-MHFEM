@@ -41,7 +41,6 @@ public:
         this->Z_iF.bind( Z_iF );
     }
 
-    // FIXME: velocities should be pre-calculated before determining upwind values and updating the pressure values
     __cuda_callable__
     RealType getVelocity( const MeshType & mesh,
                           const int & i,
