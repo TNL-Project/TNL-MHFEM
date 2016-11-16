@@ -169,12 +169,30 @@ setInitialCondition( const TNL::Config::ParameterContainer & parameters,
     if( ! mdd->init( parameters, meshPointer ) )
         return false;
 
-    // initialize dofVector as an average of mdd.Z on neighbouring cells
-    using FaceAverageFunction = FaceAverageFunctionWithBoundary< MeshType, MeshDependentDataType, BoundaryConditions >;
-    // TODO: this might as well be a class attribute
+    // update non-linear terms
+    // TODO: we actually need to update only m
+    GenericEnumerator< MeshType, MeshDependentDataType >::
+        template enumerate< &MeshDependentDataType::updateNonLinearTerms, typename MeshType::Cell >( meshPointer, mdd );
+
+    // this is done only once, so the following instances are not cached as class attributes
+
+    // initialize m_upw as an average of m on neighbouring cells
+    // bind output
+    upwindMeshFunction->bind( meshPointer, mdd->m_upw );
+    // bind input
+    using FaceAverageFunction = MobilityFaceAverageFunction< MeshType, MeshDependentDataType, BoundaryConditions >;
     TNL::SharedPointer< FaceAverageFunction, DeviceType > faceAverageFunction;
-    faceAverageFunction->bind( mdd, boundaryConditionsPointer, mdd->Z );
+    faceAverageFunction->bind( mdd, boundaryConditionsPointer, mdd->m );
+    // evaluator
     TNL::Functions::MeshFunctionEvaluator< DofFunction, FaceAverageFunction > faceAverageEvaluator;
+    faceAverageEvaluator.evaluate(
+            upwindMeshFunction,     // out
+            faceAverageFunction );  // in
+
+    // initialize dofVector as an average of mdd.Z on neighbouring cells
+    // rebind input
+    faceAverageFunction->bind( mdd, boundaryConditionsPointer, mdd->Z );
+    // reuse evaluator
     faceAverageEvaluator.evaluate(
             dofFunctionPointer,     // out
             faceAverageFunction );  // in
@@ -278,36 +296,11 @@ preIterate( const RealType & time,
     bindDofs( meshPointer, dofVectorPointer );
     bindMeshDependentData( meshPointer, mdd );
 
-    // update non-linear terms
-    timer_nonlinear.start();
-    GenericEnumerator< MeshType, MeshDependentDataType >::
-        template enumerate< &MeshDependentDataType::updateNonLinearTerms, typename MeshType::Cell >( meshPointer, mdd );
-    timer_nonlinear.stop();
-
-    // update coefficients b_ijKEF which are needed for upwinding
-    TNL::Meshes::Traverser< MeshType, typename MeshType::Cell, MeshDependentDataType::NumberOfEquations > traverser_Ki;
-    timer_b.start();
-    traverser_Ki.template processAllEntities< MeshDependentDataType, typename QRupdater< MeshType, MeshDependentDataType >::update_b >( meshPointer, mdd );
-    timer_b.stop();
-
-    if( time == this->initialTime ) {
-        // initialize m_upw as an average of m on neighbouring cells
-
-        // this is done only once, so the instances are not cached as class attributes
-        // bind output
-        upwindMeshFunction->bind( meshPointer, mdd->m_upw );
-        // input
-        using FaceAverageFunction = MobilityFaceAverageFunction< MeshType, MeshDependentDataType, BoundaryConditions >;
-        TNL::SharedPointer< FaceAverageFunction, DeviceType > faceAverageFunction;
-        faceAverageFunction->bind( mdd, boundaryConditionsPointer, mdd->m );
-        // evaluator
-        TNL::Functions::MeshFunctionEvaluator< DofFunction, FaceAverageFunction > faceAverageEvaluator;
-        faceAverageEvaluator.evaluate(
-                upwindMeshFunction,     // out
-                faceAverageFunction );  // in
-    }
-    else {
-        // update upwind density values
+    // update upwinded mobility values
+    // NOTE: Upwinding is done based on v_{i,K,E}, which is computed from the "old" b_{i,j,K,E,F} and w_{i,K,E}
+    //       coefficients, but "new" Z_{j,K} and Z_{j,F}. From the semi-implicit approach it follows that
+    //       velocity calculated this way is conservative, which is very important for upwinding.
+    if( time > this->initialTime ) {
         timer_upwind.start();
         // bind output
         upwindMeshFunction->bind( meshPointer, mdd->m_upw );
@@ -319,6 +312,18 @@ preIterate( const RealType & time,
                 upwindFunction );       // in
         timer_upwind.stop();
     }
+
+    // update non-linear terms
+    timer_nonlinear.start();
+    GenericEnumerator< MeshType, MeshDependentDataType >::
+        template enumerate< &MeshDependentDataType::updateNonLinearTerms, typename MeshType::Cell >( meshPointer, mdd );
+    timer_nonlinear.stop();
+
+    // update coefficients b_ijKEF
+    TNL::Meshes::Traverser< MeshType, typename MeshType::Cell, MeshDependentDataType::NumberOfEquations > traverser_Ki;
+    timer_b.start();
+    traverser_Ki.template processAllEntities< MeshDependentDataType, typename QRupdater< MeshType, MeshDependentDataType >::update_b >( meshPointer, mdd );
+    timer_b.stop();
 
     // FIXME: nasty hack to pass tau to QRupdater
     mdd->current_tau = tau;
