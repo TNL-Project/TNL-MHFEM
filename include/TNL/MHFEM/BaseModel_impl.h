@@ -9,9 +9,10 @@ namespace mhfem
 template< typename Mesh,
           typename Real,
           typename Index,
-          typename ModelImplementation >
+          typename ModelImplementation,
+          typename MassMatrix >
 bool
-BaseModel< Mesh, Real, Index, ModelImplementation >::
+BaseModel< Mesh, Real, Index, ModelImplementation, MassMatrix >::
 allocate( const MeshType & mesh )
 {
     numberOfCells = mesh.template getEntitiesCount< typename Mesh::Cell >();

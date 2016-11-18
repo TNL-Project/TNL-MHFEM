@@ -11,7 +11,10 @@ namespace mhfem
 template< typename Mesh,
           typename Real,
           typename Index,
-          typename ModelImplementation >
+          typename ModelImplementation,
+          // this is not a non-typename parameter due to deficiency in TypeResolver
+//          MassLumping lumping = MassLumping::enabled >
+          typename MassMatrix_ = mhfem::MassMatrix< Mesh, MassLumping::enabled > >
 class BaseModel :
     public TNL::Object
 {
@@ -25,8 +28,8 @@ public:
     typedef Index IndexType;
     typedef TNL::Containers::Vector< RealType, DeviceType, IndexType > DofVectorType;
 
-    using MassMatrix = mhfem::MassMatrix< MeshType, MassLumping::enabled >;
-//    using MassMatrix = mhfem::MassMatrix< MeshType, MassLumping::disabled >;
+//    using MassMatrix = mhfem::MassMatrix< MeshType, lumping >;
+    using MassMatrix = MassMatrix_;
 
     using FPC = ::FacesPerCell< MeshType >;
     static constexpr int FacesPerCell = FPC::value;
