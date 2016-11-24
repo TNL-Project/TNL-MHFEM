@@ -1,11 +1,10 @@
 #pragma once
 
-#include <TNL/Containers/SharedVector.h>
-
 #include "MassMatrixDependentCode.h"
 #include "../lib_general/mesh_helpers.h"
 #include "../lib_general/LU.h"
 #include "../lib_general/StaticMatrix.h"
+#include "../lib_general/StaticSharedArray.h"
 
 // TODO: bind with mesh-dependent data, e.g. as a subclass or local typedef
 
@@ -24,7 +23,6 @@ public:
     typedef typename MeshDependentData::DeviceType DeviceType;
     typedef typename MeshDependentDataType::IndexType IndexType;
     typedef TNL::Containers::Vector< RealType, DeviceType, IndexType> DofVectorType;
-    typedef TNL::Containers::SharedVector< RealType, DeviceType, IndexType > SharedVectorType;
     typedef TNL::Containers::StaticVector< MeshDependentDataType::FacesPerCell, IndexType > FaceVectorType;
     typedef StaticMatrix< MeshDependentDataType::NumberOfEquations, MeshDependentDataType::NumberOfEquations, RealType > LocalMatrixType;
     typedef typename MeshDependentDataType::MassMatrix MassMatrix;
@@ -161,11 +159,12 @@ public:
 
             LU_factorize( Q );
 
-            SharedVectorType rk( &mdd.R_iK( 0, K ), mdd.NumberOfEquations );
+            using SharedVectorType = StaticSharedArray< MeshDependentDataType::NumberOfEquations, RealType >;
+            SharedVectorType rk( &mdd.R_iK( 0, K ) );
             LU_solve( Q, rk, rk );
             for( int j = 0; j < mdd.NumberOfEquations; j++ )
                 for( int e = 0; e < mdd.FacesPerCell; e++ ) {
-                    SharedVectorType rke( &mdd.R_ijKe( 0, j, K, e ), mdd.NumberOfEquations );
+                    SharedVectorType rke( &mdd.R_ijKe( 0, j, K, e ) );
                     LU_solve( Q, rke, rke );
                 }
         }
