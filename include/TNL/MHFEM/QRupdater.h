@@ -132,7 +132,15 @@ public:
             FaceVectorType faceIndexes;
             getFacesForCell( mesh, K, faceIndexes );
 
+#ifndef __CUDA_ARCH__
             LocalMatrixType Q;
+#else
+            // TODO: use dynamic allocation via Devices::Cuda::getSharedMemory
+            // (we'll need to pass custom launch configuration to the traverser)
+            __shared__ LocalMatrixType __Qs[ ( MeshType::getMeshDimensions() < 3 ) ? 256 : 512 ];
+            LocalMatrixType& Q = __Qs[ ( ( threadIdx.z * blockDim.y ) + threadIdx.y ) * blockDim.x + threadIdx.x ];
+#endif
+
             for( int i = 0; i < mdd.NumberOfEquations; i++ ) {
                 // Q is singular if it has a row with all elements equal to zero
                 bool singular = true;
