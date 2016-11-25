@@ -20,15 +20,15 @@ class Upwind
       public TNL::Functions::Range< typename MeshDependentData::RealType, MeshDependentData::NumberOfEquations >
 {
 public:
-    typedef Mesh MeshType;
-    typedef typename MeshType::CoordinatesType CoordinatesType;
-    typedef MeshDependentData MeshDependentDataType;
-    typedef typename MeshDependentDataType::RealType RealType;
-    typedef typename MeshDependentDataType::DeviceType DeviceType;
-    typedef typename MeshDependentDataType::IndexType IndexType;
-    typedef TNL::Containers::Vector< RealType, DeviceType, IndexType> DofVectorType;
-    typedef TNL::Containers::StaticVector< MeshDependentDataType::FacesPerCell, IndexType > FaceVectorType;
-    typedef MassMatrixDependentCode< MeshDependentDataType > coeff;
+    using MeshType = Mesh;
+    using CoordinatesType = typename MeshType::CoordinatesType;
+    using MeshDependentDataType = MeshDependentData;
+    using RealType = typename MeshDependentDataType::RealType;
+    using DeviceType = typename MeshDependentDataType::DeviceType;
+    using IndexType = typename MeshDependentDataType::IndexType;
+    using DofVectorType = TNL::Containers::Vector< RealType, DeviceType, IndexType>;
+    using FaceVectorType = TNL::Containers::StaticVector< MeshDependentDataType::FacesPerCell, IndexType >;
+    using coeff = MassMatrixDependentCode< MeshDependentDataType >;
 
     static constexpr int getEntitiesDimensions() { return Mesh::meshDimensions - 1; }
  

@@ -6,7 +6,7 @@
 #include "../lib_general/StaticMatrix.h"
 #include "../lib_general/StaticSharedArray.h"
 
-// TODO: bind with mesh-dependent data, e.g. as a subclass or local typedef
+// TODO: bind with mesh-dependent data, e.g. as a subclass or local type
 
 namespace mhfem
 {
@@ -16,17 +16,17 @@ template< typename Mesh,
 class QRupdater
 {
 public:
-    typedef Mesh MeshType;
-    typedef typename MeshType::CoordinatesType CoordinatesType;
-    typedef MeshDependentData MeshDependentDataType;
-    typedef typename MeshDependentDataType::RealType RealType;
-    typedef typename MeshDependentData::DeviceType DeviceType;
-    typedef typename MeshDependentDataType::IndexType IndexType;
-    typedef TNL::Containers::Vector< RealType, DeviceType, IndexType> DofVectorType;
-    typedef TNL::Containers::StaticVector< MeshDependentDataType::FacesPerCell, IndexType > FaceVectorType;
-    typedef StaticMatrix< MeshDependentDataType::NumberOfEquations, MeshDependentDataType::NumberOfEquations, RealType > LocalMatrixType;
-    typedef typename MeshDependentDataType::MassMatrix MassMatrix;
-    typedef MassMatrixDependentCode< MeshDependentDataType > coeff;
+    using MeshType = Mesh;
+    using CoordinatesType = typename MeshType::CoordinatesType;
+    using MeshDependentDataType = MeshDependentData;
+    using RealType = typename MeshDependentDataType::RealType;
+    using DeviceType = typename MeshDependentData::DeviceType;
+    using IndexType = typename MeshDependentDataType::IndexType;
+    using DofVectorType = TNL::Containers::Vector< RealType, DeviceType, IndexType>;
+    using FaceVectorType = TNL::Containers::StaticVector< MeshDependentDataType::FacesPerCell, IndexType >;
+    using LocalMatrixType = StaticMatrix< MeshDependentDataType::NumberOfEquations, MeshDependentDataType::NumberOfEquations, RealType >;
+    using MassMatrix = typename MeshDependentDataType::MassMatrix;
+    using coeff = MassMatrixDependentCode< MeshDependentDataType >;
 
 //    template< int EntityDimension >
 //    __cuda_callable__

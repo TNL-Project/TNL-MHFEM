@@ -24,14 +24,14 @@ class BoundaryConditions
                                        MeshDependentData::NumberOfEquations >
 {
 public:
-    typedef Mesh MeshType;
-    typedef typename MeshType::CoordinatesType CoordinatesType;
-    typedef MeshDependentData MeshDependentDataType;
-    typedef typename MeshType::DeviceType DeviceType;
-    typedef typename MeshDependentDataType::RealType RealType;
-    typedef typename MeshDependentDataType::IndexType IndexType;
-    typedef TNL::Containers::Array< bool, DeviceType, IndexType > TagArrayType;
-    typedef TNL::Containers::StaticVector< MeshDependentDataType::FacesPerCell, IndexType > FaceVectorType;
+    using MeshType = Mesh;
+    using CoordinatesType = typename MeshType::CoordinatesType;
+    using MeshDependentDataType = MeshDependentData;
+    using DeviceType = typename MeshType::DeviceType;
+    using RealType = typename MeshDependentDataType::RealType;
+    using IndexType = typename MeshDependentDataType::IndexType;
+    using TagArrayType = TNL::Containers::Array< bool, DeviceType, IndexType >;
+    using FaceVectorType = TNL::Containers::StaticVector< MeshDependentDataType::FacesPerCell, IndexType >;
 
     // NOTE: children of BoundaryConditions (i.e. ModelImplementation) must implement these methods
 //    bool
@@ -84,7 +84,7 @@ protected:
     // (true indicates Dirichlet boundary)
     TagArrayType dirichletTags;
 
-    typedef MassMatrixDependentCode< MeshDependentDataType > coeff;
+    using coeff = MassMatrixDependentCode< MeshDependentDataType >;
 };
 
 } // namespace mhfem

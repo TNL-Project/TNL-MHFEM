@@ -16,12 +16,12 @@ class RightHandSide
       public TNL::Functions::Range< typename MeshDependentData::RealType, MeshDependentData::NumberOfEquations >
 {
 public:
-    typedef Mesh MeshType;
-    typedef MeshDependentData MeshDependentDataType;
-    typedef typename MeshType::DeviceType DeviceType;
-    typedef typename MeshDependentDataType::RealType RealType;
-    typedef typename MeshDependentDataType::IndexType IndexType;
-    typedef TNL::Containers::StaticVector< MeshDependentDataType::FacesPerCell, IndexType > FaceVectorType;
+    using MeshType = Mesh;
+    using MeshDependentDataType = MeshDependentData;
+    using DeviceType = typename MeshType::DeviceType;
+    using RealType = typename MeshDependentDataType::RealType;
+    using IndexType = typename MeshDependentDataType::IndexType;
+    using FaceVectorType = TNL::Containers::StaticVector< MeshDependentDataType::FacesPerCell, IndexType >;
 
     static constexpr int getEntitiesDimensions() { return Mesh::meshDimensions - 1; }
  

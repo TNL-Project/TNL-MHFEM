@@ -29,23 +29,23 @@ class Solver :
                                       typename MeshDependentData::IndexType >
 {
 public:
-    typedef typename MeshDependentData::RealType RealType;
-    typedef typename MeshDependentData::DeviceType DeviceType;
-    typedef typename MeshDependentData::IndexType IndexType;
+    using RealType = typename MeshDependentData::RealType;
+    using DeviceType = typename MeshDependentData::DeviceType;
+    using IndexType = typename MeshDependentData::IndexType;
 
-    typedef Mesh MeshType;
-    typedef TNL::SharedPointer< MeshType, DeviceType > MeshPointer;
-    typedef MeshDependentData MeshDependentDataType;
-    typedef TNL::SharedPointer< MeshDependentDataType, DeviceType > MeshDependentDataPointer;
-    typedef TNL::Containers::Vector< RealType, DeviceType, IndexType > DofVectorType;
-    typedef TNL::SharedPointer< DofVectorType > DofVectorPointer;
-    typedef TNL::Functions::MeshFunction< Mesh, Mesh::meshDimensions - 1, RealType, MeshDependentDataType::NumberOfEquations > DofFunction;
-    typedef TNL::SharedPointer< DofFunction > DofFunctionPointer;
-    typedef TNL::SharedPointer< DifferentialOperator > DifferentialOperatorPointer;
-    typedef TNL::SharedPointer< BoundaryConditions > BoundaryConditionsPointer;
-    typedef TNL::SharedPointer< RightHandSide, DeviceType > RightHandSidePointer;
-    typedef Matrix MatrixType;
-    typedef TNL::SharedPointer< MatrixType > MatrixPointer;
+    using MeshType = Mesh;
+    using MeshPointer = TNL::SharedPointer< MeshType, DeviceType >;
+    using MeshDependentDataType = MeshDependentData;
+    using MeshDependentDataPointer = TNL::SharedPointer< MeshDependentDataType, DeviceType >;
+    using DofVectorType = TNL::Containers::Vector< RealType, DeviceType, IndexType >;
+    using DofVectorPointer = TNL::SharedPointer< DofVectorType >;
+    using DofFunction = TNL::Functions::MeshFunction< Mesh, Mesh::meshDimensions - 1, RealType, MeshDependentDataType::NumberOfEquations >;
+    using DofFunctionPointer = TNL::SharedPointer< DofFunction >;
+    using DifferentialOperatorPointer = TNL::SharedPointer< DifferentialOperator >;
+    using BoundaryConditionsPointer = TNL::SharedPointer< BoundaryConditions >;
+    using RightHandSidePointer = TNL::SharedPointer< RightHandSide, DeviceType >;
+    using MatrixType = Matrix;
+    using MatrixPointer = TNL::SharedPointer< MatrixType >;
 
     static TNL::String getTypeStatic();
 

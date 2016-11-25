@@ -30,13 +30,13 @@ class DifferentialOperator< TNL::Meshes::Grid< 1, MeshReal, Device, MeshIndex >,
                                        MeshDependentData::NumberOfEquations >
 {
 public:
-    typedef TNL::Meshes::Grid< 1, MeshReal, Device, MeshIndex > MeshType;
-    typedef typename MeshType::CoordinatesType CoordinatesType;
-    typedef MeshDependentData MeshDependentDataType;
-    typedef Device DeviceType;
-    typedef typename MeshDependentDataType::RealType RealType;
-    typedef typename MeshDependentDataType::IndexType IndexType;
-    typedef TNL::Containers::StaticVector< MeshDependentDataType::FacesPerCell, IndexType > FaceVectorType;
+    using MeshType = TNL::Meshes::Grid< 1, MeshReal, Device, MeshIndex >;
+    using CoordinatesType = typename MeshType::CoordinatesType;
+    using MeshDependentDataType = MeshDependentData;
+    using DeviceType = Device;
+    using RealType = typename MeshDependentDataType::RealType;
+    using IndexType = typename MeshDependentDataType::IndexType;
+    using FaceVectorType = TNL::Containers::StaticVector< MeshDependentDataType::FacesPerCell, IndexType >;
 
     void bindMeshDependentData( TNL::SharedPointer< MeshDependentDataType > & mdd );
 
@@ -58,7 +58,7 @@ public:
 
 protected:
     TNL::SharedPointer< MeshDependentDataType > mdd;
-    typedef MassMatrixDependentCode< MeshDependentDataType > coeff;
+    using coeff = MassMatrixDependentCode< MeshDependentDataType >;
 };
 
 template< typename MeshReal,
@@ -76,13 +76,13 @@ class DifferentialOperator< TNL::Meshes::Grid< 2, MeshReal, Device, MeshIndex >,
                                        MeshDependentData::NumberOfEquations >
 {
 public:
-    typedef TNL::Meshes::Grid< 2, MeshReal, Device, MeshIndex > MeshType;
-    typedef typename MeshType::CoordinatesType CoordinatesType;
-    typedef MeshDependentData MeshDependentDataType;
-    typedef Device DeviceType;
-    typedef typename MeshDependentDataType::RealType RealType;
-    typedef typename MeshDependentDataType::IndexType IndexType;
-    typedef TNL::Containers::StaticVector< MeshDependentDataType::FacesPerCell, IndexType > FaceVectorType;
+    using MeshType = TNL::Meshes::Grid< 2, MeshReal, Device, MeshIndex >;
+    using CoordinatesType = typename MeshType::CoordinatesType;
+    using MeshDependentDataType = MeshDependentData;
+    using DeviceType = Device;
+    using RealType = typename MeshDependentDataType::RealType;
+    using IndexType = typename MeshDependentDataType::IndexType;
+    using FaceVectorType = TNL::Containers::StaticVector< MeshDependentDataType::FacesPerCell, IndexType >;
 
     void bindMeshDependentData( TNL::SharedPointer< MeshDependentDataType > & mdd );
 
@@ -104,7 +104,7 @@ public:
 
 protected:
     TNL::SharedPointer< MeshDependentDataType > mdd;
-    typedef MassMatrixDependentCode< MeshDependentDataType > coeff;
+    using coeff = MassMatrixDependentCode< MeshDependentDataType >;
 };
 
 template< typename MeshReal,
@@ -122,13 +122,13 @@ class DifferentialOperator< TNL::Meshes::Grid< 3, MeshReal, Device, MeshIndex >,
                                        MeshDependentData::NumberOfEquations >
 {
 public:
-    typedef TNL::Meshes::Grid< 3, MeshReal, Device, MeshIndex > MeshType;
-    typedef typename MeshType::CoordinatesType CoordinatesType;
-    typedef MeshDependentData MeshDependentDataType;
-    typedef Device DeviceType;
-    typedef typename MeshDependentDataType::RealType RealType;
-    typedef typename MeshDependentDataType::IndexType IndexType;
-    typedef TNL::Containers::StaticVector< MeshDependentDataType::FacesPerCell, IndexType > FaceVectorType;
+    using MeshType = TNL::Meshes::Grid< 3, MeshReal, Device, MeshIndex >;
+    using CoordinatesType = typename MeshType::CoordinatesType;
+    using MeshDependentDataType = MeshDependentData;
+    using DeviceType = Device;
+    using RealType = typename MeshDependentDataType::RealType;
+    using IndexType = typename MeshDependentDataType::IndexType;
+    using FaceVectorType = TNL::Containers::StaticVector< MeshDependentDataType::FacesPerCell, IndexType >;
 
     void bindMeshDependentData( TNL::SharedPointer< MeshDependentDataType > & mdd );
 
@@ -150,7 +150,7 @@ public:
 
 protected:
     TNL::SharedPointer< MeshDependentDataType > mdd;
-    typedef MassMatrixDependentCode< MeshDependentDataType > coeff;
+    using coeff = MassMatrixDependentCode< MeshDependentDataType >;
 };
 
 } // namespace mhfem

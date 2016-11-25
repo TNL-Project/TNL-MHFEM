@@ -21,12 +21,12 @@ class BaseModel :
 public:
     // TODO: for some arcane reason 'using ModelImplementation::MeshType' does not work, but 'IndexType n = ModelImplementation::NumberOfEquations' does
     // (using typedefs from children would greatly simplify the parametrization of BaseModel)
-    typedef Mesh MeshType;
-    typedef typename MeshType::CoordinatesType CoordinatesType;
-    typedef Real RealType;
-    typedef typename MeshType::DeviceType DeviceType;
-    typedef Index IndexType;
-    typedef TNL::Containers::Vector< RealType, DeviceType, IndexType > DofVectorType;
+    using MeshType = Mesh;
+    using CoordinatesType = typename MeshType::CoordinatesType;
+    using RealType = Real;
+    using DeviceType = typename MeshType::DeviceType;
+    using IndexType = Index;
+    using DofVectorType = TNL::Containers::Vector< RealType, DeviceType, IndexType >;
 
 //    using MassMatrix = mhfem::MassMatrix< MeshType, lumping >;
     using MassMatrix = MassMatrix_;

@@ -216,7 +216,7 @@ Solver< Mesh, MeshDependentData, DifferentialOperator, BoundaryConditions, Right
 setupLinearSystem( const MeshPointer & meshPointer,
                    MatrixPointer & matrixPointer )
 {
-    typedef typename MatrixType::CompressedRowsLengthsVector CompressedRowsLengthsVectorType;
+    using CompressedRowsLengthsVectorType = typename MatrixType::CompressedRowsLengthsVector;
 
     const IndexType dofs = this->getDofs( meshPointer );
     TNL::SharedPointer< CompressedRowsLengthsVectorType > rowLengthsPointer;
