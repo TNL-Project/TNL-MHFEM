@@ -48,8 +48,8 @@ public:
         IndexType cellIndexes[ 2 ];
         const int numCells = getCellsForFace( mesh, entity, cellIndexes );
 
-        tnlAssert( numCells == 2,
-                   std::cerr << "assertion numCells == 2 failed" << std::endl; );
+        TNL_ASSERT( numCells == 2,
+                    std::cerr << "assertion numCells == 2 failed" << std::endl; );
 
         // prepare right hand side value
         RealType result = 0.0;

@@ -30,7 +30,7 @@ getLinearSystemRowLength( const MeshType & mesh,
                           const typename MeshType::Face & entity,
                           const int & i ) const
 {
-    tnlAssert( ! entity.isBoundaryEntity(), );
+    TNL_ASSERT( ! entity.isBoundaryEntity(), );
     return 3 * MeshDependentDataType::NumberOfEquations;
 }
 
@@ -50,7 +50,7 @@ setMatrixElements( DofFunctionPointer & u,
                    Matrix & matrix,
                    Vector & b ) const
 {
-    tnlAssert( ! entity.isBoundaryEntity(), );
+    TNL_ASSERT( ! entity.isBoundaryEntity(), );
 
     const IndexType E = entity.getIndex();
     const MeshType & mesh = entity.getMesh();
@@ -62,8 +62,8 @@ setMatrixElements( DofFunctionPointer & u,
     IndexType cellIndexes[ 2 ];
     const int numCells = getCellsForFace( mesh, entity, cellIndexes );
 
-    tnlAssert( numCells == 2,
-               std::cerr << "assertion numCells == 2 failed" << std::endl; );
+    TNL_ASSERT( numCells == 2,
+                std::cerr << "assertion numCells == 2 failed" << std::endl; );
 
     // indexes of the faces, sorted according the following diagrams
     FaceVectorType faceIndexesK0;
@@ -109,7 +109,7 @@ getLinearSystemRowLength( const MeshType & mesh,
                           const typename MeshType::Face & entity,
                           const int & i ) const
 {
-    tnlAssert( ! entity.isBoundaryEntity(), );
+    TNL_ASSERT( ! entity.isBoundaryEntity(), );
     return 7 * MeshDependentDataType::NumberOfEquations;
 }
 
@@ -129,7 +129,7 @@ setMatrixElements( DofVectorPointer & u,
                    Matrix & matrix,
                    Vector & b ) const
 {
-    tnlAssert( ! entity.isBoundaryEntity(), );
+    TNL_ASSERT( ! entity.isBoundaryEntity(), );
 
     const IndexType E = entity.getIndex();
     const MeshType & mesh = entity.getMesh();
@@ -141,8 +141,8 @@ setMatrixElements( DofVectorPointer & u,
     IndexType cellIndexes[ 2 ];
     const int numCells = getCellsForFace( mesh, entity, cellIndexes );
 
-    tnlAssert( numCells == 2,
-               std::cerr << "assertion numCells == 2 failed" << std::endl; );
+    TNL_ASSERT( numCells == 2,
+                std::cerr << "assertion numCells == 2 failed" << std::endl; );
 
     // face indexes for both cells
     FaceVectorType faceIndexesK0;
@@ -220,7 +220,7 @@ getLinearSystemRowLength( const MeshType & mesh,
                           const typename MeshType::Face & entity,
                           const int & i ) const
 {
-    tnlAssert( ! entity.isBoundaryEntity(), );
+    TNL_ASSERT( ! entity.isBoundaryEntity(), );
     return 11 * MeshDependentDataType::NumberOfEquations;
 }
 
@@ -240,7 +240,7 @@ setMatrixElements( DofVectorPointer & u,
                    Matrix & matrix,
                    Vector & b ) const
 {
-    tnlAssert( ! entity.isBoundaryEntity(), );
+    TNL_ASSERT( ! entity.isBoundaryEntity(), );
 
     const IndexType E = entity.getIndex();
     const MeshType & mesh = entity.getMesh();
@@ -252,8 +252,8 @@ setMatrixElements( DofVectorPointer & u,
     IndexType cellIndexes[ 2 ];
     const int numCells = getCellsForFace( mesh, entity, cellIndexes );
 
-    tnlAssert( numCells == 2,
-               std::cerr << "assertion numCells == 2 failed" << std::endl; );
+    TNL_ASSERT( numCells == 2,
+                std::cerr << "assertion numCells == 2 failed" << std::endl; );
 
     // face indexes for both cells
     FaceVectorType faceIndexesK0;

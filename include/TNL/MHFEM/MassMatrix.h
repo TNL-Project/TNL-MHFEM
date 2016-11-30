@@ -51,7 +51,7 @@ public:
              const int & e,
              const int & f )
     {
-        tnlAssert( e < FacesPerCell< MeshType >::value && f < FacesPerCell< MeshType >::value, );
+        TNL_ASSERT( e < FacesPerCell< MeshType >::value && f < FacesPerCell< MeshType >::value, );
 
         const typename MeshDependentData::RealType* storage = mdd.b_ijK( i, j, K );
         if( e == f )
@@ -68,7 +68,7 @@ public:
             const typename MeshDependentData::IndexType & K,
             const int & e )
     {
-        tnlAssert( e < FacesPerCell< MeshType >::value, );
+        TNL_ASSERT( e < FacesPerCell< MeshType >::value, );
 
         const typename MeshDependentData::RealType* storage = mdd.b_ijK( i, j, K );
         return storage[ 0 ];
@@ -108,7 +108,7 @@ public:
              const int & e,
              const int & f )
     {
-        tnlAssert( e < FacesPerCell< MeshType >::value && f < FacesPerCell< MeshType >::value, );
+        TNL_ASSERT( e < FacesPerCell< MeshType >::value && f < FacesPerCell< MeshType >::value, );
 
         const typename MeshDependentData::RealType* storage = mdd.b_ijK( i, j, K );
         if( e == f )
@@ -125,7 +125,7 @@ public:
             const typename MeshDependentData::IndexType & K,
             const int & e )
     {
-        tnlAssert( e < FacesPerCell< MeshType >::value, );
+        TNL_ASSERT( e < FacesPerCell< MeshType >::value, );
 
         const typename MeshDependentData::RealType* storage = mdd.b_ijK( i, j, K );
         return 3 * storage[ 0 ];
@@ -169,7 +169,7 @@ public:
              const int & e,
              const int & f )
     {
-        tnlAssert( e < FacesPerCell< MeshType >::value && f < FacesPerCell< MeshType >::value, );
+        TNL_ASSERT( e < FacesPerCell< MeshType >::value && f < FacesPerCell< MeshType >::value, );
 
         const typename MeshDependentData::RealType* storage = mdd.b_ijK( i, j, K );
         // non-diagonal entries
@@ -191,7 +191,7 @@ public:
             const typename MeshDependentData::IndexType & K,
             const int & e )
     {
-        tnlAssert( e < FacesPerCell< MeshType >::value, );
+        TNL_ASSERT( e < FacesPerCell< MeshType >::value, );
 
         const typename MeshDependentData::RealType* storage = mdd.b_ijK( i, j, K );
         // vertical face (e=0, e=1)
@@ -238,7 +238,7 @@ public:
              const int & e,
              const int & f )
     {
-        tnlAssert( e < FacesPerCell< MeshType >::value && f < FacesPerCell< MeshType >::value, );
+        TNL_ASSERT( e < FacesPerCell< MeshType >::value && f < FacesPerCell< MeshType >::value, );
 
         const typename MeshDependentData::RealType* storage = mdd.b_ijK( i, j, K );
         // vertical faces (e,f = 0 or 1)
@@ -270,7 +270,7 @@ public:
             const typename MeshDependentData::IndexType & K,
             const int & e )
     {
-        tnlAssert( e < FacesPerCell< MeshType >::value, );
+        TNL_ASSERT( e < FacesPerCell< MeshType >::value, );
 
         const typename MeshDependentData::RealType* storage = mdd.b_ijK( i, j, K );
         // vertical face (e=0, e=1)
@@ -320,7 +320,7 @@ public:
              const int & e,
              const int & f )
     {
-        tnlAssert( e < FacesPerCell< MeshType >::value && f < FacesPerCell< MeshType >::value, );
+        TNL_ASSERT( e < FacesPerCell< MeshType >::value && f < FacesPerCell< MeshType >::value, );
 
         const typename MeshDependentData::RealType* storage = mdd.b_ijK( i, j, K );
         // non-diagonal entries
@@ -345,7 +345,7 @@ public:
             const typename MeshDependentData::IndexType & K,
             const int & e )
     {
-        tnlAssert( e < FacesPerCell< MeshType >::value, );
+        TNL_ASSERT( e < FacesPerCell< MeshType >::value, );
 
         const typename MeshDependentData::RealType* storage = mdd.b_ijK( i, j, K );
         // n_x face (e=0, e=1)
@@ -397,7 +397,7 @@ public:
              const int & e,
              const int & f )
     {
-        tnlAssert( e < FacesPerCell< MeshType >::value && f < FacesPerCell< MeshType >::value, );
+        TNL_ASSERT( e < FacesPerCell< MeshType >::value && f < FacesPerCell< MeshType >::value, );
 
         const typename MeshDependentData::RealType* storage = mdd.b_ijK( i, j, K );
         // n_x faces (e,f = 0 or 1)
@@ -437,7 +437,7 @@ public:
             const typename MeshDependentData::IndexType & K,
             const int & e )
     {
-        tnlAssert( e < FacesPerCell< MeshType >::value, );
+        TNL_ASSERT( e < FacesPerCell< MeshType >::value, );
 
         const typename MeshDependentData::RealType* storage = mdd.b_ijK( i, j, K );
         // n_x face (e=0, e=1)

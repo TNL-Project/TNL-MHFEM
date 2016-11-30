@@ -27,7 +27,7 @@ getLinearSystemRowLength( const MeshType & mesh,
                           const typename MeshType::Face & entity,
                           const int & i ) const
 {
-    tnlAssert( entity.isBoundaryEntity(), );
+    TNL_ASSERT( entity.isBoundaryEntity(), );
     if( this->isDirichletBoundary( mesh, i, entity ) )
         return 1;
     return MeshDependentDataType::FacesPerCell * MeshDependentDataType::NumberOfEquations;
@@ -48,7 +48,7 @@ setMatrixElements( DofVectorPointer & u,
                    Matrix & matrix,
                    Vector & b ) const
 {
-    tnlAssert( entity.isBoundaryEntity(), );
+    TNL_ASSERT( entity.isBoundaryEntity(), );
 
     const IndexType E = entity.getIndex();
     const MeshType & mesh = entity.getMesh();
@@ -68,11 +68,11 @@ setMatrixElements( DofVectorPointer & u,
         const int numCells = getCellsForFace( mesh, entity, cellIndexes );
         const IndexType & K = cellIndexes[ 0 ];
 
-        tnlAssert( numCells == 1,
-                   std::cerr << "assertion numCells == 1 failed" << std::endl
-                             << "E = " << E << std::endl
-                             << "K0 = " << cellIndexes[ 0 ] << std::endl
-                             << "K1 = " << cellIndexes[ 1 ] << std::endl; );
+        TNL_ASSERT( numCells == 1,
+                    std::cerr << "assertion numCells == 1 failed" << std::endl
+                              << "E = " << E << std::endl
+                              << "K0 = " << cellIndexes[ 0 ] << std::endl
+                              << "K1 = " << cellIndexes[ 1 ] << std::endl; );
 
         // prepare face indexes
         FaceVectorType faceIndexes;
