@@ -69,7 +69,7 @@ public:
         }
     };
 
-    // TODO: split into update_RKF, update_RK for better parallelism?
+    // TODO: split into update_RKF, update_w, update_RK for better parallelism?
     struct update_R
     {
         template< typename EntityType >

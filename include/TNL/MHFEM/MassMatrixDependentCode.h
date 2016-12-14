@@ -14,7 +14,6 @@ class MassMatrixDependentCode< MeshDependentData, MassLumping::enabled >
 {
 public:
     using RealType = typename MeshDependentData::RealType;
-    using DeviceType = typename MeshDependentData::DeviceType;
     using IndexType = typename MeshDependentData::IndexType;
     using MassMatrix = typename MeshDependentData::MassMatrix;
 
@@ -78,7 +77,6 @@ class MassMatrixDependentCode< MeshDependentData, MassLumping::disabled >
 {
 public:
     using RealType = typename MeshDependentData::RealType;
-    using DeviceType = typename MeshDependentData::DeviceType;
     using IndexType = typename MeshDependentData::IndexType;
     using MassMatrix = typename MeshDependentData::MassMatrix;
 

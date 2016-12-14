@@ -178,15 +178,15 @@ public:
     DofVectorType Z;
 
     // coefficients
-    DofVectorType N;    // porosity * idealGasCoefficient
-    DofVectorType m;    // density = idealGasCoefficient * pressure
-    DofVectorType D;    // permeability / viscosity
-    DofVectorType w;    // idealGasCoefficient * pressure * g
+    DofVectorType N;
+    DofVectorType m;
+    DofVectorType D;
+    DofVectorType w;
     DofVectorType f;
 
     // specific to MHFEM scheme
     DofVectorType m_upw;
-    DofVectorType b;    // each "row" represents local diagonal matrix (b_ijK)_EF
+    DofVectorType b;    // each "row" represents the local matrix (b_ijK)_EF
     
     DofVectorType R1;   // R_KF
     DofVectorType R2;   // R_K
