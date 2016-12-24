@@ -376,13 +376,16 @@ assemblyLinearSystem( const RealType & time,
 //    if( time > tau )
 //        abort();
 
-//    TNL::String matrixFileName, dofFileName, rhsFileName;
-//    FileNameBaseNumberEnding( outputPrefix.getString(), time / tau, 5, "-matrix.tnl", matrixFileName );
-//    FileNameBaseNumberEnding( outputPrefix.getString(), time / tau, 5, "-dof.vec.tnl", dofFileName );
-//    FileNameBaseNumberEnding( outputPrefix.getString(), time / tau, 5, "-rhs.vec.tnl", rhsFileName );
-//    matrix.save( matrixFileName );
-//    dofVector.save( dofFileName );
-//    b.save( rhsFileName );
+//    static IndexType iter = 0;
+//    TNL::String matrixFileName = outputPrefix + "matrix.tnl";
+//    TNL::String dofFileName = outputPrefix + "dof.vec.tnl";
+//    TNL::String rhsFileName = outputPrefix + "rhs.vec.tnl";
+//    if( iter == 10 ) {
+//        matrixPointer->save( matrixFileName );
+//        dofVectorPointer->save( dofFileName );
+//        bPointer->save( rhsFileName );
+//    }
+//    iter++;
 
 //    // print matrix elements
 //    for( IndexType i = 0; i < dofs; i++ ) {
