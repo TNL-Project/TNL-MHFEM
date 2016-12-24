@@ -25,7 +25,6 @@ class BoundaryConditions
 {
 public:
     using MeshType = Mesh;
-    using CoordinatesType = typename MeshType::CoordinatesType;
     using MeshDependentDataType = MeshDependentData;
     using DeviceType = typename MeshType::DeviceType;
     using RealType = typename MeshDependentDataType::RealType;

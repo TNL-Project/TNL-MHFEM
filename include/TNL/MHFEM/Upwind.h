@@ -21,7 +21,6 @@ class Upwind
 {
 public:
     using MeshType = Mesh;
-    using CoordinatesType = typename MeshType::CoordinatesType;
     using MeshDependentDataType = MeshDependentData;
     using RealType = typename MeshDependentDataType::RealType;
     using DeviceType = typename MeshDependentDataType::DeviceType;

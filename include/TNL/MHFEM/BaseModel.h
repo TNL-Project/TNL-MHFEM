@@ -22,7 +22,6 @@ public:
     // TODO: for some arcane reason 'using ModelImplementation::MeshType' does not work, but 'IndexType n = ModelImplementation::NumberOfEquations' does
     // (using typedefs from children would greatly simplify the parametrization of BaseModel)
     using MeshType = Mesh;
-    using CoordinatesType = typename MeshType::CoordinatesType;
     using RealType = Real;
     using DeviceType = typename MeshType::DeviceType;
     using IndexType = Index;
