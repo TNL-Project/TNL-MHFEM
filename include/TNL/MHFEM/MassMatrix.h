@@ -53,7 +53,7 @@ public:
              const int & e,
              const int & f )
     {
-        TNL_ASSERT( e < FacesPerCell< Grid >::value && f < FacesPerCell< Grid >::value, );
+        TNL_ASSERT( e < FacesPerCell< MeshEntity >::value && f < FacesPerCell< MeshEntity >::value, );
 
         const typename MeshDependentData::RealType* storage = mdd.b_ijK( i, j, K );
         if( e == f )
@@ -70,7 +70,7 @@ public:
             const typename MeshDependentData::IndexType & K,
             const int & e )
     {
-        TNL_ASSERT( e < FacesPerCell< Grid >::value, );
+        TNL_ASSERT( e < FacesPerCell< MeshEntity >::value, );
 
         const typename MeshDependentData::RealType* storage = mdd.b_ijK( i, j, K );
         return storage[ 0 ];
@@ -112,7 +112,7 @@ public:
              const int & e,
              const int & f )
     {
-        TNL_ASSERT( e < FacesPerCell< Grid >::value && f < FacesPerCell< Grid >::value, );
+        TNL_ASSERT( e < FacesPerCell< MeshEntity >::value && f < FacesPerCell< MeshEntity >::value, );
 
         const typename MeshDependentData::RealType* storage = mdd.b_ijK( i, j, K );
         if( e == f )
@@ -129,7 +129,7 @@ public:
             const typename MeshDependentData::IndexType & K,
             const int & e )
     {
-        TNL_ASSERT( e < FacesPerCell< Grid >::value, );
+        TNL_ASSERT( e < FacesPerCell< MeshEntity >::value, );
 
         const typename MeshDependentData::RealType* storage = mdd.b_ijK( i, j, K );
         return 3 * storage[ 0 ];
@@ -175,7 +175,7 @@ public:
              const int & e,
              const int & f )
     {
-        TNL_ASSERT( e < FacesPerCell< Grid >::value && f < FacesPerCell< Grid >::value, );
+        TNL_ASSERT( e < FacesPerCell< MeshEntity >::value && f < FacesPerCell< MeshEntity >::value, );
 
         const typename MeshDependentData::RealType* storage = mdd.b_ijK( i, j, K );
         // non-diagonal entries
@@ -197,7 +197,7 @@ public:
             const typename MeshDependentData::IndexType & K,
             const int & e )
     {
-        TNL_ASSERT( e < FacesPerCell< Grid >::value, );
+        TNL_ASSERT( e < FacesPerCell< MeshEntity >::value, );
 
         const typename MeshDependentData::RealType* storage = mdd.b_ijK( i, j, K );
         // vertical face (e=0, e=1)
@@ -246,7 +246,7 @@ public:
              const int & e,
              const int & f )
     {
-        TNL_ASSERT( e < FacesPerCell< Grid >::value && f < FacesPerCell< Grid >::value, );
+        TNL_ASSERT( e < FacesPerCell< MeshEntity >::value && f < FacesPerCell< MeshEntity >::value, );
 
         const typename MeshDependentData::RealType* storage = mdd.b_ijK( i, j, K );
         // vertical faces (e,f = 0 or 1)
@@ -278,7 +278,7 @@ public:
             const typename MeshDependentData::IndexType & K,
             const int & e )
     {
-        TNL_ASSERT( e < FacesPerCell< Grid >::value, );
+        TNL_ASSERT( e < FacesPerCell< MeshEntity >::value, );
 
         const typename MeshDependentData::RealType* storage = mdd.b_ijK( i, j, K );
         // vertical face (e=0, e=1)
@@ -330,7 +330,7 @@ public:
              const int & e,
              const int & f )
     {
-        TNL_ASSERT( e < FacesPerCell< Grid >::value && f < FacesPerCell< Grid >::value, );
+        TNL_ASSERT( e < FacesPerCell< MeshEntity >::value && f < FacesPerCell< MeshEntity >::value, );
 
         const typename MeshDependentData::RealType* storage = mdd.b_ijK( i, j, K );
         // non-diagonal entries
@@ -355,7 +355,7 @@ public:
             const typename MeshDependentData::IndexType & K,
             const int & e )
     {
-        TNL_ASSERT( e < FacesPerCell< Grid >::value, );
+        TNL_ASSERT( e < FacesPerCell< MeshEntity >::value, );
 
         const typename MeshDependentData::RealType* storage = mdd.b_ijK( i, j, K );
         // n_x face (e=0, e=1)
@@ -409,7 +409,7 @@ public:
              const int & e,
              const int & f )
     {
-        TNL_ASSERT( e < FacesPerCell< Grid >::value && f < FacesPerCell< Grid >::value, );
+        TNL_ASSERT( e < FacesPerCell< MeshEntity >::value && f < FacesPerCell< MeshEntity >::value, );
 
         const typename MeshDependentData::RealType* storage = mdd.b_ijK( i, j, K );
         // n_x faces (e,f = 0 or 1)
@@ -449,7 +449,7 @@ public:
             const typename MeshDependentData::IndexType & K,
             const int & e )
     {
-        TNL_ASSERT( e < FacesPerCell< Grid >::value, );
+        TNL_ASSERT( e < FacesPerCell< MeshEntity >::value, );
 
         const typename MeshDependentData::RealType* storage = mdd.b_ijK( i, j, K );
         // n_x face (e=0, e=1)

@@ -16,7 +16,7 @@ getLinearSystemRowLength( const MeshType & mesh,
 {
     TNL_ASSERT( entity.isBoundaryEntity(), );
     // minus the diagonal
-    return FacesPerCell< MeshType >::value * NumberOfEquations - 1;
+    return FacesPerCell< typename MeshType::Cell >::value * NumberOfEquations - 1;
 }
 
 template< typename Mesh, int NumberOfEquations >
@@ -61,7 +61,7 @@ setMatrixElements( const typename MeshType::Face & entity,
 
     // set non-zero elements
     for( int j = 0; j < NumberOfEquations; j++ ) {
-        for( int f = 0; f < FacesPerCell< MeshType >::value; f++ ) {
+        for( int f = 0; f < FacesPerCell< typename MeshType::Cell >::value; f++ ) {
             setElement( j * numberOfFaces + faceIndexes[ f ] );
         }
     }

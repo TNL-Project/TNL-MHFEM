@@ -31,7 +31,7 @@ public:
     using CoordinatesType = typename MeshType::CoordinatesType;
     using DeviceType = Device;
     using IndexType = MeshIndex;
-    using FaceVectorType = TNL::Containers::StaticVector< FacesPerCell< MeshType >::value, IndexType >;
+    using FaceVectorType = TNL::Containers::StaticVector< FacesPerCell< typename MeshType::Cell >::value, IndexType >;
 
     __cuda_callable__
     IndexType getLinearSystemRowLength( const MeshType & mesh,
@@ -78,7 +78,7 @@ public:
     using CoordinatesType = typename MeshType::CoordinatesType;
     using DeviceType = Device;
     using IndexType = MeshIndex;
-    using FaceVectorType = TNL::Containers::StaticVector< FacesPerCell< MeshType >::value, IndexType >;
+    using FaceVectorType = TNL::Containers::StaticVector< FacesPerCell< typename MeshType::Cell >::value, IndexType >;
 
     __cuda_callable__
     IndexType getLinearSystemRowLength( const MeshType & mesh,
@@ -125,7 +125,7 @@ public:
     using CoordinatesType = typename MeshType::CoordinatesType;
     using DeviceType = Device;
     using IndexType = MeshIndex;
-    using FaceVectorType = TNL::Containers::StaticVector< FacesPerCell< MeshType >::value, IndexType >;
+    using FaceVectorType = TNL::Containers::StaticVector< FacesPerCell< typename MeshType::Cell >::value, IndexType >;
 
     __cuda_callable__
     IndexType getLinearSystemRowLength( const MeshType & mesh,

@@ -30,7 +30,7 @@ public:
 //    using MassMatrix = mhfem::MassMatrix< MeshType, lumping >;
     using MassMatrix = MassMatrix_;
 
-    using FPC = ::FacesPerCell< MeshType >;
+    using FPC = ::FacesPerCell< typename MeshType::Cell >;
     static constexpr int FacesPerCell = FPC::value;
 
     // NOTE: children of BaseModel (i.e. ModelImplementation) must implement these methods

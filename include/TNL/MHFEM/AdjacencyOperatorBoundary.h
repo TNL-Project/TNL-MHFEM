@@ -25,7 +25,7 @@ public:
     using DeviceType = typename MeshType::DeviceType;
     using IndexType = typename MeshType::IndexType;
     using TagArrayType = TNL::Containers::Array< bool, DeviceType, IndexType >;
-    using FaceVectorType = TNL::Containers::StaticVector< FacesPerCell< MeshType >::value, IndexType >;
+    using FaceVectorType = TNL::Containers::StaticVector< FacesPerCell< typename MeshType::Cell >::value, IndexType >;
 
     __cuda_callable__
     IndexType getLinearSystemRowLength( const MeshType & mesh,
