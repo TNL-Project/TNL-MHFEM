@@ -60,11 +60,9 @@ public:
             static_assert( EntityType::getEntityDimension() == MeshType::getMeshDimension(),
                            "wrong entity dimensions in QRupdater::processEntity");
 
-            const IndexType K = entity.getIndex();
-
-            // update coefficients b_ijKE
+            // update coefficients b_ijKEF
             for( int j = 0; j < mdd.NumberOfEquations; j++ ) {
-                MassMatrix::update( mesh, mdd, i, j, K );
+                MassMatrix::update( mesh, entity, mdd, i, j );
             }
         }
     };

@@ -12,17 +12,18 @@ enum class MassLumping {
     disabled
 };
 
-template< typename MeshType, MassLumping >
+template< typename MeshEntity, MassLumping >
 class MassMatrix
 {};
 
 // NOTE: everything is only for D isotropic (represented by scalar value)
 
-template< typename MeshReal, typename Device, typename MeshIndex >
-class MassMatrix< TNL::Meshes::Grid< 1, MeshReal, Device, MeshIndex >, MassLumping::enabled >
+template< typename Grid, typename Config >
+class MassMatrix< TNL::Meshes::GridEntity< Grid, 1, Config >, MassLumping::enabled >
 {
 public:
-    using MeshType = TNL::Meshes::Grid< 1, MeshReal, Device, MeshIndex >;
+    static_assert( Grid::getMeshDimension() == 1, "The MassMatrix is defined only on cell entities." );
+    using MeshEntity = TNL::Meshes::GridEntity< Grid, 1, Config >;
     static constexpr MassLumping lumping = MassLumping::enabled;
 
     // number of independent values defining the matrix
@@ -31,12 +32,13 @@ public:
     template< typename MeshDependentData >
     __cuda_callable__
     static inline void
-    update( const MeshType & mesh,
+    update( const Grid & mesh,
+            const MeshEntity & entity,
             MeshDependentData & mdd,
             const int & i,
-            const int & j,
-            const typename MeshDependentData::IndexType & K )
+            const int & j )
     {
+        const auto K = entity.getIndex();
         typename MeshDependentData::RealType* storage = mdd.b_ijK( i, j, K );
         storage[ 0 ] = 2 * mdd.D_ijK( i, j, K ) * mesh.template getSpaceStepsProducts< -1 >();  // h_x^-1
     }
@@ -51,7 +53,7 @@ public:
              const int & e,
              const int & f )
     {
-        TNL_ASSERT( e < FacesPerCell< MeshType >::value && f < FacesPerCell< MeshType >::value, );
+        TNL_ASSERT( e < FacesPerCell< Grid >::value && f < FacesPerCell< Grid >::value, );
 
         const typename MeshDependentData::RealType* storage = mdd.b_ijK( i, j, K );
         if( e == f )
@@ -68,18 +70,19 @@ public:
             const typename MeshDependentData::IndexType & K,
             const int & e )
     {
-        TNL_ASSERT( e < FacesPerCell< MeshType >::value, );
+        TNL_ASSERT( e < FacesPerCell< Grid >::value, );
 
         const typename MeshDependentData::RealType* storage = mdd.b_ijK( i, j, K );
         return storage[ 0 ];
     }
 };
 
-template< typename MeshReal, typename Device, typename MeshIndex >
-class MassMatrix< TNL::Meshes::Grid< 1, MeshReal, Device, MeshIndex >, MassLumping::disabled >
+template< typename Grid, typename Config >
+class MassMatrix< TNL::Meshes::GridEntity< Grid, 1, Config >, MassLumping::disabled >
 {
 public:
-    using MeshType = TNL::Meshes::Grid< 1, MeshReal, Device, MeshIndex >;
+    static_assert( Grid::getMeshDimension() == 1, "The MassMatrix is defined only on cell entities." );
+    using MeshEntity = TNL::Meshes::GridEntity< Grid, 1, Config >;
     static constexpr MassLumping lumping = MassLumping::disabled;
 
     // number of independent values defining the matrix
@@ -88,12 +91,13 @@ public:
     template< typename MeshDependentData >
     __cuda_callable__
     static inline void
-    update( const MeshType & mesh,
+    update( const Grid & mesh,
+            const MeshEntity & entity,
             MeshDependentData & mdd,
             const int & i,
-            const int & j,
-            const typename MeshDependentData::IndexType & K )
+            const int & j )
     {
+        const auto K = entity.getIndex();
         typename MeshDependentData::RealType* storage = mdd.b_ijK( i, j, K );
         storage[ 0 ] = 2 * mdd.D_ijK( i, j, K ) * mesh.template getSpaceStepsProducts< -1 >();  // h_x^-1
     }
@@ -108,7 +112,7 @@ public:
              const int & e,
              const int & f )
     {
-        TNL_ASSERT( e < FacesPerCell< MeshType >::value && f < FacesPerCell< MeshType >::value, );
+        TNL_ASSERT( e < FacesPerCell< Grid >::value && f < FacesPerCell< Grid >::value, );
 
         const typename MeshDependentData::RealType* storage = mdd.b_ijK( i, j, K );
         if( e == f )
@@ -125,7 +129,7 @@ public:
             const typename MeshDependentData::IndexType & K,
             const int & e )
     {
-        TNL_ASSERT( e < FacesPerCell< MeshType >::value, );
+        TNL_ASSERT( e < FacesPerCell< Grid >::value, );
 
         const typename MeshDependentData::RealType* storage = mdd.b_ijK( i, j, K );
         return 3 * storage[ 0 ];
@@ -133,11 +137,12 @@ public:
 };
 
 
-template< typename MeshReal, typename Device, typename MeshIndex >
-class MassMatrix< TNL::Meshes::Grid< 2, MeshReal, Device, MeshIndex >, MassLumping::enabled >
+template< typename Grid, typename Config >
+class MassMatrix< TNL::Meshes::GridEntity< Grid, 2, Config >, MassLumping::enabled >
 {
 public:
-    using MeshType = TNL::Meshes::Grid< 2, MeshReal, Device, MeshIndex >;
+    static_assert( Grid::getMeshDimension() == 2, "The MassMatrix is defined only on cell entities." );
+    using MeshEntity = TNL::Meshes::GridEntity< Grid, 2, Config >;
     static constexpr MassLumping lumping = MassLumping::enabled;
 
     // number of independent values defining the matrix
@@ -146,12 +151,13 @@ public:
     template< typename MeshDependentData >
     __cuda_callable__
     static inline void
-    update( const MeshType & mesh,
+    update( const Grid & mesh,
+            const MeshEntity & entity,
             MeshDependentData & mdd,
             const int & i,
-            const int & j,
-            const typename MeshDependentData::IndexType & K )
+            const int & j )
     {
+        const auto K = entity.getIndex();
         typename MeshDependentData::RealType* storage = mdd.b_ijK( i, j, K );
         // value for vertical faces (e=0, e=1)
         storage[ 0 ] = 2 * mdd.D_ijK( i, j, K ) * mesh.template getSpaceStepsProducts< -1, 1 >();  // h_y / h_x
@@ -169,7 +175,7 @@ public:
              const int & e,
              const int & f )
     {
-        TNL_ASSERT( e < FacesPerCell< MeshType >::value && f < FacesPerCell< MeshType >::value, );
+        TNL_ASSERT( e < FacesPerCell< Grid >::value && f < FacesPerCell< Grid >::value, );
 
         const typename MeshDependentData::RealType* storage = mdd.b_ijK( i, j, K );
         // non-diagonal entries
@@ -191,7 +197,7 @@ public:
             const typename MeshDependentData::IndexType & K,
             const int & e )
     {
-        TNL_ASSERT( e < FacesPerCell< MeshType >::value, );
+        TNL_ASSERT( e < FacesPerCell< Grid >::value, );
 
         const typename MeshDependentData::RealType* storage = mdd.b_ijK( i, j, K );
         // vertical face (e=0, e=1)
@@ -202,11 +208,12 @@ public:
     }
 };
 
-template< typename MeshReal, typename Device, typename MeshIndex >
-class MassMatrix< TNL::Meshes::Grid< 2, MeshReal, Device, MeshIndex >, MassLumping::disabled >
+template< typename Grid, typename Config >
+class MassMatrix< TNL::Meshes::GridEntity< Grid, 2, Config >, MassLumping::disabled >
 {
 public:
-    using MeshType = TNL::Meshes::Grid< 2, MeshReal, Device, MeshIndex >;
+    static_assert( Grid::getMeshDimension() == 2, "The MassMatrix is defined only on cell entities." );
+    using MeshEntity = TNL::Meshes::GridEntity< Grid, 2, Config >;
     static constexpr MassLumping lumping = MassLumping::disabled;
 
     // number of independent values defining the matrix
@@ -215,12 +222,13 @@ public:
     template< typename MeshDependentData >
     __cuda_callable__
     static inline void
-    update( const MeshType & mesh,
+    update( const Grid & mesh,
+            const MeshEntity & entity,
             MeshDependentData & mdd,
             const int & i,
-            const int & j,
-            const typename MeshDependentData::IndexType & K )
+            const int & j )
     {
+        const auto K = entity.getIndex();
         typename MeshDependentData::RealType* storage = mdd.b_ijK( i, j, K );
         // value for vertical faces (e=0, e=1)
         storage[ 0 ] = 2 * mdd.D_ijK( i, j, K ) * mesh.template getSpaceStepsProducts< -1, 1 >();  // h_y / h_x
@@ -238,7 +246,7 @@ public:
              const int & e,
              const int & f )
     {
-        TNL_ASSERT( e < FacesPerCell< MeshType >::value && f < FacesPerCell< MeshType >::value, );
+        TNL_ASSERT( e < FacesPerCell< Grid >::value && f < FacesPerCell< Grid >::value, );
 
         const typename MeshDependentData::RealType* storage = mdd.b_ijK( i, j, K );
         // vertical faces (e,f = 0 or 1)
@@ -270,7 +278,7 @@ public:
             const typename MeshDependentData::IndexType & K,
             const int & e )
     {
-        TNL_ASSERT( e < FacesPerCell< MeshType >::value, );
+        TNL_ASSERT( e < FacesPerCell< Grid >::value, );
 
         const typename MeshDependentData::RealType* storage = mdd.b_ijK( i, j, K );
         // vertical face (e=0, e=1)
@@ -282,11 +290,12 @@ public:
 };
 
 
-template< typename MeshReal, typename Device, typename MeshIndex >
-class MassMatrix< TNL::Meshes::Grid< 3, MeshReal, Device, MeshIndex >, MassLumping::enabled >
+template< typename Grid, typename Config >
+class MassMatrix< TNL::Meshes::GridEntity< Grid, 3, Config >, MassLumping::enabled >
 {
 public:
-    using MeshType = TNL::Meshes::Grid< 3, MeshReal, Device, MeshIndex >;
+    static_assert( Grid::getMeshDimension() == 3, "The MassMatrix is defined only on cell entities." );
+    using MeshEntity = TNL::Meshes::GridEntity< Grid, 3, Config >;
     static constexpr MassLumping lumping = MassLumping::enabled;
 
     // number of independent values defining the matrix
@@ -295,12 +304,13 @@ public:
     template< typename MeshDependentData >
     __cuda_callable__
     static inline void
-    update( const MeshType & mesh,
+    update( const Grid & mesh,
+            const MeshEntity & entity,
             MeshDependentData & mdd,
             const int & i,
-            const int & j,
-            const typename MeshDependentData::IndexType & K )
+            const int & j )
     {
+        const auto K = entity.getIndex();
         typename MeshDependentData::RealType* storage = mdd.b_ijK( i, j, K );
         // value for n_x faces (e=0, e=1)
         storage[ 0 ] = 2 * mdd.D_ijK( i, j, K ) * mesh.template getSpaceStepsProducts< -1, 1, 1 >();  // h_y * h_z / h_x
@@ -320,7 +330,7 @@ public:
              const int & e,
              const int & f )
     {
-        TNL_ASSERT( e < FacesPerCell< MeshType >::value && f < FacesPerCell< MeshType >::value, );
+        TNL_ASSERT( e < FacesPerCell< Grid >::value && f < FacesPerCell< Grid >::value, );
 
         const typename MeshDependentData::RealType* storage = mdd.b_ijK( i, j, K );
         // non-diagonal entries
@@ -345,7 +355,7 @@ public:
             const typename MeshDependentData::IndexType & K,
             const int & e )
     {
-        TNL_ASSERT( e < FacesPerCell< MeshType >::value, );
+        TNL_ASSERT( e < FacesPerCell< Grid >::value, );
 
         const typename MeshDependentData::RealType* storage = mdd.b_ijK( i, j, K );
         // n_x face (e=0, e=1)
@@ -359,11 +369,12 @@ public:
     }
 };
 
-template< typename MeshReal, typename Device, typename MeshIndex >
-class MassMatrix< TNL::Meshes::Grid< 3, MeshReal, Device, MeshIndex >, MassLumping::disabled >
+template< typename Grid, typename Config >
+class MassMatrix< TNL::Meshes::GridEntity< Grid, 3, Config >, MassLumping::disabled >
 {
 public:
-    using MeshType = TNL::Meshes::Grid< 3, MeshReal, Device, MeshIndex >;
+    static_assert( Grid::getMeshDimension() == 3, "The MassMatrix is defined only on cell entities." );
+    using MeshEntity = TNL::Meshes::GridEntity< Grid, 3, Config >;
     static constexpr MassLumping lumping = MassLumping::disabled;
 
     // number of independent values defining the matrix
@@ -372,12 +383,13 @@ public:
     template< typename MeshDependentData >
     __cuda_callable__
     static inline void
-    update( const MeshType & mesh,
+    update( const Grid & mesh,
+            const MeshEntity & entity,
             MeshDependentData & mdd,
             const int & i,
-            const int & j,
-            const typename MeshDependentData::IndexType & K )
+            const int & j )
     {
+        const auto K = entity.getIndex();
         typename MeshDependentData::RealType* storage = mdd.b_ijK( i, j, K );
         // value for n_x faces (e=0, e=1)
         storage[ 0 ] = 2 * mdd.D_ijK( i, j, K ) * mesh.template getSpaceStepsProducts< -1, 1, 1 >();  // h_y * h_z / h_x
@@ -397,7 +409,7 @@ public:
              const int & e,
              const int & f )
     {
-        TNL_ASSERT( e < FacesPerCell< MeshType >::value && f < FacesPerCell< MeshType >::value, );
+        TNL_ASSERT( e < FacesPerCell< Grid >::value && f < FacesPerCell< Grid >::value, );
 
         const typename MeshDependentData::RealType* storage = mdd.b_ijK( i, j, K );
         // n_x faces (e,f = 0 or 1)
@@ -437,7 +449,7 @@ public:
             const typename MeshDependentData::IndexType & K,
             const int & e )
     {
-        TNL_ASSERT( e < FacesPerCell< MeshType >::value, );
+        TNL_ASSERT( e < FacesPerCell< Grid >::value, );
 
         const typename MeshDependentData::RealType* storage = mdd.b_ijK( i, j, K );
         // n_x face (e=0, e=1)

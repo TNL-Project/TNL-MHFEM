@@ -14,7 +14,7 @@ template< typename Mesh,
           typename ModelImplementation,
           // this is not a non-typename parameter due to deficiency in TypeResolver
 //          MassLumping lumping = MassLumping::enabled >
-          typename MassMatrix_ = mhfem::MassMatrix< Mesh, MassLumping::enabled > >
+          typename MassMatrix_ = mhfem::MassMatrix< typename Mesh::Cell, MassLumping::enabled > >
 class BaseModel :
     public TNL::Object
 {
