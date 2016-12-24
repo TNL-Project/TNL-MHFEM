@@ -16,7 +16,7 @@ template< typename Mesh,
           typename MeshDependentData,
           typename BoundaryConditions >
 class Upwind
-    : public TNL::Functions::Domain< Mesh::meshDimensions, TNL::Functions::MeshDomain >,
+    : public TNL::Functions::Domain< Mesh::getMeshDimension(), TNL::Functions::MeshDomain >,
       public TNL::Functions::Range< typename MeshDependentData::RealType, MeshDependentData::NumberOfEquations >
 {
 public:
@@ -30,7 +30,7 @@ public:
     using FaceVectorType = TNL::Containers::StaticVector< MeshDependentDataType::FacesPerCell, IndexType >;
     using coeff = MassMatrixDependentCode< MeshDependentDataType >;
 
-    static constexpr int getEntitiesDimensions() { return Mesh::meshDimensions - 1; }
+    static constexpr int getEntitiesDimensions() { return Mesh::getMeshDimension() - 1; }
  
     void bind( TNL::SharedPointer< MeshDependentDataType > mdd,
                TNL::SharedPointer< BoundaryConditions > & bc,
@@ -64,7 +64,7 @@ public:
                          const RealType & time,
                          const int & i ) const
     {
-        static_assert( EntityType::getDimensions() == getEntitiesDimensions(),
+        static_assert( EntityType::getEntityDimension() == getEntitiesDimensions(),
                        "This function is defined on faces." );
 
         // dereference the smart pointer on device

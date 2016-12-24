@@ -57,7 +57,7 @@ public:
                                    const EntityType & entity,
                                    const int & i )
         {
-            static_assert( EntityType::getDimensions() == MeshType::meshDimensions,
+            static_assert( EntityType::getEntityDimension() == MeshType::getMeshDimension(),
                            "wrong entity dimensions in QRupdater::processEntity");
 
             const IndexType K = entity.getIndex();
@@ -79,7 +79,7 @@ public:
                                    const EntityType & entity,
                                    const int & i )
         {
-            static_assert( EntityType::getDimensions() == MeshType::meshDimensions,
+            static_assert( EntityType::getEntityDimension() == MeshType::getMeshDimension(),
                            "wrong entity dimensions in QRupdater::processEntity");
 
             const IndexType K = entity.getIndex();
@@ -123,7 +123,7 @@ public:
                                    const EntityType & entity,
                                    const int & _component )
         {
-            static_assert( EntityType::getDimensions() == MeshType::meshDimensions,
+            static_assert( EntityType::getEntityDimension() == MeshType::getMeshDimension(),
                            "wrong entity dimensions in QRupdater::processEntity");
 
             const IndexType K = entity.getIndex();
@@ -137,7 +137,7 @@ public:
 #else
             // TODO: use dynamic allocation via Devices::Cuda::getSharedMemory
             // (we'll need to pass custom launch configuration to the traverser)
-            __shared__ LocalMatrixType __Qs[ ( MeshType::getMeshDimensions() < 3 ) ? 256 : 512 ];
+            __shared__ LocalMatrixType __Qs[ ( MeshType::getMeshDimension() < 3 ) ? 256 : 512 ];
             LocalMatrixType& Q = __Qs[ ( ( threadIdx.z * blockDim.y ) + threadIdx.y ) * blockDim.x + threadIdx.x ];
 #endif
 

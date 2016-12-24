@@ -12,7 +12,7 @@ namespace mhfem
 template< typename Mesh,
           typename MeshDependentData >
 class RightHandSide
-    : public TNL::Functions::Domain< Mesh::meshDimensions, TNL::Functions::MeshDomain >,
+    : public TNL::Functions::Domain< Mesh::getMeshDimension(), TNL::Functions::MeshDomain >,
       public TNL::Functions::Range< typename MeshDependentData::RealType, MeshDependentData::NumberOfEquations >
 {
 public:
@@ -23,7 +23,7 @@ public:
     using IndexType = typename MeshDependentDataType::IndexType;
     using FaceVectorType = TNL::Containers::StaticVector< MeshDependentDataType::FacesPerCell, IndexType >;
 
-    static constexpr int getEntitiesDimensions() { return Mesh::meshDimensions - 1; }
+    static constexpr int getEntitiesDimensions() { return Mesh::getMeshDimension() - 1; }
  
     void bindMeshDependentData( TNL::SharedPointer< MeshDependentDataType > & mdd )
     {
@@ -36,7 +36,7 @@ public:
                          const RealType & time,
                          const int & i ) const
     {
-        static_assert( EntityType::getDimensions() == getEntitiesDimensions(),
+        static_assert( EntityType::getEntityDimension() == getEntitiesDimensions(),
                        "This function is defined on faces." );
 
         // dereference the smart pointer on device

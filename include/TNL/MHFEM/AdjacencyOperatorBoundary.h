@@ -12,8 +12,8 @@ template< typename Mesh, int NumberOfEquations = 1 >
 class AdjacencyOperatorBoundary
     : public TNL::Operators::Operator< Mesh,
                                        TNL::Functions::MeshInteriorDomain,
-                                       Mesh::getMeshDimensions() - 1,
-                                       Mesh::getMeshDimensions() - 1,
+                                       Mesh::getMeshDimension() - 1,
+                                       Mesh::getMeshDimension() - 1,
                                        bool,
                                        typename Mesh::IndexType,
                                        NumberOfEquations,

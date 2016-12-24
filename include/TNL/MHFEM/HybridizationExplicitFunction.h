@@ -13,7 +13,7 @@ namespace mhfem
 template< typename Mesh,
           typename MeshDependentData >
 class HybridizationExplicitFunction
-    : public TNL::Functions::Domain< Mesh::meshDimensions, TNL::Functions::MeshDomain >,
+    : public TNL::Functions::Domain< Mesh::getMeshDimension(), TNL::Functions::MeshDomain >,
       public TNL::Functions::Range< typename MeshDependentData::RealType, MeshDependentData::NumberOfEquations >
 {
 public:
@@ -25,7 +25,7 @@ public:
     using DofVectorType = TNL::Containers::Vector< RealType, DeviceType, IndexType>;
     using FaceVectorType = TNL::Containers::StaticVector< MeshDependentDataType::FacesPerCell, IndexType >;
 
-    static constexpr int getEntitiesDimensions() { return Mesh::meshDimensions; }
+    static constexpr int getEntitiesDimensions() { return Mesh::getMeshDimension(); }
  
     void bind( TNL::SharedPointer< MeshDependentDataType > & mdd,
                DofVectorType & dofVector )
@@ -40,7 +40,7 @@ public:
                          const RealType & time,
                          const int & i ) const
     {
-        static_assert( EntityType::getDimensions() == getEntitiesDimensions(),
+        static_assert( EntityType::getEntityDimension() == getEntitiesDimensions(),
                        "This function is defined on cells." );
 
         const auto & mesh = entity.getMesh();

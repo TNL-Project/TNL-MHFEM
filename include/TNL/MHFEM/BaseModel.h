@@ -202,7 +202,7 @@ protected:
 private:
     // FIXME: n can't be static constexpr because according to nvcc, ModelImplementation is an incomplete type (works in GCC though)
     const int n = ModelImplementation::NumberOfEquations;
-    static constexpr int d = MeshType::meshDimensions;
+    static constexpr int d = MeshType::getMeshDimension();
 };
 
 } // namespace mhfem

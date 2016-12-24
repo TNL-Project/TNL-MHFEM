@@ -39,7 +39,7 @@ public:
     using MeshDependentDataPointer = TNL::SharedPointer< MeshDependentDataType, DeviceType >;
     using DofVectorType = TNL::Containers::Vector< RealType, DeviceType, IndexType >;
     using DofVectorPointer = TNL::SharedPointer< DofVectorType >;
-    using DofFunction = TNL::Functions::MeshFunction< Mesh, Mesh::meshDimensions - 1, RealType, MeshDependentDataType::NumberOfEquations >;
+    using DofFunction = TNL::Functions::MeshFunction< Mesh, Mesh::getMeshDimension() - 1, RealType, MeshDependentDataType::NumberOfEquations >;
     using DofFunctionPointer = TNL::SharedPointer< DofFunction >;
     using DifferentialOperatorPointer = TNL::SharedPointer< DifferentialOperator >;
     using BoundaryConditionsPointer = TNL::SharedPointer< BoundaryConditions >;
@@ -141,7 +141,7 @@ protected:
     // cached instances for postIterate method
 
     // output
-    using ZkMeshFunction = TNL::Functions::MeshFunction< MeshType, MeshType::meshDimensions, RealType, MeshDependentDataType::NumberOfEquations >;
+    using ZkMeshFunction = TNL::Functions::MeshFunction< MeshType, MeshType::getMeshDimension(), RealType, MeshDependentDataType::NumberOfEquations >;
     TNL::SharedPointer< ZkMeshFunction, DeviceType > meshFunctionZK;
     // input
     using HybridizationFunction = HybridizationExplicitFunction< MeshType, MeshDependentDataType >;
