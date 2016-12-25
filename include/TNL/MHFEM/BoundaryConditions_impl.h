@@ -82,7 +82,7 @@ setMatrixElements( DofVectorPointer & u,
         const auto & mdd = this->mdd.template getData< DeviceType >();
 
         // set right hand side value
-        RealType bValue = - static_cast<const ModelImplementation*>(this)->getNeumannValue( mesh, i, E, time ) * getFaceSurface( mesh, entity );
+        RealType bValue = - static_cast<const ModelImplementation*>(this)->getNeumannValue( mesh, i, E, time ) * getEntityMeasure( mesh, entity );
 
         bValue += mdd.w_iKe( i, K, e );
         for( int j = 0; j < MeshDependentDataType::NumberOfEquations; j++ ) {
