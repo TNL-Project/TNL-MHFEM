@@ -30,10 +30,12 @@ public:
 
     static constexpr int getEntitiesDimensions() { return Mesh::getMeshDimension() - 1; }
  
-    void bind( TNL::SharedPointer< MeshDependentDataType > mdd,
+    void bind( const TNL::SharedPointer< MeshType > & mesh,
+               TNL::SharedPointer< MeshDependentDataType > mdd,
                TNL::SharedPointer< BoundaryConditions > & bc,
                DofVectorType & Z_iF )
     {
+        this->mesh = mesh;
         this->mdd = mdd;
         this->bc = bc;
         this->Z_iF.bind( Z_iF );
@@ -66,8 +68,8 @@ public:
 
         // dereference the smart pointer on device
         const auto & mdd = this->mdd.template getData< DeviceType >();
+        const auto & mesh = this->mesh.template getData< DeviceType >();
 
-        const MeshType & mesh = entity.getMesh();
         const IndexType E = entity.getIndex();
 
         IndexType cellIndexes[ 2 ];
@@ -94,6 +96,7 @@ public:
     }
 
 protected:
+    TNL::SharedPointer< MeshType > mesh;
     TNL::SharedPointer< MeshDependentDataType > mdd;
     TNL::SharedPointer< BoundaryConditions > bc;
     DofVectorType Z_iF;

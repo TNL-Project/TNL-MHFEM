@@ -182,7 +182,7 @@ setInitialCondition( const TNL::Config::ParameterContainer & parameters,
     // bind input
     using FaceAverageFunction = MobilityFaceAverageFunction< MeshType, MeshDependentDataType, BoundaryConditions >;
     TNL::SharedPointer< FaceAverageFunction, DeviceType > faceAverageFunction;
-    faceAverageFunction->bind( mdd, boundaryConditionsPointer, mdd->m );
+    faceAverageFunction->bind( meshPointer, mdd, boundaryConditionsPointer, mdd->m );
     // evaluator
     TNL::Functions::MeshFunctionEvaluator< DofFunction, FaceAverageFunction > faceAverageEvaluator;
     faceAverageEvaluator.evaluate(
@@ -191,7 +191,7 @@ setInitialCondition( const TNL::Config::ParameterContainer & parameters,
 
     // initialize dofVector as an average of mdd.Z on neighbouring cells
     // rebind input
-    faceAverageFunction->bind( mdd, boundaryConditionsPointer, mdd->Z );
+    faceAverageFunction->bind( meshPointer, mdd, boundaryConditionsPointer, mdd->Z );
     // reuse evaluator
     faceAverageEvaluator.evaluate(
             dofFunctionPointer,     // out
@@ -305,7 +305,7 @@ preIterate( const RealType & time,
         // bind output
         upwindMeshFunction->bind( meshPointer, mdd->m_upw );
         // bind inputs
-        upwindFunction->bind( mdd, boundaryConditionsPointer, *dofVectorPointer );
+        upwindFunction->bind( meshPointer, mdd, boundaryConditionsPointer, *dofVectorPointer );
         // evaluate
         upwindEvaluator.evaluate(
                 upwindMeshFunction,     // out
@@ -421,7 +421,7 @@ postIterate( const RealType & time,
     // bind output
     meshFunctionZK->bind( meshPointer, mdd->Z );
     // bind inputs
-    functionZK->bind( mdd, *dofVectorPointer );
+    functionZK->bind( meshPointer, mdd, *dofVectorPointer );
     // evaluate
     evaluatorZK.evaluate( meshFunctionZK, functionZK );
     timer_explicit.stop();

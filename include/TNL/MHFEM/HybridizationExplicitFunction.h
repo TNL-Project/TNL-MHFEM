@@ -26,9 +26,11 @@ public:
 
     static constexpr int getEntitiesDimensions() { return Mesh::getMeshDimension(); }
  
-    void bind( TNL::SharedPointer< MeshDependentDataType > & mdd,
+    void bind( const TNL::SharedPointer< MeshType > & mesh,
+               TNL::SharedPointer< MeshDependentDataType > & mdd,
                DofVectorType & dofVector )
     {
+        this->mesh = mesh;
         this->mdd = mdd;
         this->dofVector.bind( dofVector );
     }
@@ -42,14 +44,14 @@ public:
         static_assert( EntityType::getEntityDimension() == getEntitiesDimensions(),
                        "This function is defined on cells." );
 
-        const auto & mesh = entity.getMesh();
+        // dereference the smart pointer on device
+        const auto & mdd = this->mdd.template getData< DeviceType >();
+        const auto & mesh = this->mesh.template getData< DeviceType >();
+
         const IndexType K = entity.getIndex();
 
         RealType result = 0.0;
         auto faceIndexes = getFacesForCell( mesh, K );
-
-        // dereference the smart pointers on device
-        const auto & mdd = this->mdd.template getData< DeviceType >();
 
         for( int f = 0; f < MeshDependentDataType::FacesPerCell; f++ ) {
             const IndexType F = faceIndexes[ f ];
@@ -64,6 +66,7 @@ public:
     }
 
 protected:
+    TNL::SharedPointer< MeshType > mesh;
     TNL::SharedPointer< MeshDependentDataType > mdd;
     DofVectorType dofVector;
 };
