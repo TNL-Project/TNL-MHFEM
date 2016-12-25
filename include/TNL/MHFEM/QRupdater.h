@@ -17,13 +17,11 @@ class QRupdater
 {
 public:
     using MeshType = Mesh;
-    using CoordinatesType = typename MeshType::CoordinatesType;
     using MeshDependentDataType = MeshDependentData;
     using RealType = typename MeshDependentDataType::RealType;
     using DeviceType = typename MeshDependentData::DeviceType;
     using IndexType = typename MeshDependentDataType::IndexType;
     using DofVectorType = TNL::Containers::Vector< RealType, DeviceType, IndexType>;
-    using FaceVectorType = TNL::Containers::StaticVector< MeshDependentDataType::FacesPerCell, IndexType >;
     using LocalMatrixType = StaticMatrix< MeshDependentDataType::NumberOfEquations, MeshDependentDataType::NumberOfEquations, RealType >;
     using MassMatrix = typename MeshDependentDataType::MassMatrix;
     using coeff = MassMatrixDependentCode< MeshDependentDataType >;
@@ -38,8 +36,7 @@ public:
 //        static_assert( EntityDimension == 2, "wrong EntityDimension in QRupdater::processEntity");
 
         // get face indexes
-//        FaceVectorType faceIndexes;
-//        getFacesForCell( mesh, indexCell, faceIndexes );
+//        auto faceIndexes = getFacesForCell( mesh, indexCell );
 
 //        update_bR( mesh, mdd, indexCell, faceIndexes );
 //        update_R_K( mesh, mdd, indexCell, faceIndexes );
@@ -83,8 +80,7 @@ public:
             const IndexType K = entity.getIndex();
 
             // get face indexes
-            FaceVectorType faceIndexes;
-            getFacesForCell( mesh, K, faceIndexes );
+            auto faceIndexes = getFacesForCell( mesh, K );
 
             // update coefficients R_ijKE
             for( int j = 0; j < mdd.NumberOfEquations; j++ ) {
@@ -127,8 +123,7 @@ public:
             const IndexType K = entity.getIndex();
 
             // get face indexes
-            FaceVectorType faceIndexes;
-            getFacesForCell( mesh, K, faceIndexes );
+            auto faceIndexes = getFacesForCell( mesh, K );
 
 #ifndef __CUDA_ARCH__
             LocalMatrixType Q;

@@ -31,12 +31,10 @@ class DifferentialOperator< TNL::Meshes::Grid< 1, MeshReal, Device, MeshIndex >,
 {
 public:
     using MeshType = TNL::Meshes::Grid< 1, MeshReal, Device, MeshIndex >;
-    using CoordinatesType = typename MeshType::CoordinatesType;
     using MeshDependentDataType = MeshDependentData;
     using DeviceType = Device;
     using RealType = typename MeshDependentDataType::RealType;
     using IndexType = typename MeshDependentDataType::IndexType;
-    using FaceVectorType = TNL::Containers::StaticVector< MeshDependentDataType::FacesPerCell, IndexType >;
 
     void bindMeshDependentData( TNL::SharedPointer< MeshDependentDataType > & mdd );
 
@@ -77,12 +75,10 @@ class DifferentialOperator< TNL::Meshes::Grid< 2, MeshReal, Device, MeshIndex >,
 {
 public:
     using MeshType = TNL::Meshes::Grid< 2, MeshReal, Device, MeshIndex >;
-    using CoordinatesType = typename MeshType::CoordinatesType;
     using MeshDependentDataType = MeshDependentData;
     using DeviceType = Device;
     using RealType = typename MeshDependentDataType::RealType;
     using IndexType = typename MeshDependentDataType::IndexType;
-    using FaceVectorType = TNL::Containers::StaticVector< MeshDependentDataType::FacesPerCell, IndexType >;
 
     void bindMeshDependentData( TNL::SharedPointer< MeshDependentDataType > & mdd );
 
@@ -123,12 +119,10 @@ class DifferentialOperator< TNL::Meshes::Grid< 3, MeshReal, Device, MeshIndex >,
 {
 public:
     using MeshType = TNL::Meshes::Grid< 3, MeshReal, Device, MeshIndex >;
-    using CoordinatesType = typename MeshType::CoordinatesType;
     using MeshDependentDataType = MeshDependentData;
     using DeviceType = Device;
     using RealType = typename MeshDependentDataType::RealType;
     using IndexType = typename MeshDependentDataType::IndexType;
-    using FaceVectorType = TNL::Containers::StaticVector< MeshDependentDataType::FacesPerCell, IndexType >;
 
     void bindMeshDependentData( TNL::SharedPointer< MeshDependentDataType > & mdd );
 

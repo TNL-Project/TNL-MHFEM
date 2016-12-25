@@ -30,7 +30,6 @@ public:
     using RealType = typename MeshDependentDataType::RealType;
     using IndexType = typename MeshDependentDataType::IndexType;
     using TagArrayType = TNL::Containers::Array< bool, DeviceType, IndexType >;
-    using FaceVectorType = TNL::Containers::StaticVector< MeshDependentDataType::FacesPerCell, IndexType >;
 
     // NOTE: children of BoundaryConditions (i.e. ModelImplementation) must implement these methods
 //    bool

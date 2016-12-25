@@ -75,8 +75,7 @@ setMatrixElements( DofVectorPointer & u,
                               << "K1 = " << cellIndexes[ 1 ] << std::endl; );
 
         // prepare face indexes
-        FaceVectorType faceIndexes;
-        getFacesForCell( mesh, K, faceIndexes );
+        auto faceIndexes = getFacesForCell( mesh, K );
         const int e = getLocalIndex( faceIndexes, E );
 
         // dereference the smart pointer on device

@@ -65,18 +65,16 @@ setMatrixElements( DofFunctionPointer & u,
     TNL_ASSERT( numCells == 2,
                 std::cerr << "assertion numCells == 2 failed" << std::endl; );
 
-    // indexes of the faces, sorted according the following diagrams
-    FaceVectorType faceIndexesK0;
-    FaceVectorType faceIndexesK1;
+    // face indexes are ordered in this way:
+    //      0   1|2   3
+    //      |____|____|
+    //        K1   K0
+    auto faceIndexesK0 = getFacesForCell( mesh, cellIndexes[ 0 ] );
+    auto faceIndexesK1 = getFacesForCell( mesh, cellIndexes[ 1 ] );
 
     // dereference the smart pointer on device
     const auto & mdd = this->mdd.template getData< DeviceType >();
 
-    // get face indexes of both cells ordered in this way:
-    //      0   1|2   3
-    //      |____|____|
-    getFacesForCell( mesh, cellIndexes[ 1 ], faceIndexesK1 );
-    getFacesForCell( mesh, cellIndexes[ 0 ], faceIndexesK0 );
     for( int j = 0; j < MeshDependentDataType::NumberOfEquations; j++ ) {
         matrixRow.setElement( j * 3 + 0, mdd.getDofIndex( j, faceIndexesK1[ 0 ] ), coeff::A_ijKEF( mdd, i, j, cellIndexes[ 1 ], E, 1, faceIndexesK1[ 0 ], 0 ) );
         matrixRow.setElement( j * 3 + 1, mdd.getDofIndex( j, faceIndexesK1[ 1 ] ), coeff::A_ijKEF( mdd, i, j, cellIndexes[ 1 ], E, 1, faceIndexesK1[ 1 ], 1 ) +
@@ -145,10 +143,8 @@ setMatrixElements( DofVectorPointer & u,
                 std::cerr << "assertion numCells == 2 failed" << std::endl; );
 
     // face indexes for both cells
-    FaceVectorType faceIndexesK0;
-    FaceVectorType faceIndexesK1;
-    getFacesForCell( mesh, cellIndexes[ 0 ], faceIndexesK0 );
-    getFacesForCell( mesh, cellIndexes[ 1 ], faceIndexesK1 );
+    auto faceIndexesK0 = getFacesForCell( mesh, cellIndexes[ 0 ] );
+    auto faceIndexesK1 = getFacesForCell( mesh, cellIndexes[ 1 ] );
 
     const auto & orientation = entity.getOrientation();
 
@@ -256,10 +252,8 @@ setMatrixElements( DofVectorPointer & u,
                 std::cerr << "assertion numCells == 2 failed" << std::endl; );
 
     // face indexes for both cells
-    FaceVectorType faceIndexesK0;
-    FaceVectorType faceIndexesK1;
-    getFacesForCell( mesh, cellIndexes[ 0 ], faceIndexesK0 );
-    getFacesForCell( mesh, cellIndexes[ 1 ], faceIndexesK1 );
+    auto faceIndexesK0 = getFacesForCell( mesh, cellIndexes[ 0 ] );
+    auto faceIndexesK1 = getFacesForCell( mesh, cellIndexes[ 1 ] );
 
     const auto & orientation = entity.getOrientation();
 

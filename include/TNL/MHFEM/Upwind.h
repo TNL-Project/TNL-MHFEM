@@ -26,7 +26,6 @@ public:
     using DeviceType = typename MeshDependentDataType::DeviceType;
     using IndexType = typename MeshDependentDataType::IndexType;
     using DofVectorType = TNL::Containers::Vector< RealType, DeviceType, IndexType>;
-    using FaceVectorType = TNL::Containers::StaticVector< MeshDependentDataType::FacesPerCell, IndexType >;
     using coeff = MassMatrixDependentCode< MeshDependentDataType >;
 
     static constexpr int getEntitiesDimensions() { return Mesh::getMeshDimension() - 1; }
@@ -47,8 +46,7 @@ public:
                           const IndexType & E ) const
     {
         // find local index of face E
-        FaceVectorType faceIndexes;
-        getFacesForCell( mesh, K, faceIndexes );
+        auto faceIndexes = getFacesForCell( mesh, K );
         const int e = getLocalIndex( faceIndexes, E );
 
         // dereference the smart pointer on device

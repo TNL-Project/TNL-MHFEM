@@ -21,7 +21,6 @@ public:
     using DeviceType = typename MeshType::DeviceType;
     using RealType = typename MeshDependentDataType::RealType;
     using IndexType = typename MeshDependentDataType::IndexType;
-    using FaceVectorType = TNL::Containers::StaticVector< MeshDependentDataType::FacesPerCell, IndexType >;
 
     static constexpr int getEntitiesDimensions() { return Mesh::getMeshDimension() - 1; }
  
@@ -57,8 +56,7 @@ public:
             const IndexType & K = cellIndexes[ xxx ];
 
             // find local index of face E
-            FaceVectorType faceIndexes;
-            getFacesForCell( mesh, K, faceIndexes );
+            auto faceIndexes = getFacesForCell( mesh, K );
             const int e = getLocalIndex( faceIndexes, E );
 
             result += mdd.w_iKe( i, K, e );

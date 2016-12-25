@@ -28,10 +28,8 @@ class AdjacencyOperator< TNL::Meshes::Grid< 1, MeshReal, Device, MeshIndex >, Nu
 {
 public:
     using MeshType = TNL::Meshes::Grid< 1, MeshReal, Device, MeshIndex >;
-    using CoordinatesType = typename MeshType::CoordinatesType;
     using DeviceType = Device;
     using IndexType = MeshIndex;
-    using FaceVectorType = TNL::Containers::StaticVector< FacesPerCell< typename MeshType::Cell >::value, IndexType >;
 
     __cuda_callable__
     IndexType getLinearSystemRowLength( const MeshType & mesh,
@@ -75,10 +73,8 @@ class AdjacencyOperator< TNL::Meshes::Grid< 2, MeshReal, Device, MeshIndex >, Nu
 {
 public:
     using MeshType = TNL::Meshes::Grid< 2, MeshReal, Device, MeshIndex >;
-    using CoordinatesType = typename MeshType::CoordinatesType;
     using DeviceType = Device;
     using IndexType = MeshIndex;
-    using FaceVectorType = TNL::Containers::StaticVector< FacesPerCell< typename MeshType::Cell >::value, IndexType >;
 
     __cuda_callable__
     IndexType getLinearSystemRowLength( const MeshType & mesh,
@@ -122,10 +118,8 @@ class AdjacencyOperator< TNL::Meshes::Grid< 3, MeshReal, Device, MeshIndex >, Nu
 {
 public:
     using MeshType = TNL::Meshes::Grid< 3, MeshReal, Device, MeshIndex >;
-    using CoordinatesType = typename MeshType::CoordinatesType;
     using DeviceType = Device;
     using IndexType = MeshIndex;
-    using FaceVectorType = TNL::Containers::StaticVector< FacesPerCell< typename MeshType::Cell >::value, IndexType >;
 
     __cuda_callable__
     IndexType getLinearSystemRowLength( const MeshType & mesh,

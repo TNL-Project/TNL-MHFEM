@@ -23,7 +23,6 @@ public:
     using RealType = typename MeshDependentDataType::RealType;
     using IndexType = typename MeshDependentDataType::IndexType;
     using DofVectorType = TNL::Containers::Vector< RealType, DeviceType, IndexType>;
-    using FaceVectorType = TNL::Containers::StaticVector< MeshDependentDataType::FacesPerCell, IndexType >;
 
     static constexpr int getEntitiesDimensions() { return Mesh::getMeshDimension(); }
  
@@ -47,8 +46,7 @@ public:
         const IndexType K = entity.getIndex();
 
         RealType result = 0.0;
-        FaceVectorType faceIndexes;
-        getFacesForCell( mesh, K, faceIndexes );
+        auto faceIndexes = getFacesForCell( mesh, K );
 
         // dereference the smart pointers on device
         const auto & mdd = this->mdd.template getData< DeviceType >();
