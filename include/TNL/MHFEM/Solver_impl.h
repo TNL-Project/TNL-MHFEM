@@ -141,9 +141,9 @@ Solver< Mesh, MeshDependentData, DifferentialOperator, BoundaryConditions, Right
 bindMeshDependentData( const MeshPointer & meshPointer,
                        MeshDependentDataPointer & mdd )
 {
-    this->differentialOperatorPointer->bindMeshDependentData( mdd );
-    this->boundaryConditionsPointer->bindMeshDependentData( mdd );
-    this->rightHandSidePointer->bindMeshDependentData( mdd );
+    this->differentialOperatorPointer->bind( meshPointer, mdd );
+    this->boundaryConditionsPointer->bind( meshPointer, mdd );
+    this->rightHandSidePointer->bind( meshPointer, mdd );
 }
 
 

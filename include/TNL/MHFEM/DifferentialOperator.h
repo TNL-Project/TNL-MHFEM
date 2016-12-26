@@ -36,7 +36,8 @@ public:
     using RealType = typename MeshDependentDataType::RealType;
     using IndexType = typename MeshDependentDataType::IndexType;
 
-    void bindMeshDependentData( TNL::SharedPointer< MeshDependentDataType > & mdd );
+    void bind( const TNL::SharedPointer< MeshType > & mesh,
+               TNL::SharedPointer< MeshDependentDataType > & mdd );
 
     __cuda_callable__
     IndexType getLinearSystemRowLength( const MeshType & mesh,
@@ -55,6 +56,7 @@ public:
                             Vector & b ) const;
 
 protected:
+    TNL::SharedPointer< MeshType > mesh;
     TNL::SharedPointer< MeshDependentDataType > mdd;
     using coeff = MassMatrixDependentCode< MeshDependentDataType >;
 };
@@ -80,7 +82,8 @@ public:
     using RealType = typename MeshDependentDataType::RealType;
     using IndexType = typename MeshDependentDataType::IndexType;
 
-    void bindMeshDependentData( TNL::SharedPointer< MeshDependentDataType > & mdd );
+    void bind( const TNL::SharedPointer< MeshType > & mesh,
+               TNL::SharedPointer< MeshDependentDataType > & mdd );
 
     __cuda_callable__
     IndexType getLinearSystemRowLength( const MeshType & mesh,
@@ -99,6 +102,7 @@ public:
                             Vector & b ) const;
 
 protected:
+    TNL::SharedPointer< MeshType > mesh;
     TNL::SharedPointer< MeshDependentDataType > mdd;
     using coeff = MassMatrixDependentCode< MeshDependentDataType >;
 };
@@ -124,7 +128,8 @@ public:
     using RealType = typename MeshDependentDataType::RealType;
     using IndexType = typename MeshDependentDataType::IndexType;
 
-    void bindMeshDependentData( TNL::SharedPointer< MeshDependentDataType > & mdd );
+    void bind( const TNL::SharedPointer< MeshType > & mesh,
+               TNL::SharedPointer< MeshDependentDataType > & mdd );
 
     __cuda_callable__
     IndexType getLinearSystemRowLength( const MeshType & mesh,
@@ -143,6 +148,7 @@ public:
                             Vector & b ) const;
 
 protected:
+    TNL::SharedPointer< MeshType > mesh;
     TNL::SharedPointer< MeshDependentDataType > mdd;
     using coeff = MassMatrixDependentCode< MeshDependentDataType >;
 };

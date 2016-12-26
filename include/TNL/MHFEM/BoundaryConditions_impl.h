@@ -11,8 +11,10 @@ template< typename Mesh,
           typename ModelImplementation >
 void
 BoundaryConditions< Mesh, MeshDependentData, ModelImplementation >::
-bindMeshDependentData( TNL::SharedPointer< MeshDependentDataType > & mdd )
+bind( const TNL::SharedPointer< MeshType > & mesh,
+      TNL::SharedPointer< MeshDependentDataType > & mdd )
 {
+    this->mesh = mesh;
     this->mdd = mdd;
 }
 
@@ -50,8 +52,10 @@ setMatrixElements( DofVectorPointer & u,
 {
     TNL_ASSERT( entity.isBoundaryEntity(), );
 
+    // dereference the smart pointer on device
+    const auto & mesh = this->mesh.template getData< DeviceType >();
+
     const IndexType E = entity.getIndex();
-    const MeshType & mesh = entity.getMesh();
     const IndexType indexRow = i * mesh.template getEntitiesCount< typename MeshType::Face >() + E;
 
     typename Matrix::MatrixRow matrixRow = matrix.getRow( indexRow );

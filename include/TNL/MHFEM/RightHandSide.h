@@ -24,8 +24,10 @@ public:
 
     static constexpr int getEntitiesDimensions() { return Mesh::getMeshDimension() - 1; }
  
-    void bindMeshDependentData( TNL::SharedPointer< MeshDependentDataType > & mdd )
+    void bind( const TNL::SharedPointer< MeshType > & mesh,
+               TNL::SharedPointer< MeshDependentDataType > & mdd )
     {
+        this->mesh = mesh;
         this->mdd = mdd;
     }
 
@@ -39,9 +41,9 @@ public:
                        "This function is defined on faces." );
 
         // dereference the smart pointer on device
+        const auto & mesh = this->mesh.template getData< DeviceType >();
         const auto & mdd = this->mdd.template getData< DeviceType >();
 
-        const MeshType & mesh = entity.getMesh();
         const IndexType E = entity.getIndex();
 
         IndexType cellIndexes[ 2 ];
@@ -68,6 +70,7 @@ public:
     }
 
 protected:
+    TNL::SharedPointer< MeshType > mesh;
     TNL::SharedPointer< MeshDependentDataType > mdd;
 };
 

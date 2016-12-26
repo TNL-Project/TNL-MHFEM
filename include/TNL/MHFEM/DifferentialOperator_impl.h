@@ -13,8 +13,10 @@ template< typename MeshReal,
           typename MeshDependentData >
 void
 DifferentialOperator< TNL::Meshes::Grid< 1, MeshReal, Device, MeshIndex >, MeshDependentData >::
-bindMeshDependentData( TNL::SharedPointer< MeshDependentDataType > & mdd )
+bind( const TNL::SharedPointer< MeshType > & mesh,
+      TNL::SharedPointer< MeshDependentDataType > & mdd )
 {
+    this->mesh = mesh;
     this->mdd = mdd;
 }
 
@@ -52,8 +54,11 @@ setMatrixElements( DofFunctionPointer & u,
 {
     TNL_ASSERT( ! entity.isBoundaryEntity(), );
 
+    // dereference the smart pointer on device
+    const auto & mesh = this->mesh.template getData< DeviceType >();
+    const auto & mdd = this->mdd.template getData< DeviceType >();
+
     const IndexType E = entity.getIndex();
-    const MeshType & mesh = entity.getMesh();
     const IndexType indexRow = i * mesh.template getEntitiesCount< typename MeshType::Face >() + E;
 
     typename Matrix::MatrixRow matrixRow = matrix.getRow( indexRow );
@@ -72,9 +77,6 @@ setMatrixElements( DofFunctionPointer & u,
     auto faceIndexesK0 = getFacesForCell( mesh, cellIndexes[ 0 ] );
     auto faceIndexesK1 = getFacesForCell( mesh, cellIndexes[ 1 ] );
 
-    // dereference the smart pointer on device
-    const auto & mdd = this->mdd.template getData< DeviceType >();
-
     for( int j = 0; j < MeshDependentDataType::NumberOfEquations; j++ ) {
         matrixRow.setElement( j * 3 + 0, mdd.getDofIndex( j, faceIndexesK1[ 0 ] ), coeff::A_ijKEF( mdd, i, j, cellIndexes[ 1 ], E, 1, faceIndexesK1[ 0 ], 0 ) );
         matrixRow.setElement( j * 3 + 1, mdd.getDofIndex( j, faceIndexesK1[ 1 ] ), coeff::A_ijKEF( mdd, i, j, cellIndexes[ 1 ], E, 1, faceIndexesK1[ 1 ], 1 ) +
@@ -90,8 +92,10 @@ template< typename MeshReal,
           typename MeshDependentData >
 void
 DifferentialOperator< TNL::Meshes::Grid< 2, MeshReal, Device, MeshIndex >, MeshDependentData >::
-bindMeshDependentData( TNL::SharedPointer< MeshDependentDataType > & mdd )
+bind( const TNL::SharedPointer< MeshType > & mesh,
+      TNL::SharedPointer< MeshDependentDataType > & mdd )
 {
+    this->mesh = mesh;
     this->mdd = mdd;
 }
 
@@ -129,8 +133,11 @@ setMatrixElements( DofVectorPointer & u,
 {
     TNL_ASSERT( ! entity.isBoundaryEntity(), );
 
+    // dereference the smart pointer on device
+    const auto & mesh = this->mesh.template getData< DeviceType >();
+    const auto & mdd = this->mdd.template getData< DeviceType >();
+
     const IndexType E = entity.getIndex();
-    const MeshType & mesh = entity.getMesh();
     const IndexType indexRow = i * mesh.template getEntitiesCount< typename MeshType::Face >() + E;
 
     typename Matrix::MatrixRow matrixRow = matrix.getRow( indexRow );
@@ -147,9 +154,6 @@ setMatrixElements( DofVectorPointer & u,
     auto faceIndexesK1 = getFacesForCell( mesh, cellIndexes[ 1 ] );
 
     const auto & orientation = entity.getOrientation();
-
-    // dereference the smart pointer on device
-    const auto & mdd = this->mdd.template getData< DeviceType >();
 
 //    if( isVerticalFace( mesh, E ) ) {
     if( orientation.x() ) {
@@ -199,8 +203,10 @@ template< typename MeshReal,
           typename MeshDependentData >
 void
 DifferentialOperator< TNL::Meshes::Grid< 3, MeshReal, Device, MeshIndex >, MeshDependentData >::
-bindMeshDependentData( TNL::SharedPointer< MeshDependentDataType > & mdd )
+bind( const TNL::SharedPointer< MeshType > & mesh,
+      TNL::SharedPointer< MeshDependentDataType > & mdd )
 {
+    this->mesh = mesh;
     this->mdd = mdd;
 }
 
@@ -238,8 +244,11 @@ setMatrixElements( DofVectorPointer & u,
 {
     TNL_ASSERT( ! entity.isBoundaryEntity(), );
 
+    // dereference the smart pointer on device
+    const auto & mesh = this->mesh.template getData< DeviceType >();
+    const auto & mdd = this->mdd.template getData< DeviceType >();
+
     const IndexType E = entity.getIndex();
-    const MeshType & mesh = entity.getMesh();
     const IndexType indexRow = i * mesh.template getEntitiesCount< typename MeshType::Face >() + E;
 
     typename Matrix::MatrixRow matrixRow = matrix.getRow( indexRow );
@@ -256,9 +265,6 @@ setMatrixElements( DofVectorPointer & u,
     auto faceIndexesK1 = getFacesForCell( mesh, cellIndexes[ 1 ] );
 
     const auto & orientation = entity.getOrientation();
-
-    // dereference the smart pointer on device
-    const auto & mdd = this->mdd.template getData< DeviceType >();
 
     // TODO: write something like isNxFace/isNyFace/isNzFace
 //    if( E < mesh.template getNumberOfFaces< 1, 0, 0 >() ) {
