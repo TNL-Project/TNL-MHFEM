@@ -32,7 +32,7 @@ getLinearSystemRowLength( const MeshType & mesh,
                           const typename MeshType::Face & entity,
                           const int & i ) const
 {
-    TNL_ASSERT( ! entity.isBoundaryEntity(), );
+    TNL_ASSERT( ! mesh.isBoundaryEntity( entity ), );
     return 3 * MeshDependentDataType::NumberOfEquations;
 }
 
@@ -52,7 +52,7 @@ setMatrixElements( DofFunctionPointer & u,
                    Matrix & matrix,
                    Vector & b ) const
 {
-    TNL_ASSERT( ! entity.isBoundaryEntity(), );
+    TNL_ASSERT( ! mesh.isBoundaryEntity( entity ), );
 
     // dereference the smart pointer on device
     const auto & mesh = this->mesh.template getData< DeviceType >();
@@ -111,7 +111,7 @@ getLinearSystemRowLength( const MeshType & mesh,
                           const typename MeshType::Face & entity,
                           const int & i ) const
 {
-    TNL_ASSERT( ! entity.isBoundaryEntity(), );
+    TNL_ASSERT( ! mesh.isBoundaryEntity( entity ), );
     return 7 * MeshDependentDataType::NumberOfEquations;
 }
 
@@ -131,7 +131,7 @@ setMatrixElements( DofVectorPointer & u,
                    Matrix & matrix,
                    Vector & b ) const
 {
-    TNL_ASSERT( ! entity.isBoundaryEntity(), );
+    TNL_ASSERT( ! mesh.isBoundaryEntity( entity ), );
 
     // dereference the smart pointer on device
     const auto & mesh = this->mesh.template getData< DeviceType >();
@@ -222,7 +222,7 @@ getLinearSystemRowLength( const MeshType & mesh,
                           const typename MeshType::Face & entity,
                           const int & i ) const
 {
-    TNL_ASSERT( ! entity.isBoundaryEntity(), );
+    TNL_ASSERT( ! mesh.isBoundaryEntity( entity ), );
     return 11 * MeshDependentDataType::NumberOfEquations;
 }
 
@@ -242,7 +242,7 @@ setMatrixElements( DofVectorPointer & u,
                    Matrix & matrix,
                    Vector & b ) const
 {
-    TNL_ASSERT( ! entity.isBoundaryEntity(), );
+    TNL_ASSERT( ! mesh.isBoundaryEntity( entity ), );
 
     // dereference the smart pointer on device
     const auto & mesh = this->mesh.template getData< DeviceType >();

@@ -17,7 +17,7 @@ getLinearSystemRowLength( const MeshType & mesh,
                           const typename MeshType::Face & entity,
                           const int & i ) const
 {
-    TNL_ASSERT( ! entity.isBoundaryEntity(), );
+    TNL_ASSERT( ! mesh.isBoundaryEntity( entity ), );
     // minus the diagonal
     return 3 * NumberOfEquations - 1;
 }
@@ -34,7 +34,7 @@ setMatrixElements( const typename MeshType::Face & entity,
                    const int & i,
                    Matrix & matrix ) const
 {
-    TNL_ASSERT( ! entity.isBoundaryEntity(), );
+    TNL_ASSERT( ! mesh.isBoundaryEntity( entity ), );
 
     const IndexType E = entity.getIndex();
     const MeshType & mesh = entity.getMesh();
@@ -84,7 +84,7 @@ getLinearSystemRowLength( const MeshType & mesh,
                           const typename MeshType::Face & entity,
                           const int & i ) const
 {
-    TNL_ASSERT( ! entity.isBoundaryEntity(), );
+    TNL_ASSERT( ! mesh.isBoundaryEntity( entity ), );
     // minus the diagonal
     return 7 * NumberOfEquations - 1;
 }
@@ -101,7 +101,7 @@ setMatrixElements( const typename MeshType::Face & entity,
                    const int & i,
                    Matrix & matrix ) const
 {
-    TNL_ASSERT( ! entity.isBoundaryEntity(), );
+    TNL_ASSERT( ! mesh.isBoundaryEntity( entity ), );
 
     const IndexType E = entity.getIndex();
     const MeshType & mesh = entity.getMesh();
@@ -181,7 +181,7 @@ getLinearSystemRowLength( const MeshType & mesh,
                           const typename MeshType::Face & entity,
                           const int & i ) const
 {
-    TNL_ASSERT( ! entity.isBoundaryEntity(), );
+    TNL_ASSERT( ! mesh.isBoundaryEntity( entity ), );
     // minus the diagonal
     return 11 * NumberOfEquations - 1;
 }
@@ -198,7 +198,7 @@ setMatrixElements( const typename MeshType::Face & entity,
                    const int & i,
                    Matrix & matrix ) const
 {
-    TNL_ASSERT( ! entity.isBoundaryEntity(), );
+    TNL_ASSERT( ! mesh.isBoundaryEntity( entity ), );
 
     const IndexType E = entity.getIndex();
     const MeshType & mesh = entity.getMesh();
