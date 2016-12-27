@@ -49,7 +49,7 @@ setMatrixElements( const typename MeshType::Face & entity,
                           << "K1 = " << cellIndexes[ 1 ] << std::endl; );
 
     // prepare face indexes
-    auto faceIndexes = getFacesForCell( mesh, K );
+    const auto faceIndexes = getFacesForCell( mesh, K );
 
     int rowElements = 0;
     auto setElement = [&] ( IndexType columnIndex ) {

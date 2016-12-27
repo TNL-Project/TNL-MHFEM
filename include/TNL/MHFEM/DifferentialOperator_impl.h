@@ -74,8 +74,8 @@ setMatrixElements( DofFunctionPointer & u,
     //      0   1|2   3
     //      |____|____|
     //        K1   K0
-    auto faceIndexesK0 = getFacesForCell( mesh, cellIndexes[ 0 ] );
-    auto faceIndexesK1 = getFacesForCell( mesh, cellIndexes[ 1 ] );
+    const auto faceIndexesK0 = getFacesForCell( mesh, cellIndexes[ 0 ] );
+    const auto faceIndexesK1 = getFacesForCell( mesh, cellIndexes[ 1 ] );
 
     for( int j = 0; j < MeshDependentDataType::NumberOfEquations; j++ ) {
         matrixRow.setElement( j * 3 + 0, mdd.getDofIndex( j, faceIndexesK1[ 0 ] ), coeff::A_ijKEF( mdd, i, j, cellIndexes[ 1 ], E, 1, faceIndexesK1[ 0 ], 0 ) );
@@ -150,8 +150,8 @@ setMatrixElements( DofVectorPointer & u,
                 std::cerr << "assertion numCells == 2 failed" << std::endl; );
 
     // face indexes for both cells
-    auto faceIndexesK0 = getFacesForCell( mesh, cellIndexes[ 0 ] );
-    auto faceIndexesK1 = getFacesForCell( mesh, cellIndexes[ 1 ] );
+    const auto faceIndexesK0 = getFacesForCell( mesh, cellIndexes[ 0 ] );
+    const auto faceIndexesK1 = getFacesForCell( mesh, cellIndexes[ 1 ] );
 
     const auto & orientation = entity.getOrientation();
 
@@ -261,8 +261,8 @@ setMatrixElements( DofVectorPointer & u,
                 std::cerr << "assertion numCells == 2 failed" << std::endl; );
 
     // face indexes for both cells
-    auto faceIndexesK0 = getFacesForCell( mesh, cellIndexes[ 0 ] );
-    auto faceIndexesK1 = getFacesForCell( mesh, cellIndexes[ 1 ] );
+    const auto faceIndexesK0 = getFacesForCell( mesh, cellIndexes[ 0 ] );
+    const auto faceIndexesK1 = getFacesForCell( mesh, cellIndexes[ 1 ] );
 
     const auto & orientation = entity.getOrientation();
 

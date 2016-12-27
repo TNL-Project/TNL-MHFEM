@@ -54,8 +54,8 @@ setMatrixElements( const typename MeshType::Face & entity,
     //      0   1|2   3
     //      |____|____|
     //        K1   K0
-    auto faceIndexesK0 = getFacesForCell( mesh, cellIndexes[ 0 ] );
-    auto faceIndexesK1 = getFacesForCell( mesh, cellIndexes[ 1 ] );
+    const auto faceIndexesK0 = getFacesForCell( mesh, cellIndexes[ 0 ] );
+    const auto faceIndexesK1 = getFacesForCell( mesh, cellIndexes[ 1 ] );
 
     int rowElements = 0;
     auto setElement = [&] ( IndexType columnIndex ) {
@@ -118,8 +118,8 @@ setMatrixElements( const typename MeshType::Face & entity,
                 std::cerr << "assertion numCells == 2 failed" << std::endl; );
 
     // face indexes for both cells
-    auto faceIndexesK0 = getFacesForCell( mesh, cellIndexes[ 0 ] );
-    auto faceIndexesK1 = getFacesForCell( mesh, cellIndexes[ 1 ] );
+    const auto faceIndexesK0 = getFacesForCell( mesh, cellIndexes[ 0 ] );
+    const auto faceIndexesK1 = getFacesForCell( mesh, cellIndexes[ 1 ] );
 
     int rowElements = 0;
     auto setElement = [&] ( IndexType columnIndex ) {
@@ -215,8 +215,8 @@ setMatrixElements( const typename MeshType::Face & entity,
                 std::cerr << "assertion numCells == 2 failed" << std::endl; );
 
     // face indexes for both cells
-    auto faceIndexesK0 = getFacesForCell( mesh, cellIndexes[ 0 ] );
-    auto faceIndexesK1 = getFacesForCell( mesh, cellIndexes[ 1 ] );
+    const auto faceIndexesK0 = getFacesForCell( mesh, cellIndexes[ 0 ] );
+    const auto faceIndexesK1 = getFacesForCell( mesh, cellIndexes[ 1 ] );
 
     int rowElements = 0;
     auto setElement = [&] ( IndexType columnIndex ) {

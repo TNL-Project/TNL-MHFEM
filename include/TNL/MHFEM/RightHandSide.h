@@ -58,7 +58,7 @@ public:
             const IndexType & K = cellIndexes[ xxx ];
 
             // find local index of face E
-            auto faceIndexes = getFacesForCell( mesh, K );
+            const auto faceIndexes = getFacesForCell( mesh, K );
             const int e = getLocalIndex( faceIndexes, E );
 
             result += mdd.w_iKe( i, K, e );

@@ -48,7 +48,7 @@ public:
                           const IndexType & E ) const
     {
         // find local index of face E
-        auto faceIndexes = getFacesForCell( mesh, K );
+        const auto faceIndexes = getFacesForCell( mesh, K );
         const int e = getLocalIndex( faceIndexes, E );
 
         // dereference the smart pointer on device

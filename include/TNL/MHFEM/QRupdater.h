@@ -36,7 +36,7 @@ public:
 //        static_assert( EntityDimension == 2, "wrong EntityDimension in QRupdater::processEntity");
 
         // get face indexes
-//        auto faceIndexes = getFacesForCell( mesh, indexCell );
+//        const auto faceIndexes = getFacesForCell( mesh, indexCell );
 
 //        update_bR( mesh, mdd, indexCell, faceIndexes );
 //        update_R_K( mesh, mdd, indexCell, faceIndexes );
@@ -80,7 +80,7 @@ public:
             const IndexType K = entity.getIndex();
 
             // get face indexes
-            auto faceIndexes = getFacesForCell( mesh, K );
+            const auto faceIndexes = getFacesForCell( mesh, K );
 
             // update coefficients R_ijKE
             for( int j = 0; j < mdd.NumberOfEquations; j++ ) {
@@ -123,7 +123,7 @@ public:
             const IndexType K = entity.getIndex();
 
             // get face indexes
-            auto faceIndexes = getFacesForCell( mesh, K );
+            const auto faceIndexes = getFacesForCell( mesh, K );
 
 #ifndef __CUDA_ARCH__
             LocalMatrixType Q;

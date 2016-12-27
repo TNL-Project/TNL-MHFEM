@@ -51,7 +51,7 @@ public:
         const IndexType K = entity.getIndex();
 
         RealType result = 0.0;
-        auto faceIndexes = getFacesForCell( mesh, K );
+        const auto faceIndexes = getFacesForCell( mesh, K );
 
         for( int f = 0; f < MeshDependentDataType::FacesPerCell; f++ ) {
             const IndexType F = faceIndexes[ f ];
