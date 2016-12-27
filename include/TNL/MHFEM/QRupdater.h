@@ -130,6 +130,7 @@ public:
 #else
             // TODO: use dynamic allocation via Devices::Cuda::getSharedMemory
             // (we'll need to pass custom launch configuration to the traverser)
+            // TODO: the traverser for Mesh will use 256 threads per block even in 3D
             __shared__ LocalMatrixType __Qs[ ( MeshType::getMeshDimension() < 3 ) ? 256 : 512 ];
             LocalMatrixType& Q = __Qs[ ( ( threadIdx.z * blockDim.y ) + threadIdx.y ) * blockDim.x + threadIdx.x ];
 #endif

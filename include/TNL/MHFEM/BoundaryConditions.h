@@ -83,8 +83,6 @@ protected:
     // vector holding tags to differentiate the boundary condition based on the face index
     // (true indicates Dirichlet boundary)
     TagArrayType dirichletTags;
-
-    using coeff = MassMatrixDependentCode< MeshDependentDataType >;
 };
 
 } // namespace mhfem

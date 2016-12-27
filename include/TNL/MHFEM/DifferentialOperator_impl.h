@@ -7,6 +7,165 @@
 namespace mhfem
 {
 
+template< typename Mesh,
+          typename MeshDependentData >
+void
+DifferentialOperator< Mesh, MeshDependentData >::
+bind( const TNL::SharedPointer< MeshType > & mesh,
+      TNL::SharedPointer< MeshDependentDataType > & mdd )
+{
+    this->mesh = mesh;
+    this->mdd = mdd;
+}
+
+template< typename Mesh,
+          typename MeshDependentData >
+__cuda_callable__
+typename MeshDependentData::IndexType
+DifferentialOperator< Mesh, MeshDependentData >::
+getLinearSystemRowLength( const MeshType & mesh,
+                          const IndexType & indexEntity,
+                          const typename MeshType::Face & entity,
+                          const int & i ) const
+{
+    TNL_ASSERT( ! mesh.isBoundaryEntity( entity ), );
+    return ( 2 * MeshDependentDataType::FacesPerCell - 1 ) * MeshDependentDataType::NumberOfEquations;
+}
+
+template< typename Mesh,
+          typename MeshDependentData >
+    template< typename DofFunctionPointer, typename Vector, typename Matrix >
+__cuda_callable__
+void
+DifferentialOperator< Mesh, MeshDependentData >::
+setMatrixElements( DofFunctionPointer & u,
+                   const typename MeshType::Face & entity,
+                   const RealType & time,
+                   const RealType & tau,
+                   const int & i,
+                   Matrix & matrix,
+                   Vector & b ) const
+{
+    TNL_ASSERT( ! mesh.isBoundaryEntity( entity ), );
+
+    // dereference the smart pointer on device
+    const auto & mesh = this->mesh.template getData< DeviceType >();
+    const auto & mdd = this->mdd.template getData< DeviceType >();
+
+    const IndexType E = entity.getIndex();
+    const IndexType indexRow = i * mesh.template getEntitiesCount< typename MeshType::Face >() + E;
+
+    typename Matrix::MatrixRow matrixRow = matrix.getRow( indexRow );
+
+    // indexes of the right (cellIndexes[0]) and left (cellIndexes[1]) cells
+    IndexType cellIndexes[ 2 ];
+    const int numCells = getCellsForFace( mesh, entity, cellIndexes );
+
+    TNL_ASSERT( numCells == 2,
+                std::cerr << "assertion numCells == 2 failed" << std::endl; );
+
+    // face indexes are ordered in this way:
+    //      0   1|2   3
+    //      |____|____|
+    //        K1   K0
+    const auto faceIndexesK0 = getFacesForCell( mesh, cellIndexes[ 0 ] );
+    const auto faceIndexesK1 = getFacesForCell( mesh, cellIndexes[ 1 ] );
+
+    using LocalIndexPermutation = TNL::Containers::StaticArray< MeshDependentDataType::FacesPerCell, LocalIndex >;
+
+    // For unstructured meshes the face indexes might be unsorted.
+    // Therefore we build another permutation array with the correct order.
+#ifndef __CUDA_ARCH__
+    LocalIndexPermutation localFaceIndexesK0;
+    LocalIndexPermutation localFaceIndexesK1;
+#else
+    // TODO: use dynamic allocation via Devices::Cuda::getSharedMemory
+    // (we'll need to pass custom launch configuration to the traverser)
+    __shared__ LocalIndexPermutation __permutationsK0[ 256 ];
+    __shared__ LocalIndexPermutation __permutationsK1[ 256 ];
+    LocalIndexPermutation& localFaceIndexesK0 = __permutationsK0[ ( ( threadIdx.z * blockDim.y ) + threadIdx.y ) * blockDim.x + threadIdx.x ];
+    LocalIndexPermutation& localFaceIndexesK1 = __permutationsK1[ ( ( threadIdx.z * blockDim.y ) + threadIdx.y ) * blockDim.x + threadIdx.x ];
+#endif
+    for( LocalIndex j = 0; j < MeshDependentDataType::FacesPerCell; j++ )
+        localFaceIndexesK0[ j ] = localFaceIndexesK1[ j ] = j;
+    auto comparatorK0 = [&]( LocalIndex a, LocalIndex b ) {
+        return localFaceIndexesK0[ a ] < localFaceIndexesK0[ b ];
+    };
+    auto comparatorK1 = [&]( LocalIndex a, LocalIndex b ) {
+        return localFaceIndexesK1[ a ] < localFaceIndexesK1[ b ];
+    };
+    // We assume that the array size is small, so we sort it with bubble sort.
+    for( LocalIndex k1 = MeshDependentDataType::FacesPerCell - 1; k1 > 0; k1-- )
+        for( LocalIndex k2 = 0; k2 < k1; k2++ ) {
+            if( ! comparatorK0( localFaceIndexesK0[ i ], localFaceIndexesK0[ i+1 ] ) )
+                TNL::swap( localFaceIndexesK0[ i ], localFaceIndexesK0[ i+1 ] );
+            if( ! comparatorK1( localFaceIndexesK1[ i ], localFaceIndexesK1[ i+1 ] ) )
+                TNL::swap( localFaceIndexesK1[ i ], localFaceIndexesK1[ i+1 ] );
+        }
+
+    const LocalIndex e0 = getLocalIndex( faceIndexesK0, E );
+    const LocalIndex e1 = getLocalIndex( faceIndexesK1, E );
+
+    LocalIndex g0 = 0;
+    LocalIndex g1 = 0;
+
+    LocalIndex rowElements = 0;
+
+    // TODO: this is divergent in principle, but might be improved
+
+    while( g0 < MeshDependentDataType::FacesPerCell && g1 < MeshDependentDataType::FacesPerCell ) {
+        const LocalIndex f0 = localFaceIndexesK0[ g0 ];
+        const LocalIndex f1 = localFaceIndexesK0[ g1 ];
+        if( faceIndexesK0[ f0 ] < faceIndexesK1[ f1 ] ) {
+            for( int j = 0; j < MeshDependentDataType::NumberOfEquations; j++ )
+                matrixRow.setElement( rowElements++,
+                                      mdd.getDofIndex( j, faceIndexesK0[ f0 ] ),
+                                      coeff::A_ijKEF( mdd, i, j, cellIndexes[ 0 ], E, e0, faceIndexesK0[ f0 ], f0 ) );
+            g0++;
+        }
+        else if( faceIndexesK0[ f0 ] == faceIndexesK1[ f1 ] ) {
+            for( int j = 0; j < MeshDependentDataType::NumberOfEquations; j++ )
+                matrixRow.setElement( rowElements++,
+                                      mdd.getDofIndex( j, faceIndexesK0[ f0 ] ),
+                                      coeff::A_ijKEF( mdd, i, j, cellIndexes[ 0 ], E, e0, faceIndexesK0[ f0 ], f0 ) +
+                                      coeff::A_ijKEF( mdd, i, j, cellIndexes[ 1 ], E, e1, faceIndexesK1[ f1 ], f1 ) );
+            g0++;
+            g1++;
+        }
+        else {
+            for( int j = 0; j < MeshDependentDataType::NumberOfEquations; j++ )
+                matrixRow.setElement( rowElements++,
+                                      mdd.getDofIndex( j, faceIndexesK1[ f1 ] ),
+                                      coeff::A_ijKEF( mdd, i, j, cellIndexes[ 1 ], E, e1, faceIndexesK1[ f1 ], f1 ) );
+            g1++;
+        }
+    }
+
+    while( g0 < MeshDependentDataType::FacesPerCell ) {
+        const LocalIndex f0 = localFaceIndexesK0[ g0 ];
+        for( int j = 0; j < MeshDependentDataType::NumberOfEquations; j++ )
+            matrixRow.setElement( rowElements++,
+                                  mdd.getDofIndex( j, faceIndexesK0[ f0 ] ),
+                                  coeff::A_ijKEF( mdd, i, j, cellIndexes[ 0 ], E, e0, faceIndexesK0[ f0 ], f0 ) );
+        g0++;
+    }
+
+    while( g1 < MeshDependentDataType::FacesPerCell ) {
+        const LocalIndex f1 = localFaceIndexesK0[ g1 ];
+        for( int j = 0; j < MeshDependentDataType::NumberOfEquations; j++ )
+            matrixRow.setElement( rowElements++,
+                                  mdd.getDofIndex( j, faceIndexesK1[ f1 ] ),
+                                  coeff::A_ijKEF( mdd, i, j, cellIndexes[ 1 ], E, e1, faceIndexesK1[ f1 ], f1 ) );
+        g1++;
+    }
+
+    TNL_ASSERT( rowElements == ( 2 * MeshDependentDataType::FacesPerCell - 1 ) * MeshDependentDataType::NumberOfEquations,
+                std::cerr << "rowElements = " << rowElements << ", expected = "
+                          << ( 2 * MeshDependentDataType::FacesPerCell - 1 ) * MeshDependentDataType::NumberOfEquations
+                          << std::endl; );
+}
+
+
 template< typename MeshReal,
           typename Device,
           typename MeshIndex,

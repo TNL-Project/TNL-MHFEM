@@ -6,6 +6,86 @@
 namespace mhfem
 {
 
+template< typename Mesh, typename MeshDependentData >
+struct NeumannMatrixRowSetter
+{
+    template< typename MatrixRow, typename FaceIndexes, typename IndexType >
+    __cuda_callable__
+    static void setRow( MatrixRow & matrixRow,
+                        const MeshDependentData & mdd,
+                        const FaceIndexes & faceIndexes,
+                        const int & i,
+                        const IndexType & K,
+                        const IndexType & E,
+                        const int & e )
+    {
+        using coeff = MassMatrixDependentCode< MeshDependentData >;
+        using LocalIndex = typename Mesh::LocalIndexType;
+        using LocalIndexPermutation = TNL::Containers::StaticArray< FaceIndexes::size, LocalIndex >;
+
+        // For unstructured meshes the face indexes might be unsorted.
+        // Therefore we build another permutation array with the correct order.
+#ifndef __CUDA_ARCH__
+        LocalIndexPermutation localFaceIndexes;
+#else
+        // TODO: use dynamic allocation via Devices::Cuda::getSharedMemory
+        // (we'll need to pass custom launch configuration to the traverser)
+        __shared__ LocalIndexPermutation __permutations[ 256 ];
+        LocalIndexPermutation& localFaceIndexes = __permutations[ ( ( threadIdx.z * blockDim.y ) + threadIdx.y ) * blockDim.x + threadIdx.x ];
+#endif
+        for( LocalIndex j = 0; j < FaceIndexes::size; j++ )
+            localFaceIndexes[ j ] = j;
+        auto comparator = [&]( LocalIndex a, LocalIndex b ) {
+            return localFaceIndexes[ a ] < localFaceIndexes[ b ];
+        };
+        // We assume that the array size is small, so we sort it with bubble sort.
+        for( LocalIndex k1 = FaceIndexes::size - 1; k1 > 0; k1-- )
+            for( LocalIndex k2 = 0; k2 < k1; k2++ )
+                if( ! comparator( localFaceIndexes[ i ], localFaceIndexes[ i+1 ] ) )
+                    TNL::swap( localFaceIndexes[ i ], localFaceIndexes[ i+1 ] );
+
+
+        for( LocalIndex j = 0; j < MeshDependentData::NumberOfEquations; j++ ) {
+            for( LocalIndex g = 0; g < MeshDependentData::FacesPerCell; g++ ) {
+                const LocalIndex f = localFaceIndexes[ g ];
+                matrixRow.setElement( j * MeshDependentData::FacesPerCell + f,
+                                      mdd.getDofIndex( j, faceIndexes[ f ] ),
+                                      coeff::A_ijKEF( mdd, i, j, K, E, e, faceIndexes[ f ], f ) );
+            }
+        }
+    }
+};
+
+template< int Dimension,
+          typename MeshReal,
+          typename Device,
+          typename MeshIndex,
+          typename MeshDependentData >
+struct NeumannMatrixRowSetter< TNL::Meshes::Grid< Dimension, MeshReal, Device, MeshIndex >, MeshDependentData >
+{
+    template< typename MatrixRow, typename FaceIndexes, typename IndexType >
+    __cuda_callable__
+    static void setRow( MatrixRow & matrixRow,
+                        const MeshDependentData & mdd,
+                        const FaceIndexes & faceIndexes,
+                        const int & i,
+                        const IndexType & K,
+                        const IndexType & E,
+                        const int & e )
+    {
+        using coeff = MassMatrixDependentCode< MeshDependentData >;
+
+        for( int j = 0; j < MeshDependentData::NumberOfEquations; j++ ) {
+            for( int f = 0; f < MeshDependentData::FacesPerCell; f++ ) {
+                matrixRow.setElement( j * MeshDependentData::FacesPerCell + f,
+                                      mdd.getDofIndex( j, faceIndexes[ f ] ),
+                                      coeff::A_ijKEF( mdd, i, j, K, E, e, faceIndexes[ f ], f ) );
+            }
+        }
+    }
+};
+
+
 template< typename Mesh,
           typename MeshDependentData,
           typename ModelImplementation >
@@ -95,11 +175,11 @@ setMatrixElements( DofVectorPointer & u,
         b[ indexRow ] = bValue;
 
         // set non-zero elements
-        for( int j = 0; j < MeshDependentDataType::NumberOfEquations; j++ ) {
-            for( int f = 0; f < MeshDependentDataType::FacesPerCell; f++ ) {
-                matrixRow.setElement( j * MeshDependentDataType::FacesPerCell + f, mdd.getDofIndex( j, faceIndexes[ f ] ), coeff::A_ijKEF( mdd, i, j, K, E, e, faceIndexes[ f ], f ) );
-            }
-        }
+        NeumannMatrixRowSetter< MeshType, MeshDependentDataType >::
+            setRow( matrixRow,
+                    mdd,
+                    faceIndexes,
+                    i, K, E, e );
     }
 }
 

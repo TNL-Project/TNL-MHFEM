@@ -12,7 +12,46 @@ namespace mhfem
 template< typename Mesh,
           typename MeshDependentData >
 class DifferentialOperator
+    : public TNL::Operators::Operator< Mesh,
+                                       TNL::Functions::MeshInteriorDomain,
+                                       Mesh::getMeshDimension() - 1,
+                                       Mesh::getMeshDimension() - 1,
+                                       typename MeshDependentData::RealType,
+                                       typename MeshDependentData::IndexType,
+                                       MeshDependentData::NumberOfEquations,
+                                       MeshDependentData::NumberOfEquations >
 {
+public:
+    using MeshType = Mesh;
+    using MeshDependentDataType = MeshDependentData;
+    using DeviceType = typename Mesh::DeviceType;
+    using RealType = typename MeshDependentDataType::RealType;
+    using IndexType = typename MeshDependentDataType::IndexType;
+    using LocalIndex = typename Mesh::LocalIndexType;
+
+    void bind( const TNL::SharedPointer< MeshType > & mesh,
+               TNL::SharedPointer< MeshDependentDataType > & mdd );
+
+    __cuda_callable__
+    IndexType getLinearSystemRowLength( const MeshType & mesh,
+                                        const IndexType & indexEntity,
+                                        const typename MeshType::Face & entity,
+                                        const int & i ) const;
+
+    template< typename DofFunctionPointer, typename Vector, typename Matrix >
+    __cuda_callable__
+    void setMatrixElements( DofFunctionPointer & u,
+                            const typename MeshType::Face & entity,
+                            const RealType & time,
+                            const RealType & tau,
+                            const int & i,
+                            Matrix & matrix,
+                            Vector & b ) const;
+
+protected:
+    TNL::SharedPointer< MeshType > mesh;
+    TNL::SharedPointer< MeshDependentDataType > mdd;
+    using coeff = MassMatrixDependentCode< MeshDependentDataType >;
 };
 
 template< typename MeshReal,

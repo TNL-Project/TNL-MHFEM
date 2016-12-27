@@ -464,4 +464,64 @@ public:
     }
 };
 
+
+template< typename MeshConfig, MassLumping _ml >
+class MassMatrix< TNL::Meshes::MeshEntity< MeshConfig, TNL::Meshes::MeshEdgeTopology >, _ml >
+{
+public:
+    using MeshEntity = TNL::Meshes::MeshEntity< MeshConfig, TNL::Meshes::MeshEdgeTopology >;
+    static constexpr MassLumping lumping = _ml;
+
+    // number of independent values defining the matrix
+    static constexpr int size = 1;
+
+    template< typename Mesh, typename MeshDependentData >
+    __cuda_callable__
+    static inline void
+    update( const Mesh & mesh,
+            const MeshEntity & entity,
+            MeshDependentData & mdd,
+            const int & i,
+            const int & j )
+    {
+        const auto K = entity.getIndex();
+        typename MeshDependentData::RealType* storage = mdd.b_ijK( i, j, K );
+        const auto h_x = getEntityMeasure( mesh, entity );
+        storage[ 0 ] = 2 * mdd.D_ijK( i, j, K ) / h_x;
+    }
+
+    template< typename MeshDependentData >
+    __cuda_callable__
+    static inline typename MeshDependentData::RealType
+    b_ijKef( const MeshDependentData & mdd,
+             const int & i,
+             const int & j,
+             const typename MeshDependentData::IndexType & K,
+             const int & e,
+             const int & f )
+    {
+        TNL_ASSERT( e < FacesPerCell< MeshEntity >::value && f < FacesPerCell< MeshEntity >::value, );
+
+        const typename MeshDependentData::RealType* storage = mdd.b_ijK( i, j, K );
+        if( e == f )
+            return 2 * storage[ 0 ];
+        return storage[ 0 ];
+    }
+
+    template< typename MeshDependentData >
+    __cuda_callable__
+    static inline typename MeshDependentData::RealType
+    b_ijKe( const MeshDependentData & mdd,
+            const int & i,
+            const int & j,
+            const typename MeshDependentData::IndexType & K,
+            const int & e )
+    {
+        TNL_ASSERT( e < FacesPerCell< MeshEntity >::value, );
+
+        const typename MeshDependentData::RealType* storage = mdd.b_ijK( i, j, K );
+        return 3 * storage[ 0 ];
+    }
+};
+
 } // namespace mhfem
