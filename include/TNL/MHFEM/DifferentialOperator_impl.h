@@ -97,66 +97,63 @@ setMatrixElements( DofFunctionPointer & u,
     // We assume that the array size is small, so we sort it with bubble sort.
     for( LocalIndex k1 = MeshDependentDataType::FacesPerCell - 1; k1 > 0; k1-- )
         for( LocalIndex k2 = 0; k2 < k1; k2++ ) {
-            if( ! comparatorK0( localFaceIndexesK0[ i ], localFaceIndexesK0[ i+1 ] ) )
-                TNL::swap( localFaceIndexesK0[ i ], localFaceIndexesK0[ i+1 ] );
-            if( ! comparatorK1( localFaceIndexesK1[ i ], localFaceIndexesK1[ i+1 ] ) )
-                TNL::swap( localFaceIndexesK1[ i ], localFaceIndexesK1[ i+1 ] );
+            if( ! comparatorK0( localFaceIndexesK0[ k2 ], localFaceIndexesK0[ k2+1 ] ) )
+                TNL::swap( localFaceIndexesK0[ k2 ], localFaceIndexesK0[ k2+1 ] );
+            if( ! comparatorK1( localFaceIndexesK1[ k2 ], localFaceIndexesK1[ k2+1 ] ) )
+                TNL::swap( localFaceIndexesK1[ k2 ], localFaceIndexesK1[ k2+1 ] );
         }
 
     const LocalIndex e0 = getLocalIndex( faceIndexesK0, E );
     const LocalIndex e1 = getLocalIndex( faceIndexesK1, E );
 
-    LocalIndex g0 = 0;
-    LocalIndex g1 = 0;
-
     LocalIndex rowElements = 0;
 
     // TODO: this is divergent in principle, but might be improved
+    for( int j = 0; j < MeshDependentDataType::NumberOfEquations; j++ )
+    {
+        LocalIndex g0 = 0;
+        LocalIndex g1 = 0;
 
-    while( g0 < MeshDependentDataType::FacesPerCell && g1 < MeshDependentDataType::FacesPerCell ) {
-        const LocalIndex f0 = localFaceIndexesK0[ g0 ];
-        const LocalIndex f1 = localFaceIndexesK0[ g1 ];
-        if( faceIndexesK0[ f0 ] < faceIndexesK1[ f1 ] ) {
-            for( int j = 0; j < MeshDependentDataType::NumberOfEquations; j++ )
+        while( g0 < MeshDependentDataType::FacesPerCell && g1 < MeshDependentDataType::FacesPerCell ) {
+            const LocalIndex f0 = localFaceIndexesK0[ g0 ];
+            const LocalIndex f1 = localFaceIndexesK0[ g1 ];
+            if( faceIndexesK0[ f0 ] < faceIndexesK1[ f1 ] ) {
                 matrixRow.setElement( rowElements++,
                                       mdd.getDofIndex( j, faceIndexesK0[ f0 ] ),
                                       coeff::A_ijKEF( mdd, i, j, cellIndexes[ 0 ], E, e0, faceIndexesK0[ f0 ], f0 ) );
-            g0++;
-        }
-        else if( faceIndexesK0[ f0 ] == faceIndexesK1[ f1 ] ) {
-            for( int j = 0; j < MeshDependentDataType::NumberOfEquations; j++ )
+                g0++;
+            }
+            else if( faceIndexesK0[ f0 ] == faceIndexesK1[ f1 ] ) {
                 matrixRow.setElement( rowElements++,
                                       mdd.getDofIndex( j, faceIndexesK0[ f0 ] ),
                                       coeff::A_ijKEF( mdd, i, j, cellIndexes[ 0 ], E, e0, faceIndexesK0[ f0 ], f0 ) +
                                       coeff::A_ijKEF( mdd, i, j, cellIndexes[ 1 ], E, e1, faceIndexesK1[ f1 ], f1 ) );
-            g0++;
-            g1++;
-        }
-        else {
-            for( int j = 0; j < MeshDependentDataType::NumberOfEquations; j++ )
+                g0++;
+                g1++;
+            }
+            else {
                 matrixRow.setElement( rowElements++,
                                       mdd.getDofIndex( j, faceIndexesK1[ f1 ] ),
                                       coeff::A_ijKEF( mdd, i, j, cellIndexes[ 1 ], E, e1, faceIndexesK1[ f1 ], f1 ) );
-            g1++;
+                g1++;
+            }
         }
-    }
 
-    while( g0 < MeshDependentDataType::FacesPerCell ) {
-        const LocalIndex f0 = localFaceIndexesK0[ g0 ];
-        for( int j = 0; j < MeshDependentDataType::NumberOfEquations; j++ )
+        while( g0 < MeshDependentDataType::FacesPerCell ) {
+            const LocalIndex f0 = localFaceIndexesK0[ g0 ];
             matrixRow.setElement( rowElements++,
                                   mdd.getDofIndex( j, faceIndexesK0[ f0 ] ),
                                   coeff::A_ijKEF( mdd, i, j, cellIndexes[ 0 ], E, e0, faceIndexesK0[ f0 ], f0 ) );
-        g0++;
-    }
+            g0++;
+        }
 
-    while( g1 < MeshDependentDataType::FacesPerCell ) {
-        const LocalIndex f1 = localFaceIndexesK0[ g1 ];
-        for( int j = 0; j < MeshDependentDataType::NumberOfEquations; j++ )
+        while( g1 < MeshDependentDataType::FacesPerCell ) {
+            const LocalIndex f1 = localFaceIndexesK0[ g1 ];
             matrixRow.setElement( rowElements++,
                                   mdd.getDofIndex( j, faceIndexesK1[ f1 ] ),
                                   coeff::A_ijKEF( mdd, i, j, cellIndexes[ 1 ], E, e1, faceIndexesK1[ f1 ], f1 ) );
-        g1++;
+            g1++;
+        }
     }
 
     TNL_ASSERT( rowElements == ( 2 * MeshDependentDataType::FacesPerCell - 1 ) * MeshDependentDataType::NumberOfEquations,

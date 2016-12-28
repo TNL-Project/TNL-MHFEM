@@ -41,8 +41,8 @@ struct NeumannMatrixRowSetter
         // We assume that the array size is small, so we sort it with bubble sort.
         for( LocalIndex k1 = FaceIndexes::size - 1; k1 > 0; k1-- )
             for( LocalIndex k2 = 0; k2 < k1; k2++ )
-                if( ! comparator( localFaceIndexes[ i ], localFaceIndexes[ i+1 ] ) )
-                    TNL::swap( localFaceIndexes[ i ], localFaceIndexes[ i+1 ] );
+                if( ! comparator( localFaceIndexes[ k2 ], localFaceIndexes[ k2+1 ] ) )
+                    TNL::swap( localFaceIndexes[ k2 ], localFaceIndexes[ k2+1 ] );
 
 
         for( LocalIndex j = 0; j < MeshDependentData::NumberOfEquations; j++ ) {
