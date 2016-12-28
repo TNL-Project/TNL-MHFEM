@@ -46,11 +46,11 @@ setMatrixElements( DofFunctionPointer & u,
                    Matrix & matrix,
                    Vector & b ) const
 {
-    TNL_ASSERT( ! mesh.isBoundaryEntity( entity ), );
-
     // dereference the smart pointer on device
     const auto & mesh = this->mesh.template getData< DeviceType >();
     const auto & mdd = this->mdd.template getData< DeviceType >();
+
+    TNL_ASSERT( ! mesh.isBoundaryEntity( entity ), );
 
     const IndexType E = entity.getIndex();
     const IndexType indexRow = i * mesh.template getEntitiesCount< typename MeshType::Face >() + E;
@@ -211,11 +211,11 @@ setMatrixElements( DofFunctionPointer & u,
                    Matrix & matrix,
                    Vector & b ) const
 {
-    TNL_ASSERT( ! mesh.isBoundaryEntity( entity ), );
-
     // dereference the smart pointer on device
     const auto & mesh = this->mesh.template getData< DeviceType >();
     const auto & mdd = this->mdd.template getData< DeviceType >();
+
+    TNL_ASSERT( ! mesh.isBoundaryEntity( entity ), );
 
     const IndexType E = entity.getIndex();
     const IndexType indexRow = i * mesh.template getEntitiesCount< typename MeshType::Face >() + E;
@@ -290,11 +290,11 @@ setMatrixElements( DofVectorPointer & u,
                    Matrix & matrix,
                    Vector & b ) const
 {
-    TNL_ASSERT( ! mesh.isBoundaryEntity( entity ), );
-
     // dereference the smart pointer on device
     const auto & mesh = this->mesh.template getData< DeviceType >();
     const auto & mdd = this->mdd.template getData< DeviceType >();
+
+    TNL_ASSERT( ! mesh.isBoundaryEntity( entity ), );
 
     const IndexType E = entity.getIndex();
     const IndexType indexRow = i * mesh.template getEntitiesCount< typename MeshType::Face >() + E;
@@ -401,11 +401,11 @@ setMatrixElements( DofVectorPointer & u,
                    Matrix & matrix,
                    Vector & b ) const
 {
-    TNL_ASSERT( ! mesh.isBoundaryEntity( entity ), );
-
     // dereference the smart pointer on device
     const auto & mesh = this->mesh.template getData< DeviceType >();
     const auto & mdd = this->mdd.template getData< DeviceType >();
+
+    TNL_ASSERT( ! mesh.isBoundaryEntity( entity ), );
 
     const IndexType E = entity.getIndex();
     const IndexType indexRow = i * mesh.template getEntitiesCount< typename MeshType::Face >() + E;
