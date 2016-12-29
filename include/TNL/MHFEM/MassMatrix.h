@@ -465,12 +465,12 @@ public:
 };
 
 
-template< typename MeshConfig, MassLumping _ml >
-class MassMatrix< TNL::Meshes::MeshEntity< MeshConfig, TNL::Meshes::MeshEdgeTopology >, _ml >
+template< typename MeshConfig >
+class MassMatrix< TNL::Meshes::MeshEntity< MeshConfig, TNL::Meshes::MeshEdgeTopology >, MassLumping::disabled >
 {
 public:
     using MeshEntity = TNL::Meshes::MeshEntity< MeshConfig, TNL::Meshes::MeshEdgeTopology >;
-    static constexpr MassLumping lumping = _ml;
+    static constexpr MassLumping lumping = MassLumping::disabled;
 
     // number of independent values defining the matrix
     static constexpr int size = 1;
