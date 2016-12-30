@@ -89,10 +89,10 @@ setMatrixElements( DofFunctionPointer & u,
     for( LocalIndex j = 0; j < MeshDependentDataType::FacesPerCell; j++ )
         localFaceIndexesK0[ j ] = localFaceIndexesK1[ j ] = j;
     auto comparatorK0 = [&]( LocalIndex a, LocalIndex b ) {
-        return localFaceIndexesK0[ a ] < localFaceIndexesK0[ b ];
+        return faceIndexesK0[ a ] < faceIndexesK0[ b ];
     };
     auto comparatorK1 = [&]( LocalIndex a, LocalIndex b ) {
-        return localFaceIndexesK1[ a ] < localFaceIndexesK1[ b ];
+        return faceIndexesK1[ a ] < faceIndexesK1[ b ];
     };
     // We assume that the array size is small, so we sort it with bubble sort.
     for( LocalIndex k1 = MeshDependentDataType::FacesPerCell - 1; k1 > 0; k1-- )
@@ -114,9 +114,13 @@ setMatrixElements( DofFunctionPointer & u,
         LocalIndex g0 = 0;
         LocalIndex g1 = 0;
 
+#ifndef NDEBUG
+        bool setDiag = false;
+#endif
+
         while( g0 < MeshDependentDataType::FacesPerCell && g1 < MeshDependentDataType::FacesPerCell ) {
             const LocalIndex f0 = localFaceIndexesK0[ g0 ];
-            const LocalIndex f1 = localFaceIndexesK0[ g1 ];
+            const LocalIndex f1 = localFaceIndexesK1[ g1 ];
             if( faceIndexesK0[ f0 ] < faceIndexesK1[ f1 ] ) {
                 matrixRow.setElement( rowElements++,
                                       mdd.getDofIndex( j, faceIndexesK0[ f0 ] ),
@@ -124,12 +128,16 @@ setMatrixElements( DofFunctionPointer & u,
                 g0++;
             }
             else if( faceIndexesK0[ f0 ] == faceIndexesK1[ f1 ] ) {
+                TNL_ASSERT( setDiag == false, );
                 matrixRow.setElement( rowElements++,
                                       mdd.getDofIndex( j, faceIndexesK0[ f0 ] ),
                                       coeff::A_ijKEF( mdd, i, j, cellIndexes[ 0 ], E, e0, faceIndexesK0[ f0 ], f0 ) +
                                       coeff::A_ijKEF( mdd, i, j, cellIndexes[ 1 ], E, e1, faceIndexesK1[ f1 ], f1 ) );
                 g0++;
                 g1++;
+#ifndef NDEBUG
+                setDiag = true;
+#endif
             }
             else {
                 matrixRow.setElement( rowElements++,
@@ -138,6 +146,8 @@ setMatrixElements( DofFunctionPointer & u,
                 g1++;
             }
         }
+        TNL_ASSERT( setDiag == true,
+                    std::cerr << "faceIndexesK0 = " << faceIndexesK0 << ", faceIndexesK1 = " << faceIndexesK1 << std::endl; );
 
         while( g0 < MeshDependentDataType::FacesPerCell ) {
             const LocalIndex f0 = localFaceIndexesK0[ g0 ];
@@ -148,7 +158,7 @@ setMatrixElements( DofFunctionPointer & u,
         }
 
         while( g1 < MeshDependentDataType::FacesPerCell ) {
-            const LocalIndex f1 = localFaceIndexesK0[ g1 ];
+            const LocalIndex f1 = localFaceIndexesK1[ g1 ];
             matrixRow.setElement( rowElements++,
                                   mdd.getDofIndex( j, faceIndexesK1[ f1 ] ),
                                   coeff::A_ijKEF( mdd, i, j, cellIndexes[ 1 ], E, e1, faceIndexesK1[ f1 ], f1 ) );

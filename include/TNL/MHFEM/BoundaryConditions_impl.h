@@ -36,7 +36,7 @@ struct NeumannMatrixRowSetter
         for( LocalIndex j = 0; j < FaceIndexes::size; j++ )
             localFaceIndexes[ j ] = j;
         auto comparator = [&]( LocalIndex a, LocalIndex b ) {
-            return localFaceIndexes[ a ] < localFaceIndexes[ b ];
+            return faceIndexes[ a ] < faceIndexes[ b ];
         };
         // We assume that the array size is small, so we sort it with bubble sort.
         for( LocalIndex k1 = FaceIndexes::size - 1; k1 > 0; k1-- )
