@@ -9,7 +9,33 @@ namespace mhfem {
 
 template< typename Mesh, int NumberOfEquations = 1 >
 class AdjacencyOperator
+    : public TNL::Operators::Operator< Mesh,
+                                       TNL::Functions::MeshInteriorDomain,
+                                       Mesh::getMeshDimension() - 1,
+                                       Mesh::getMeshDimension() - 1,
+                                       bool,
+                                       typename Mesh::IndexType,
+                                       NumberOfEquations,
+                                       NumberOfEquations >
 {
+public:
+    using MeshType = Mesh;
+    using DeviceType = typename Mesh::DeviceType;
+    using IndexType = typename Mesh::IndexType;
+    using LocalIndex = typename Mesh::LocalIndexType;
+
+    __cuda_callable__
+    IndexType getLinearSystemRowLength( const MeshType & mesh,
+                                        const IndexType & indexEntity,
+                                        const typename MeshType::Face & entity,
+                                        const int & i ) const;
+
+    template< typename Matrix >
+    __cuda_callable__
+    void setMatrixElements( const Mesh & mesh,
+                            const typename MeshType::Face & entity,
+                            const int & i,
+                            Matrix & matrix ) const;
 };
 
 template< typename MeshReal,
@@ -37,22 +63,10 @@ public:
                                         const typename MeshType::Face & entity,
                                         const int & i ) const;
 
-    template< typename DofFunctionPointer, typename Vector, typename Matrix, typename RealType >
-    __cuda_callable__
-    void setMatrixElements( DofFunctionPointer & u,
-                            const typename MeshType::Face & entity,
-                            const RealType & time,
-                            const RealType & tau,
-                            const int & i,
-                            Matrix & matrix,
-                            Vector & b ) const
-    {
-        setMatrixElements( entity, i, matrix );
-    }
-
     template< typename Matrix >
     __cuda_callable__
-    void setMatrixElements( const typename MeshType::Face & entity,
+    void setMatrixElements( const MeshType & mesh,
+                            const typename MeshType::Face & entity,
                             const int & i,
                             Matrix & matrix ) const;
 };
@@ -82,22 +96,10 @@ public:
                                         const typename MeshType::Face & entity,
                                         const int & i ) const;
 
-    template< typename DofFunctionPointer, typename Vector, typename Matrix, typename RealType >
-    __cuda_callable__
-    void setMatrixElements( DofFunctionPointer & u,
-                            const typename MeshType::Face & entity,
-                            const RealType & time,
-                            const RealType & tau,
-                            const int & i,
-                            Matrix & matrix,
-                            Vector & b ) const
-    {
-        setMatrixElements( entity, i, matrix );
-    }
-
     template< typename Matrix >
     __cuda_callable__
-    void setMatrixElements( const typename MeshType::Face & entity,
+    void setMatrixElements( const MeshType & mesh,
+                            const typename MeshType::Face & entity,
                             const int & i,
                             Matrix & matrix ) const;
 };
@@ -127,22 +129,10 @@ public:
                                         const typename MeshType::Face & entity,
                                         const int & i ) const;
 
-    template< typename DofFunctionPointer, typename Vector, typename Matrix, typename RealType >
-    __cuda_callable__
-    void setMatrixElements( DofFunctionPointer & u,
-                            const typename MeshType::Face & entity,
-                            const RealType & time,
-                            const RealType & tau,
-                            const int & i,
-                            Matrix & matrix,
-                            Vector & b ) const
-    {
-        setMatrixElements( entity, i, matrix );
-    }
-
     template< typename Matrix >
     __cuda_callable__
-    void setMatrixElements( const typename MeshType::Face & entity,
+    void setMatrixElements( const MeshType & mesh,
+                            const typename MeshType::Face & entity,
                             const int & i,
                             Matrix & matrix ) const;
 };

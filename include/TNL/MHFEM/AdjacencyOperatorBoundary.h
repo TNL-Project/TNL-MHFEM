@@ -31,22 +31,10 @@ public:
                                         const typename MeshType::Face & entity,
                                         const int & i ) const;
 
-    template< typename DofFunctionPointer, typename Vector, typename Matrix, typename RealType >
-    __cuda_callable__
-    void setMatrixElements( DofFunctionPointer & u,
-                            const typename MeshType::Face & entity,
-                            const RealType & time,
-                            const RealType & tau,
-                            const int & i,
-                            Matrix & matrix,
-                            Vector & b ) const
-    {
-        setMatrixElements( entity, i, matrix );
-    }
-
     template< typename Matrix >
     __cuda_callable__
-    void setMatrixElements( const typename MeshType::Face & entity,
+    void setMatrixElements( const Mesh & mesh,
+                            const typename MeshType::Face & entity,
                             const int & i,
                             Matrix & matrix ) const;
 };

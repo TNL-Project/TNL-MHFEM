@@ -24,21 +24,21 @@ template< typename Mesh, int NumberOfEquations >
 __cuda_callable__
 void
 AdjacencyOperatorBoundary< Mesh, NumberOfEquations >::
-setMatrixElements( const typename MeshType::Face & entity,
+setMatrixElements( const Mesh & mesh,
+                   const typename MeshType::Face & entity,
                    const int & i,
                    Matrix & matrix ) const
 {
     TNL_ASSERT( mesh.isBoundaryEntity( entity ), );
 
     const IndexType E = entity.getIndex();
-    const MeshType & mesh = entity.getMesh();
     const IndexType indexRow = i * mesh.template getEntitiesCount< typename MeshType::Face >() + E;
     const IndexType numberOfFaces = mesh.template getEntitiesCount< typename MeshType::Face >();
 
     typename Matrix::MatrixRow matrixRow = matrix.getRow( indexRow );
 
     // for boundary faces returns only one valid cell index
-    IndexType cellIndexes[ 2 ];
+    IndexType cellIndexes[ 2 ] = {-1};
     const int numCells = getCellsForFace( mesh, entity, cellIndexes );
     const IndexType & K = cellIndexes[ 0 ];
 
