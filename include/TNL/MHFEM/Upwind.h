@@ -41,6 +41,7 @@ public:
         this->Z_iF.bind( Z_iF );
     }
 
+    // TODO: some models might have v_iKE pre-calculated, e.g. in a_ijKE or u_ijKE
     __cuda_callable__
     RealType getVelocity( const MeshType & mesh,
                           const int & i,
@@ -92,6 +93,90 @@ public:
             // TODO: check if the value is available (we need to know the density on \Gamma_c ... part of the boundary where the fluid flows in)
 //            return mdd.m_iK( i, K1 );
             return mdd.getBoundaryMobility( mesh, bc, i, entity, time );
+        }
+    }
+
+protected:
+    TNL::SharedPointer< MeshType > mesh;
+    TNL::SharedPointer< MeshDependentDataType > mdd;
+    TNL::SharedPointer< BoundaryConditions > bc;
+    DofVectorType Z_iF;
+};
+
+
+template< typename Mesh,
+          typename MeshDependentData,
+          typename BoundaryConditions >
+class UpwindZ
+    : public TNL::Functions::Domain< Mesh::getMeshDimension(), TNL::Functions::MeshDomain >,
+      public TNL::Functions::Range< typename MeshDependentData::RealType, MeshDependentData::NumberOfEquations * MeshDependentData::NumberOfEquations >
+{
+public:
+    using MeshType = Mesh;
+    using MeshDependentDataType = MeshDependentData;
+    using RealType = typename MeshDependentDataType::RealType;
+    using DeviceType = typename MeshDependentDataType::DeviceType;
+    using IndexType = typename MeshDependentDataType::IndexType;
+    using DofVectorType = TNL::Containers::Vector< RealType, DeviceType, IndexType>;
+    using coeff = MassMatrixDependentCode< MeshDependentDataType >;
+
+    static constexpr int getEntitiesDimensions() { return Mesh::getMeshDimension() - 1; }
+ 
+    void bind( const TNL::SharedPointer< MeshType > & mesh,
+               TNL::SharedPointer< MeshDependentDataType > mdd,
+               TNL::SharedPointer< BoundaryConditions > & bc,
+               DofVectorType & Z_iF )
+    {
+        this->mesh = mesh;
+        this->mdd = mdd;
+        this->bc = bc;
+        this->Z_iF.bind( Z_iF );
+    }
+
+    template< typename EntityType >
+    __cuda_callable__
+    RealType operator()( const EntityType & entity,
+                         const RealType & time,
+                         // NOTE: xxx should vary between 0 and (MeshDependentData::NumberOfEquations)^2
+                         const int & xxx ) const
+    {
+        static_assert( EntityType::getEntityDimension() == getEntitiesDimensions(),
+                       "This function is defined on faces." );
+
+        const int i = xxx / MeshDependentData::NumberOfEquations;
+        const int j = xxx % MeshDependentData::NumberOfEquations;
+
+        // dereference the smart pointer on device
+        const auto & mdd = this->mdd.template getData< DeviceType >();
+        const auto & mesh = this->mesh.template getData< DeviceType >();
+
+        const IndexType E = entity.getIndex();
+
+        IndexType cellIndexes[ 2 ];
+        const int numCells = getCellsForFace( mesh, entity, cellIndexes );
+        
+        // index of the main element (left/bottom if indexFace is inner face, otherwise the element next to the boundary face)
+        const IndexType & K1 = cellIndexes[ 0 ];
+
+        // find local index of face E
+        const auto faceIndexes = getFacesForCell( mesh, K1 );
+        const int e = getLocalIndex( faceIndexes, E );
+
+        const RealType a_plus_u = mdd.a_ijKe( i, j, K1, e ) + mdd.u_ijKe( i, j, K1, e );
+
+        if( a_plus_u > 0.0 ) {
+            return mdd.Z_iK( j, K1 );
+        }
+        else if( a_plus_u == 0.0 )
+            return 0.0;
+        else if( numCells == 2 ) {
+            const IndexType & K2 = cellIndexes[ 1 ];
+            return mdd.Z_iK( j, K2 );
+        }
+        else {
+            // TODO: this matches the Dirichlet condition, but what happens on Neumann boundary?
+            // TODO: at time=0 the value on Neumann boundary is indeterminate
+            return Z_iF[ mdd.getDofIndex( j, E ) ];
         }
     }
 

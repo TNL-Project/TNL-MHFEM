@@ -115,7 +115,7 @@ protected:
     RealType initialTime;
 
     // timers for profiling
-    TNL::Timer timer_b, timer_R, timer_Q, timer_explicit, timer_nonlinear, timer_upwind;
+    TNL::Timer timer_b, timer_R, timer_Q, timer_explicit, timer_nonlinear, timer_velocities, timer_upwind;
 
     DofFunctionPointer dofFunctionPointer;
 
@@ -156,6 +156,15 @@ protected:
     TNL::SharedPointer< UpwindFunction, DeviceType > upwindFunction;
     // evaluator
     TNL::Functions::MeshFunctionEvaluator< DofFunction, UpwindFunction > upwindEvaluator;
+
+    // output
+    using NDofFunction = TNL::Functions::MeshFunction< Mesh, Mesh::getMeshDimension() - 1, RealType, MeshDependentDataType::NumberOfEquations * MeshDependentDataType::NumberOfEquations >;
+    TNL::SharedPointer< NDofFunction, DeviceType > upwindZMeshFunction;
+    // input
+    using UpwindZFunction = UpwindZ< MeshType, MeshDependentDataType, BoundaryConditions >;
+    TNL::SharedPointer< UpwindZFunction, DeviceType > upwindZFunction;
+    // evaluator
+    TNL::Functions::MeshFunctionEvaluator< NDofFunction, UpwindZFunction > upwindZEvaluator;
 };
 
 } // namespace mhfem

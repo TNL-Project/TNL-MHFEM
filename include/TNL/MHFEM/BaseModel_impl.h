@@ -23,6 +23,8 @@ allocate( const MeshType & mesh )
 
     if( ! N.setSize( n * n * numberOfCells ) )
         return false;
+    if( ! u.setSize( n * n * numberOfCells * FacesPerCell ) )
+        return false;
     if( ! m.setSize( n * numberOfCells ) )
         return false;
     // NOTE: only for D isotropic (represented by scalar value)
@@ -32,10 +34,16 @@ allocate( const MeshType & mesh )
         return false;
     if( ! w.setSize( n * numberOfCells * FacesPerCell ) )
         return false;
+    if( ! a.setSize( n * n * numberOfCells * FacesPerCell ) )
+        return false;
+    if( ! r.setSize( n * n * numberOfCells ) )
+        return false;
     if( ! f.setSize( n * numberOfCells ) )
         return false;
 
     if( ! m_upw.setSize( n * numberOfFaces ) )
+        return false;
+    if( ! Z_ijE_upw.setSize( n * n * numberOfFaces ) )
         return false;
     if( ! b.setSize( n * n * numberOfCells * MassMatrix::size ) )
         return false;

@@ -96,7 +96,7 @@ public:
             for( int j = 0; j < mdd.NumberOfEquations; j++ ) {
                 R += mdd.N_ijK( i, j, K ) * mdd.Z_iK( j, K );
             }
-            R += mdd.f[ i * K ] * mdd.current_tau;
+            R += mdd.f_iK( i, K ) * mdd.current_tau;
             R *= getEntityMeasure( mesh, entity );
             for( int e = 0; e < mdd.FacesPerCell; e++ ) {
                 const IndexType & E = faceIndexes[ e ];
@@ -104,6 +104,12 @@ public:
                 const RealType w_iKe = mdd.update_w( mesh, i, K, e );
                 R -= mdd.m_upw[ mdd.getDofIndex( i, E ) ] * w_iKe * mdd.current_tau;
             }
+            for( int j = 0; j < mdd.NumberOfEquations; j++ )
+                for( int e = 0; e < mdd.FacesPerCell; e++ ) {
+                    const IndexType & E = faceIndexes[ e ];
+                    R -= ( mdd.a_ijKe( i, j, K, e ) + mdd.u_ijKe( i, j, K, e ) )
+                         * mdd.Z_ijE_upw[ mdd.getDofIndex( i * mdd.NumberOfEquations + j, E ) ] * mdd.current_tau;
+                }
             mdd.R_iK( i, K ) = R;
         }
     };
@@ -140,11 +146,14 @@ public:
                 bool singular = true;
 
                 for( int j = 0; j < mdd.NumberOfEquations; j++ ) {
-                    RealType value = getEntityMeasure( mesh, entity ) * mdd.N_ijK( i, j, K );
+                    RealType value = 0.0;
                     for( int e = 0; e < mdd.FacesPerCell; e++ ) {
                         const IndexType & E = faceIndexes[ e ];
-                        value += mdd.m_upw[ mdd.getDofIndex( i, E ) ] * MassMatrix::b_ijKe( mdd, i, j, K, e ) * mdd.current_tau;
+                        value += mdd.m_upw[ mdd.getDofIndex( i, E ) ] * MassMatrix::b_ijKe( mdd, i, j, K, e ) - mdd.u_ijKe( i, j, K, e );
                     }
+                    value *= mdd.current_tau;
+                    value += getEntityMeasure( mesh, entity ) * ( mdd.N_ijK( i, j, K ) + mdd.r_ijK( i, j, K ) * mdd.current_tau );
+
                     Q.setElementFast( i, j, value );
 
                     // update singularity state

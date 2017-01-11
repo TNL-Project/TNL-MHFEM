@@ -296,11 +296,20 @@ preIterate( const RealType & time,
     bindDofs( meshPointer, dofVectorPointer );
     bindMeshDependentData( meshPointer, mdd );
 
+    // FIXME
+    mdd->Z_iF.bind( *dofVectorPointer );
+    mdd->current_time = time;
+
     // update upwinded mobility values
     // NOTE: Upwinding is done based on v_{i,K,E}, which is computed from the "old" b_{i,j,K,E,F} and w_{i,K,E}
     //       coefficients, but "new" Z_{j,K} and Z_{j,F}. From the semi-implicit approach it follows that
     //       velocity calculated this way is conservative, which is very important for upwinding.
     if( time > this->initialTime ) {
+        timer_velocities.start();
+        GenericEnumerator< MeshType, MeshDependentDataType >::
+            template enumerate< &MeshDependentDataType::updateVelocityCoefficients, typename MeshType::Cell >( meshPointer, mdd );
+        timer_velocities.stop();
+
         timer_upwind.start();
         // bind output
         upwindMeshFunction->bind( meshPointer, mdd->m_upw );
@@ -324,6 +333,31 @@ preIterate( const RealType & time,
     timer_b.start();
     traverser_Ki.template processAllEntities< MeshDependentDataType, typename QRupdater< MeshType, MeshDependentDataType >::update_b >( meshPointer, mdd );
     timer_b.stop();
+
+    // TODO: general method to update the vector coefficients (u, w, a), whose projection
+    // into the RTN_0(K) space generally depends on the b_ijKEF coefficients
+
+    // Initialize the velocities from the data that is available, i.e. Z_iK and b_ijKEF
+    // taken from the (same) first time level (Z_iF is initialized as face-average).
+    // I think this is generally better than zero-initialization.
+    if( time == this->initialTime ) {
+        timer_velocities.start();
+        GenericEnumerator< MeshType, MeshDependentDataType >::
+            template enumerate< &MeshDependentDataType::updateVelocityCoefficients, typename MeshType::Cell >( meshPointer, mdd );
+        timer_velocities.stop();
+    }
+
+    // upwind Z_ijE_upw (this needs the a_ij and u_ij coefficients)
+    timer_upwind.start();
+    // bind output
+    upwindZMeshFunction->bind( meshPointer, mdd->Z_ijE_upw );
+    // bind inputs
+    upwindZFunction->bind( meshPointer, mdd, boundaryConditionsPointer, *dofVectorPointer );
+    // evaluate
+    upwindZEvaluator.evaluate(
+            upwindZMeshFunction,     // out
+            upwindZFunction );       // in
+    timer_upwind.stop();
 
     // FIXME: nasty hack to pass tau to QRupdater
     mdd->current_tau = tau;
@@ -442,9 +476,10 @@ bool
 Solver< Mesh, MeshDependentData, DifferentialOperator, BoundaryConditions, RightHandSide, Matrix >::
 writeEpilog( TNL::Logger & logger )
 {
+    logger.writeParameter< double >( "velocities update time:", timer_velocities.getRealTime() );
+    logger.writeParameter< double >( "upwind update time:", timer_upwind.getRealTime() );
     logger.writeParameter< double >( "nonlinear update time:", timer_nonlinear.getRealTime() );
     logger.writeParameter< double >( "update_b time:", timer_b.getRealTime() );
-    logger.writeParameter< double >( "upwind update time:", timer_upwind.getRealTime() );
     logger.writeParameter< double >( "update_R time:", timer_R.getRealTime() );
     logger.writeParameter< double >( "update_Q time:", timer_Q.getRealTime() );
     logger.writeParameter< double >( "Z_iF -> Z_iK update time:", timer_explicit.getRealTime() );

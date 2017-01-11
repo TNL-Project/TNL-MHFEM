@@ -92,11 +92,24 @@ public:
     }
 
     // accessors for coefficients
-    // TODO: write accessors for m, m_upw, f
+    // TODO: write accessors for m_upw, f
+    // TODO: optimize/specialize storage layout for CUDA
+    // TODO: optimize for models that don't use all coefficients
     __cuda_callable__
     RealType & N_ijK( const int & i, const int & j, const IndexType & K )
     {
         return N[ n * n * K + i * n + j ];
+    }
+
+    __cuda_callable__
+    RealType & u_ijKe( const int & i, const int & j, const IndexType & K, const int & e )
+    {
+        return u[ n * n * K * FacesPerCell + i * n * FacesPerCell + j * FacesPerCell + e ];
+    }
+    __cuda_callable__
+    const RealType & u_ijKe( const int & i, const int & j, const IndexType & K, const int & e ) const
+    {
+        return u[ n * n * K * FacesPerCell + i * n * FacesPerCell + j * FacesPerCell + e ];
     }
 
     __cuda_callable__
@@ -105,7 +118,6 @@ public:
 //        return m[ n * K + i ];
         return m[ i * numberOfCells + K ];
     }
-
     __cuda_callable__
     const RealType & m_iK( const int & i, const IndexType & K ) const
     {
@@ -129,6 +141,34 @@ public:
     const RealType & w_iKe( const int & i, const IndexType & K, const int & e ) const
     {
         return w[ n * K * FacesPerCell + i * FacesPerCell + e ];
+    }
+
+    __cuda_callable__
+    RealType & a_ijKe( const int & i, const int & j, const IndexType & K, const int & e )
+    {
+        return a[ n * n * K * FacesPerCell + i * n * FacesPerCell + j * FacesPerCell + e ];
+    }
+    __cuda_callable__
+    const RealType & a_ijKe( const int & i, const int & j, const IndexType & K, const int & e ) const
+    {
+        return a[ n * n * K * FacesPerCell + i * n * FacesPerCell + j * FacesPerCell + e ];
+    }
+
+    __cuda_callable__
+    RealType & r_ijK( const int & i, const int & j, const IndexType & K )
+    {
+        return r[ n * n * K + i * n + j ];
+    }
+
+    __cuda_callable__
+    RealType & f_iK( const int & i, const IndexType & K )
+    {
+        return f[ i * numberOfCells + K ];
+    }
+    __cuda_callable__
+    const RealType & f_iK( const int & i, const IndexType & K ) const
+    {
+        return f[ i * numberOfCells + K ];
     }
 
     // accessors for local matrices/vectors
@@ -177,14 +217,10 @@ public:
     DofVectorType Z;
 
     // coefficients
-    DofVectorType N;
-    DofVectorType m;
-    DofVectorType D;
-    DofVectorType w;
-    DofVectorType f;
+    DofVectorType N, u, m, D, w, a, r, f;
 
     // specific to MHFEM scheme
-    DofVectorType m_upw;
+    DofVectorType m_upw, Z_ijE_upw;
     DofVectorType b;    // each "row" represents the local matrix (b_ijK)_EF
     
     DofVectorType R1;   // R_KF
@@ -192,6 +228,11 @@ public:
 
     // FIXME: nasty hack to pass tau to QRupdater
     RealType current_tau;
+    // FIXME: nasty hack to pass time to CompositionalModel::r_X
+    RealType current_time;
+
+    // FIXME: needed only to pass dofs to getRadialVelocity
+    DofVectorType Z_iF;
 
 protected:
     // number of entities of the mesh for which the vectors are allocated
