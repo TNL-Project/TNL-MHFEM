@@ -197,6 +197,8 @@ setInitialCondition( const TNL::Config::ParameterContainer & parameters,
             dofFunctionPointer,     // out
             faceAverageFunction );  // in
 
+    mdd->Z_ijE_upw.setValue( 0.0 );
+
     timer_R.reset();
     timer_Q.reset();
     timer_explicit.reset();
@@ -320,6 +322,18 @@ preIterate( const RealType & time,
                 upwindMeshFunction,     // out
                 upwindFunction );       // in
         timer_upwind.stop();
+
+        // upwind Z_ijE_upw (this needs the a_ij and u_ij coefficients)
+        timer_upwind.start();
+        // bind output
+        upwindZMeshFunction->bind( meshPointer, mdd->Z_ijE_upw );
+        // bind inputs
+        upwindZFunction->bind( meshPointer, mdd, boundaryConditionsPointer, *dofVectorPointer );
+        // evaluate
+        upwindZEvaluator.evaluate(
+                upwindZMeshFunction,     // out
+                upwindZFunction );       // in
+        timer_upwind.stop();
     }
 
     // update non-linear terms
@@ -336,28 +350,6 @@ preIterate( const RealType & time,
 
     // TODO: general method to update the vector coefficients (u, w, a), whose projection
     // into the RTN_0(K) space generally depends on the b_ijKEF coefficients
-
-    // Initialize the velocities from the data that is available, i.e. Z_iK and b_ijKEF
-    // taken from the (same) first time level (Z_iF is initialized as face-average).
-    // I think this is generally better than zero-initialization.
-    if( time == this->initialTime ) {
-        timer_velocities.start();
-        GenericEnumerator< MeshType, MeshDependentDataType >::
-            template enumerate< &MeshDependentDataType::updateVelocityCoefficients, typename MeshType::Cell >( meshPointer, mdd );
-        timer_velocities.stop();
-    }
-
-    // upwind Z_ijE_upw (this needs the a_ij and u_ij coefficients)
-    timer_upwind.start();
-    // bind output
-    upwindZMeshFunction->bind( meshPointer, mdd->Z_ijE_upw );
-    // bind inputs
-    upwindZFunction->bind( meshPointer, mdd, boundaryConditionsPointer, *dofVectorPointer );
-    // evaluate
-    upwindZEvaluator.evaluate(
-            upwindZMeshFunction,     // out
-            upwindZFunction );       // in
-    timer_upwind.stop();
 
     // FIXME: nasty hack to pass tau to QRupdater
     mdd->current_tau = tau;
