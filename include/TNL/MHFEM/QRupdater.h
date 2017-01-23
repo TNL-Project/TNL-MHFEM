@@ -104,12 +104,15 @@ public:
                 const RealType w_iKe = mdd.update_w( mesh, i, K, e );
                 R -= mdd.m_upw[ mdd.getDofIndex( i, E ) ] * w_iKe * mdd.current_tau;
             }
+            // sum into separate variable to do only one subtraction (avoids catastrophic truncation)
+            RealType aux = 0.0;
             for( int j = 0; j < mdd.NumberOfEquations; j++ )
                 for( int e = 0; e < mdd.FacesPerCell; e++ ) {
                     const IndexType & E = faceIndexes[ e ];
-                    R -= ( mdd.a_ijKe( i, j, K, e ) + mdd.u_ijKe( i, j, K, e ) )
-                         * mdd.Z_ijE_upw[ mdd.getDofIndex( i * mdd.NumberOfEquations + j, E ) ] * mdd.current_tau;
+                    aux += ( mdd.a_ijKe( i, j, K, e ) + mdd.u_ijKe( i, j, K, e ) )
+                           * mdd.Z_ijE_upw[ mdd.getDofIndex( i * mdd.NumberOfEquations + j, E ) ] * mdd.current_tau;
                 }
+            R -= aux;
             mdd.R_iK( i, K ) = R;
         }
     };

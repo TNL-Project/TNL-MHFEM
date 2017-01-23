@@ -29,11 +29,17 @@ public:
              const IndexType & F,
              const int & f )
     {
-        RealType value = MassMatrix::b_ijKef( mdd, i, j, K, e, f );
+//        RealType value = MassMatrix::b_ijKef( mdd, i, j, K, e, f );
+//        for( int xxx = 0; xxx < MeshDependentData::NumberOfEquations; xxx++ ) {
+//            value -= MassMatrix::b_ijKe( mdd, i, xxx, K, e ) * mdd.R_ijKe( xxx, j, K, f );
+//        }
+//        return value;
+        // more careful version with only one subtraction to avoid catastrophic truncation
+        RealType sum = 0.0;
         for( int xxx = 0; xxx < MeshDependentData::NumberOfEquations; xxx++ ) {
-            value -= MassMatrix::b_ijKe( mdd, i, xxx, K, e ) * mdd.R_ijKe( xxx, j, K, f );
+            sum += MassMatrix::b_ijKe( mdd, i, xxx, K, e ) * mdd.R_ijKe( xxx, j, K, f );
         }
-        return value;
+        return MassMatrix::b_ijKef( mdd, i, j, K, e, f ) - sum;
     }
 
     template< typename FaceVectorType >
@@ -63,12 +69,15 @@ public:
            const IndexType & E,
            const int & e )
     {
-        RealType v = 0.0;
+        // split into 2 sums to limit catastrophic truncation
+        RealType sum_K = 0.0;
+        RealType sum_E = 0.0;
         for( int j = 0; j < mdd.NumberOfEquations; j++ ) {
-            v += MassMatrix::b_ijKe( mdd, i, j, K, e ) * ( mdd.Z_iK( j, K ) - Z_iF[ mdd.getDofIndex( j, E ) ] );
+            const auto b = MassMatrix::b_ijKe( mdd, i, j, K, e );
+            sum_K += b * mdd.Z_iK( j, K );
+            sum_E += b * Z_iF[ mdd.getDofIndex( j, E ) ];
         }
-        v += mdd.w_iKe( i, K, e );
-        return v;
+        return sum_K - sum_E + mdd.w_iKe( i, K, e );
     }
 };
 
