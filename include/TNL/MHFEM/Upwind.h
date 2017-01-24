@@ -32,30 +32,11 @@ public:
  
     void bind( const TNL::SharedPointer< MeshType > & mesh,
                TNL::SharedPointer< MeshDependentDataType > mdd,
-               TNL::SharedPointer< BoundaryConditions > & bc,
-               DofVectorType & Z_iF )
+               TNL::SharedPointer< BoundaryConditions > & bc )
     {
         this->mesh = mesh;
         this->mdd = mdd;
         this->bc = bc;
-        this->Z_iF.bind( Z_iF );
-    }
-
-    // TODO: some models might have v_iKE pre-calculated, e.g. in a_ijKE or u_ijKE
-    __cuda_callable__
-    RealType getVelocity( const MeshType & mesh,
-                          const int & i,
-                          const IndexType & K,
-                          const IndexType & E ) const
-    {
-        // find local index of face E
-        const auto faceIndexes = getFacesForCell( mesh, K );
-        const int e = getLocalIndex( faceIndexes, E );
-
-        // dereference the smart pointer on device
-        const auto & mdd = this->mdd.template getData< DeviceType >();
-
-        return coeff::v_iKE( mdd, Z_iF, faceIndexes, i, K, E, e );
     }
 
     template< typename EntityType >
@@ -79,20 +60,34 @@ public:
         // index of the main element (left/bottom if indexFace is inner face, otherwise the element next to the boundary face)
         const IndexType & K1 = cellIndexes[ 0 ];
 
-        if( getVelocity( mesh, i, K1, E ) >= 0 ) {
-            return mdd.m_iK( i, K1 );
-        }
-        else if( numCells == 2 ) {
-            const IndexType & K2 = cellIndexes[ 1 ];
-            return mdd.m_iK( i, K2 );
-        }
-        else {
+        // find local index of face E
+        const auto faceIndexes = getFacesForCell( mesh, K1 );
+        const int e = getLocalIndex( faceIndexes, E );
+
+        if( numCells == 1 ) {
             // dereference the smart pointer on device
             const auto & bc = this->bc.template getData< DeviceType >();
 
-            // TODO: check if the value is available (we need to know the density on \Gamma_c ... part of the boundary where the fluid flows in)
-//            return mdd.m_iK( i, K1 );
-            return mdd.getBoundaryMobility( mesh, bc, i, entity, time );
+            // We need to check inflow of ALL phases!
+            // FIXME: this assumes two-phase model, general system might be coupled differently or even decoupled
+            bool inflow = false;
+            for( int j = 0; j < MeshDependentDataType::NumberOfEquations; j++ )
+                if( mdd.v_iKe( j, K1, e ) < 0 ) {
+                    inflow = true;
+                    break;
+                }
+
+            if( inflow )
+                // TODO: check if the value is available (we need to know the density on \Gamma_c ... part of the boundary where the fluid flows in)
+                return mdd.getBoundaryMobility( mesh, bc, i, entity, time );
+            return mdd.m_iK( i, K1 );
+        }
+        else if( mdd.v_iKe( i, K1, e ) >= 0 ) {
+            return mdd.m_iK( i, K1 );
+        }
+        else {
+            const IndexType & K2 = cellIndexes[ 1 ];
+            return mdd.m_iK( i, K2 );
         }
     }
 
@@ -100,7 +95,6 @@ protected:
     TNL::SharedPointer< MeshType > mesh;
     TNL::SharedPointer< MeshDependentDataType > mdd;
     TNL::SharedPointer< BoundaryConditions > bc;
-    DofVectorType Z_iF;
 };
 
 

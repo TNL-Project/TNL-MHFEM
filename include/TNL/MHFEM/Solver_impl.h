@@ -197,6 +197,7 @@ setInitialCondition( const TNL::Config::ParameterContainer & parameters,
             dofFunctionPointer,     // out
             faceAverageFunction );  // in
 
+    mdd->v.setValue( 0.0 );
     mdd->Z_ijE_upw.setValue( 0.0 );
 
     timer_R.reset();
@@ -302,40 +303,6 @@ preIterate( const RealType & time,
     mdd->Z_iF.bind( *dofVectorPointer );
     mdd->current_time = time;
 
-    // update upwinded mobility values
-    // NOTE: Upwinding is done based on v_{i,K,E}, which is computed from the "old" b_{i,j,K,E,F} and w_{i,K,E}
-    //       coefficients, but "new" Z_{j,K} and Z_{j,F}. From the semi-implicit approach it follows that
-    //       velocity calculated this way is conservative, which is very important for upwinding.
-    if( time > this->initialTime ) {
-        timer_velocities.start();
-        GenericEnumerator< MeshType, MeshDependentDataType >::
-            template enumerate< &MeshDependentDataType::updateVelocityCoefficients, typename MeshType::Cell >( meshPointer, mdd );
-        timer_velocities.stop();
-
-        timer_upwind.start();
-        // bind output
-        upwindMeshFunction->bind( meshPointer, mdd->m_upw );
-        // bind inputs
-        upwindFunction->bind( meshPointer, mdd, boundaryConditionsPointer, *dofVectorPointer );
-        // evaluate
-        upwindEvaluator.evaluate(
-                upwindMeshFunction,     // out
-                upwindFunction );       // in
-        timer_upwind.stop();
-
-        // upwind Z_ijE_upw (this needs the a_ij and u_ij coefficients)
-        timer_upwind.start();
-        // bind output
-        upwindZMeshFunction->bind( meshPointer, mdd->Z_ijE_upw );
-        // bind inputs
-        upwindZFunction->bind( meshPointer, mdd, boundaryConditionsPointer, *dofVectorPointer );
-        // evaluate
-        upwindZEvaluator.evaluate(
-                upwindZMeshFunction,     // out
-                upwindZFunction );       // in
-        timer_upwind.stop();
-    }
-
     // update non-linear terms
     timer_nonlinear.start();
     GenericEnumerator< MeshType, MeshDependentDataType >::
@@ -350,6 +317,32 @@ preIterate( const RealType & time,
 
     // TODO: general method to update the vector coefficients (u, w, a), whose projection
     // into the RTN_0(K) space generally depends on the b_ijKEF coefficients
+
+    // update upwinded mobility values
+    // NOTE: Upwinding is done based on v_{i,K,E}, which is computed from the "old" b_{i,j,K,E,F} and w_{i,K,E}
+    //       coefficients, but "new" Z_{j,K} and Z_{j,F}. From the semi-implicit approach it follows that
+    //       velocity calculated this way is conservative, which is very important for upwinding.
+    timer_upwind.start();
+        // bind output
+        upwindMeshFunction->bind( meshPointer, mdd->m_upw );
+        // bind inputs
+        upwindFunction->bind( meshPointer, mdd, boundaryConditionsPointer );
+        // evaluate
+        upwindEvaluator.evaluate(
+                upwindMeshFunction,     // out
+                upwindFunction );       // in
+
+        // upwind Z_ijE_upw (this needs the a_ij and u_ij coefficients)
+        timer_upwind.start();
+        // bind output
+        upwindZMeshFunction->bind( meshPointer, mdd->Z_ijE_upw );
+        // bind inputs
+        upwindZFunction->bind( meshPointer, mdd, boundaryConditionsPointer, *dofVectorPointer );
+        // evaluate
+        upwindZEvaluator.evaluate(
+                upwindZMeshFunction,     // out
+                upwindZFunction );       // in
+    timer_upwind.stop();
 
     // FIXME: nasty hack to pass tau to QRupdater
     mdd->current_tau = tau;
@@ -451,6 +444,15 @@ postIterate( const RealType & time,
     // evaluate
     evaluatorZK.evaluate( meshFunctionZK, functionZK );
     timer_explicit.stop();
+
+    // update coefficients of the conservative velocities
+    // NOTE: Upwinding is done based on v_{i,K,E}, which is computed from the "old" b_{i,j,K,E,F} and w_{i,K,E}
+    //       coefficients, but "new" Z_{j,K} and Z_{j,F}. From the semi-implicit approach it follows that
+    //       velocity calculated this way is conservative, which is very important for upwinding.
+    timer_velocities.start();
+    TNL::Meshes::Traverser< MeshType, typename MeshType::Cell, MeshDependentDataType::NumberOfEquations > traverser_Ki;
+    traverser_Ki.template processAllEntities< MeshDependentDataType, typename QRupdater< MeshType, MeshDependentDataType >::update_v >( meshPointer, mdd );
+    timer_velocities.stop();
 
 //    std::cout << "solution (Z_iE): " << std::endl << dofVector << std::endl;
 //    std::cout << "solution (Z_iK): " << std::endl << mdd->Z << std::endl;

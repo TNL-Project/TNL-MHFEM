@@ -41,6 +41,8 @@ allocate( const MeshType & mesh )
     if( ! f.setSize( n * numberOfCells ) )
         return false;
 
+    if( ! v.setSize( n * numberOfCells * FacesPerCell ) )
+        return false;
     if( ! m_upw.setSize( n * numberOfFaces ) )
         return false;
     if( ! Z_ijE_upw.setSize( n * n * numberOfFaces ) )

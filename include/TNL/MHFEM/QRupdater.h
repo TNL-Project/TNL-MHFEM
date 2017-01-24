@@ -7,6 +7,7 @@
 #include "../lib_general/StaticSharedArray.h"
 
 // TODO: bind with mesh-dependent data, e.g. as a subclass or local type
+// TODO: rename to LocalUpdaters or something like that (it updates more than just Q and R)
 
 namespace mhfem
 {
@@ -181,6 +182,26 @@ public:
                     SharedVectorType rke( &mdd.R_ijKe( 0, j, K, e ) );
                     LU_solve( Q, rke, rke );
                 }
+        }
+    };
+
+    struct update_v
+    {
+        template< typename EntityType >
+        __cuda_callable__
+        static void processEntity( const MeshType & mesh,
+                                   MeshDependentDataType & mdd,
+                                   const EntityType & entity,
+                                   const int & i )
+        {
+            static_assert( EntityType::getEntityDimension() == MeshType::getMeshDimension(),
+                           "wrong entity dimensions in QRupdater::processEntity");
+
+            const IndexType K = entity.getIndex();
+            const auto faceIndexes = getFacesForCell( mesh, K );
+
+            for( int e = 0; e < MeshDependentDataType::FacesPerCell; e++ )
+                mdd.v_iKe( i, K, e ) = coeff::v_iKE( mdd, mdd.Z_iF, faceIndexes, i, K, faceIndexes[ e ], e );
         }
     };
 };

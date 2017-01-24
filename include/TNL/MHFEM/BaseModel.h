@@ -171,6 +171,17 @@ public:
         return f[ i * numberOfCells + K ];
     }
 
+    __cuda_callable__
+    const RealType & v_iKe( const int & i, const IndexType & K, const int & e ) const
+    {
+        return v[ ( n * K + i ) * FacesPerCell + e ];
+    }
+    __cuda_callable__
+    RealType & v_iKe( const int & i, const IndexType & K, const int & e )
+    {
+        return v[ ( n * K + i ) * FacesPerCell + e ];
+    }
+
     // accessors for local matrices/vectors
     __cuda_callable__
     RealType* b_ijK( const int & i, const int & j, const IndexType & K )
@@ -220,6 +231,7 @@ public:
     DofVectorType N, u, m, D, w, a, r, f;
 
     // specific to MHFEM scheme
+    DofVectorType v;    // conservative velocities for upwind: \vec v_i = - \sum_j \mat D_ij \grad Z_j + \vec w_i
     DofVectorType m_upw, Z_ijE_upw;
     DofVectorType b;    // each "row" represents the local matrix (b_ijK)_EF
     
@@ -231,7 +243,7 @@ public:
     // FIXME: nasty hack to pass time to CompositionalModel::r_X
     RealType current_time;
 
-    // FIXME: needed only to pass dofs to getRadialVelocity
+    // FIXME: needed only to pass dofs to QRupdater::update_v
     DofVectorType Z_iF;
 
 protected:
