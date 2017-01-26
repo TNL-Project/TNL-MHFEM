@@ -14,14 +14,14 @@ class AdjacencyOperator
                                        Mesh::getMeshDimension() - 1,
                                        Mesh::getMeshDimension() - 1,
                                        bool,
-                                       typename Mesh::IndexType,
+                                       typename Mesh::GlobalIndexType,
                                        NumberOfEquations,
                                        NumberOfEquations >
 {
 public:
     using MeshType = Mesh;
     using DeviceType = typename Mesh::DeviceType;
-    using IndexType = typename Mesh::IndexType;
+    using IndexType = typename Mesh::GlobalIndexType;
     using LocalIndex = typename Mesh::LocalIndexType;
 
     __cuda_callable__

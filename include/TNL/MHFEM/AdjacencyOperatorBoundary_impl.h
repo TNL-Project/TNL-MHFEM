@@ -7,7 +7,7 @@ namespace mhfem {
 
 template< typename Mesh, int NumberOfEquations >
 __cuda_callable__
-typename Mesh::IndexType
+typename Mesh::GlobalIndexType
 AdjacencyOperatorBoundary< Mesh, NumberOfEquations >::
 getLinearSystemRowLength( const MeshType & mesh,
                           const IndexType & E,

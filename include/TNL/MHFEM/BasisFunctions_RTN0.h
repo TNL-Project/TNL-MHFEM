@@ -26,7 +26,7 @@ struct RTN0< TNL::Meshes::MeshEntity< MeshConfig, CellTopology > >
                    "The RTN0 space is not implemented for the requested entity topology yet." );
 
     using MeshType = TNL::Meshes::Mesh< MeshConfig >;
-    using CellType = TNL::Meshes::MeshEntity< MeshConfig, TNL::Meshes::MeshEdgeTopology >;
+    using CellType = TNL::Meshes::MeshEntity< MeshConfig, CellTopology >;
     using PointType = typename TNL::Meshes::MeshTraits< MeshConfig >::PointType;
     using CoordinatesType = TNL::Containers::StaticVector< FacesPerCell< CellType >::value, typename PointType::RealType >;
 
@@ -42,7 +42,7 @@ struct RTN0< TNL::Meshes::MeshEntity< MeshConfig, CellTopology > >
         const auto cellSize = getEntityMeasure( mesh, entity );
         for( typename MeshConfig::LocalIndexType e = 0; e < FacesPerCell< CellType >::value; e++ ) {
             const auto& v_e = mesh.template getEntity< 0 >( entity.template getSubentityIndex< 0 >( e ) );
-            const auto x_minus_v_e = x - v_e;
+            const auto x_minus_v_e = x - v_e.getPoint();
             const auto constTerm = coordinates[ e ] / ( d * cellSize );
             for( int i = 0; i < d; i++ )
                 point[ i ] += constTerm * x_minus_v_e[ i ];
@@ -56,7 +56,7 @@ struct RTN0< TNL::Meshes::GridEntity< Grid, 1, Config > >
 {
     using MeshType = Grid;
     using CellType = TNL::Meshes::GridEntity< Grid, 1, Config >;
-    using PointType = typename Grid::VertexType;
+    using PointType = typename Grid::PointType;
     using CoordinatesType = TNL::Containers::StaticVector< FacesPerCell< CellType >::value, typename PointType::RealType >;
 
     static_assert( std::is_same< typename Grid::Cell, CellType >::value, "wrong entity" );
@@ -88,7 +88,7 @@ struct RTN0< TNL::Meshes::GridEntity< Grid, 2, Config > >
 {
     using MeshType = Grid;
     using CellType = TNL::Meshes::GridEntity< Grid, 2, Config >;
-    using PointType = typename Grid::VertexType;
+    using PointType = typename Grid::PointType;
     using CoordinatesType = TNL::Containers::StaticVector< FacesPerCell< CellType >::value, typename PointType::RealType >;
 
     static_assert( std::is_same< typename Grid::Cell, CellType >::value, "wrong entity" );
@@ -128,7 +128,7 @@ struct RTN0< TNL::Meshes::GridEntity< Grid, 3, Config > >
 {
     using MeshType = Grid;
     using CellType = TNL::Meshes::GridEntity< Grid, 3, Config >;
-    using PointType = typename Grid::VertexType;
+    using PointType = typename Grid::PointType;
     using CoordinatesType = TNL::Containers::StaticVector< FacesPerCell< CellType >::value, typename PointType::RealType >;
 
     static_assert( std::is_same< typename Grid::Cell, CellType >::value, "wrong entity" );

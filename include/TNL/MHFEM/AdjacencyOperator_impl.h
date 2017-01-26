@@ -8,7 +8,7 @@ namespace mhfem {
 template< typename Mesh,
           int NumberOfEquations >
 __cuda_callable__
-typename Mesh::IndexType
+typename Mesh::GlobalIndexType
 AdjacencyOperator< Mesh, NumberOfEquations >::
 getLinearSystemRowLength( const MeshType & mesh,
                           const IndexType & indexEntity,
@@ -17,7 +17,7 @@ getLinearSystemRowLength( const MeshType & mesh,
 {
     TNL_ASSERT( ! mesh.isBoundaryEntity( entity ), );
     // minus the diagonal
-    return ( 2 * FacesPerCell< typename MeshType::CellType >::value - 1 ) * NumberOfEquations - 1;
+    return ( 2 * FacesPerCell< typename MeshType::Cell >::value - 1 ) * NumberOfEquations - 1;
 }
 
 template< typename Mesh,
@@ -53,7 +53,7 @@ setMatrixElements( const Mesh & mesh,
     const auto faceIndexesK0 = getFacesForCell( mesh, cellIndexes[ 0 ] );
     const auto faceIndexesK1 = getFacesForCell( mesh, cellIndexes[ 1 ] );
 
-    static constexpr int FacesPerCell = ::FacesPerCell< typename MeshType::CellType >::value;
+    static constexpr int FacesPerCell = ::FacesPerCell< typename MeshType::Cell >::value;
     using LocalIndexPermutation = TNL::Containers::StaticArray< FacesPerCell, LocalIndex >;
 
     // For unstructured meshes the face indexes might be unsorted.

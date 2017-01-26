@@ -15,14 +15,14 @@ class AdjacencyOperatorBoundary
                                        Mesh::getMeshDimension() - 1,
                                        Mesh::getMeshDimension() - 1,
                                        bool,
-                                       typename Mesh::IndexType,
+                                       typename Mesh::GlobalIndexType,
                                        NumberOfEquations,
                                        NumberOfEquations >
 {
 public:
     using MeshType = Mesh;
     using DeviceType = typename MeshType::DeviceType;
-    using IndexType = typename MeshType::IndexType;
+    using IndexType = typename MeshType::GlobalIndexType;
     using TagArrayType = TNL::Containers::Array< bool, DeviceType, IndexType >;
 
     __cuda_callable__
