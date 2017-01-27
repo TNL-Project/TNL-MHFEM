@@ -100,7 +100,7 @@ struct MassLumpingDependentCoefficients< MeshDependentData, MassLumping::disable
             sum_K += MassMatrix::b_ijKe( mdd, i, j, K, e ) * mdd.Z_iK( j, K );
             for( int f = 0; f < mdd.FacesPerCell; f++ ) {
                 const IndexType & F = faceIndexes[ f ];
-                sum_E = MassMatrix::b_ijKef( mdd, i, j, K, e, f ) * Z_iF[ mdd.getDofIndex( j, F ) ];
+                sum_E += MassMatrix::b_ijKef( mdd, i, j, K, e, f ) * Z_iF[ mdd.getDofIndex( j, F ) ];
             }
         }
         return sum_K - sum_E + mdd.w_iKe( i, K, e );
