@@ -20,43 +20,17 @@ public:
     using MeshType = Mesh;
     using MeshDependentDataType = MeshDependentData;
     using RealType = typename MeshDependentDataType::RealType;
-    using DeviceType = typename MeshDependentData::DeviceType;
-    using IndexType = typename MeshDependentDataType::IndexType;
-    using DofVectorType = TNL::Containers::Vector< RealType, DeviceType, IndexType>;
-    using LocalMatrixType = StaticMatrix< MeshDependentDataType::NumberOfEquations, MeshDependentDataType::NumberOfEquations, RealType >;
-    using MassMatrix = typename MeshDependentDataType::MassMatrix;
     using coeff = SecondaryCoefficients< MeshDependentDataType >;
-
-//    template< int EntityDimension >
-//    __cuda_callable__
-//    static void processEntity( const MeshType & mesh,
-//                               MeshDependentDataType & mdd,
-//                               const IndexType & indexCell,
-//                               const CoordinatesType & coordinates )
-//    {
-//        static_assert( EntityDimension == 2, "wrong EntityDimension in QRupdater::processEntity");
-
-        // get face indexes
-//        const auto faceIndexes = getFacesForCell( mesh, indexCell );
-
-//        update_bR( mesh, mdd, indexCell, faceIndexes );
-//        update_R_K( mesh, mdd, indexCell, faceIndexes );
-//        update_Q( mesh, mdd, indexCell, faceIndexes );
-//    }
-
-//protected:
 
     struct update_b
     {
-        template< typename EntityType >
         __cuda_callable__
         static void processEntity( const MeshType & mesh,
                                    MeshDependentDataType & mdd,
-                                   const EntityType & entity,
+                                   const typename MeshType::Cell & entity,
                                    const int & i )
         {
-            static_assert( EntityType::getEntityDimension() == MeshType::getMeshDimension(),
-                           "wrong entity dimensions in QRupdater::processEntity");
+            using MassMatrix = typename MeshDependentDataType::MassMatrix;
 
             // update coefficients b_ijKEF
             for( int j = 0; j < mdd.NumberOfEquations; j++ ) {
@@ -65,20 +39,16 @@ public:
         }
     };
 
-    // TODO: split into update_RKF, update_w, update_RK for better parallelism?
+    // TODO: split into update_RKF, update_RK for better parallelism?
     struct update_R
     {
-        template< typename EntityType >
         __cuda_callable__
         static void processEntity( const MeshType & mesh,
                                    MeshDependentDataType & mdd,
-                                   const EntityType & entity,
+                                   const typename MeshType::Cell & entity,
                                    const int & i )
         {
-            static_assert( EntityType::getEntityDimension() == MeshType::getMeshDimension(),
-                           "wrong entity dimensions in QRupdater::processEntity");
-
-            const IndexType K = entity.getIndex();
+            const auto K = entity.getIndex();
 
             // get face indexes
             const auto faceIndexes = getFacesForCell( mesh, K );
@@ -95,21 +65,18 @@ public:
 
     struct update_Q
     {
-        template< typename EntityType >
         __cuda_callable__
         static void processEntity( const MeshType & mesh,
                                    MeshDependentDataType & mdd,
-                                   const EntityType & entity,
+                                   const typename MeshType::Cell & entity,
                                    const int & _component )
         {
-            static_assert( EntityType::getEntityDimension() == MeshType::getMeshDimension(),
-                           "wrong entity dimensions in QRupdater::processEntity");
-
-            const IndexType K = entity.getIndex();
+            const auto K = entity.getIndex();
 
             // get face indexes
             const auto faceIndexes = getFacesForCell( mesh, K );
 
+            using LocalMatrixType = StaticMatrix< MeshDependentDataType::NumberOfEquations, MeshDependentDataType::NumberOfEquations, RealType >;
 #ifndef __CUDA_ARCH__
             LocalMatrixType Q;
 #else
@@ -155,17 +122,13 @@ public:
 
     struct update_v
     {
-        template< typename EntityType >
         __cuda_callable__
         static void processEntity( const MeshType & mesh,
                                    MeshDependentDataType & mdd,
-                                   const EntityType & entity,
+                                   const typename MeshType::Cell & entity,
                                    const int & i )
         {
-            static_assert( EntityType::getEntityDimension() == MeshType::getMeshDimension(),
-                           "wrong entity dimensions in QRupdater::processEntity");
-
-            const IndexType K = entity.getIndex();
+            const auto K = entity.getIndex();
             const auto faceIndexes = getFacesForCell( mesh, K );
 
             for( int e = 0; e < MeshDependentDataType::FacesPerCell; e++ )
