@@ -11,6 +11,7 @@ struct SecondaryCoefficients
     using RealType = typename MeshDependentData::RealType;
     using IndexType = typename MeshDependentData::IndexType;
     using MassMatrix = typename MeshDependentData::MassMatrix;
+    using MeshType = typename MeshDependentData::MeshType;
 
     __cuda_callable__
     static inline RealType
@@ -34,6 +35,63 @@ struct SecondaryCoefficients
             sum += MassMatrix::b_ijKe( mdd, i, xxx, K, e ) * mdd.R_ijKe( xxx, j, K, f );
         }
         return MassMatrix::b_ijKef( mdd, i, j, K, e, f ) - sum;
+    }
+
+    template< typename FaceVectorType >
+    __cuda_callable__
+    static inline RealType
+    R_iK( const MeshDependentData & mdd,
+          const MeshType & mesh,
+          const typename MeshType::Cell & entity,
+          const FaceVectorType & faceIndexes,
+          const int & i,
+          const IndexType & K )
+    {
+        RealType R = 0.0;
+        for( int j = 0; j < mdd.NumberOfEquations; j++ ) {
+            R += mdd.N_ijK( i, j, K ) * mdd.Z_iK( j, K );
+        }
+        R += mdd.f_iK( i, K ) * mdd.current_tau;
+        R *= getEntityMeasure( mesh, entity );
+        for( int e = 0; e < mdd.FacesPerCell; e++ ) {
+            const IndexType & E = faceIndexes[ e ];
+            // TODO: simplify updating the w coefficient
+            const RealType w_iKe = mdd.update_w( mesh, i, K, e );
+            R -= mdd.m_upw[ mdd.getDofIndex( i, E ) ] * w_iKe * mdd.current_tau;
+        }
+
+        // sum into separate variable to do only one subtraction (avoids catastrophic truncation)
+        RealType aux = 0.0;
+        for( int j = 0; j < mdd.NumberOfEquations; j++ )
+            for( int e = 0; e < mdd.FacesPerCell; e++ ) {
+                const IndexType & E = faceIndexes[ e ];
+                aux += ( mdd.a_ijKe( i, j, K, e ) + mdd.u_ijKe( i, j, K, e ) )
+                       * mdd.Z_ijE_upw[ mdd.getDofIndex( i * mdd.NumberOfEquations + j, E ) ] * mdd.current_tau;
+            }
+        R -= aux;
+
+        return R;
+    }
+
+    template< typename FaceVectorType >
+    __cuda_callable__
+    static inline RealType
+    Q_ijK( const MeshDependentData & mdd,
+           const MeshType & mesh,
+           const typename MeshType::Cell & entity,
+           const FaceVectorType & faceIndexes,
+           const int & i,
+           const int & j,
+           const IndexType & K )
+    {
+        RealType Q = 0.0;
+        for( int e = 0; e < mdd.FacesPerCell; e++ ) {
+            const IndexType & E = faceIndexes[ e ];
+            Q += mdd.m_upw[ mdd.getDofIndex( i, E ) ] * MassMatrix::b_ijKe( mdd, i, j, K, e ) - mdd.u_ijKe( i, j, K, e );
+        }
+        Q *= mdd.current_tau;
+        Q += getEntityMeasure( mesh, entity ) * ( mdd.N_ijK( i, j, K ) + mdd.r_ijK( i, j, K ) * mdd.current_tau );
+        return Q;
     }
 };
 
