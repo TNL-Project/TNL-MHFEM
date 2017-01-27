@@ -100,6 +100,11 @@ public:
     {
         return N[ n * n * K + i * n + j ];
     }
+    __cuda_callable__
+    const RealType & N_ijK( const int & i, const int & j, const IndexType & K ) const
+    {
+        return N[ n * n * K + i * n + j ];
+    }
 
     __cuda_callable__
     RealType & u_ijKe( const int & i, const int & j, const IndexType & K, const int & e )
@@ -156,6 +161,11 @@ public:
 
     __cuda_callable__
     RealType & r_ijK( const int & i, const int & j, const IndexType & K )
+    {
+        return r[ n * n * K + i * n + j ];
+    }
+    __cuda_callable__
+    const RealType & r_ijK( const int & i, const int & j, const IndexType & K ) const
     {
         return r[ n * n * K + i * n + j ];
     }

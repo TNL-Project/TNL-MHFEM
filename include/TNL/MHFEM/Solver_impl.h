@@ -315,8 +315,14 @@ preIterate( const RealType & time,
     traverser_Ki.template processAllEntities< MeshDependentDataType, typename QRupdater< MeshType, MeshDependentDataType >::update_b >( meshPointer, mdd );
     timer_b.stop();
 
-    // TODO: general method to update the vector coefficients (u, w, a), whose projection
-    // into the RTN_0(K) space generally depends on the b_ijKEF coefficients
+    // update vector coefficients (u, w, a), whose projection into the RTN_0(K) space
+    // generally depends on the b_ijKEF coefficients
+    timer_nonlinear.start();
+    GenericEnumerator< MeshType, MeshDependentDataType >::
+        template enumerate< &MeshDependentDataType::updateVectorCoefficients,
+                            typename MeshType::Cell,
+                            MeshDependentDataType::NumberOfEquations >( meshPointer, mdd );
+    timer_nonlinear.stop();
 
     // update upwinded mobility values
     // NOTE: Upwinding is done based on v_{i,K,E}, which is computed from the "old" b_{i,j,K,E,F} and w_{i,K,E}
@@ -355,6 +361,20 @@ preIterate( const RealType & time,
     timer_Q.start();
     traverser_K.template processAllEntities< MeshDependentDataType, typename QRupdater< MeshType, MeshDependentDataType >::update_Q >( meshPointer, mdd );
     timer_Q.stop();
+
+//    std::cout << "N = " << mdd->N << std::endl;
+//    std::cout << "u = " << mdd->u << std::endl;
+//    std::cout << "m = " << mdd->m << std::endl;
+//    std::cout << "D = " << mdd->D << std::endl;
+//    std::cout << "w = " << mdd->w << std::endl;
+//    std::cout << "a = " << mdd->a << std::endl;
+//    std::cout << "r = " << mdd->r << std::endl;
+//    std::cout << "f = " << mdd->f << std::endl;
+
+//    std::cout << "b = " << mdd->b << std::endl;
+//    std::cout << "m_upw = " << mdd->m_upw << std::endl;
+//    std::cout << "R_ijKF = " << mdd->R1 << std::endl;
+//    std::cout << "R_iK = " << mdd->R2 << std::endl;
 
     return true;
 }
@@ -454,8 +474,9 @@ postIterate( const RealType & time,
     traverser_Ki.template processAllEntities< MeshDependentDataType, typename QRupdater< MeshType, MeshDependentDataType >::update_v >( meshPointer, mdd );
     timer_velocities.stop();
 
-//    std::cout << "solution (Z_iE): " << std::endl << dofVector << std::endl;
+//    std::cout << "solution (Z_iE): " << std::endl << *dofVectorPointer << std::endl;
 //    std::cout << "solution (Z_iK): " << std::endl << mdd->Z << std::endl;
+//    std::cin.get();
 
     return true;
 }
