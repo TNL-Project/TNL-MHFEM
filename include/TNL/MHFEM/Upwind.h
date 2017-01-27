@@ -4,7 +4,6 @@
 #include <TNL/Functions/Range.h>
 #include <TNL/SharedPointer.h>
 
-#include "MassMatrixDependentCode.h"
 #include "../lib_general/mesh_helpers.h"
 
 namespace mhfem
@@ -26,7 +25,6 @@ public:
     using DeviceType = typename MeshDependentDataType::DeviceType;
     using IndexType = typename MeshDependentDataType::IndexType;
     using DofVectorType = TNL::Containers::Vector< RealType, DeviceType, IndexType>;
-    using coeff = MassMatrixDependentCode< MeshDependentDataType >;
 
     static constexpr int getEntitiesDimensions() { return Mesh::getMeshDimension() - 1; }
  
@@ -112,7 +110,6 @@ public:
     using DeviceType = typename MeshDependentDataType::DeviceType;
     using IndexType = typename MeshDependentDataType::IndexType;
     using DofVectorType = TNL::Containers::Vector< RealType, DeviceType, IndexType>;
-    using coeff = MassMatrixDependentCode< MeshDependentDataType >;
 
     static constexpr int getEntitiesDimensions() { return Mesh::getMeshDimension() - 1; }
  

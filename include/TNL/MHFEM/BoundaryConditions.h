@@ -5,8 +5,6 @@
 #include <TNL/Containers/StaticVector.h>
 #include <TNL/Operators/Operator.h>
 
-#include "MassMatrixDependentCode.h"
-
 namespace mhfem
 {
 

@@ -2,6 +2,7 @@
 
 #include "BoundaryConditions.h"
 #include "../lib_general/mesh_helpers.h"
+#include "SecondaryCoefficients.h"
 
 namespace mhfem
 {
@@ -19,7 +20,7 @@ struct NeumannMatrixRowSetter
                         const IndexType & E,
                         const int & e )
     {
-        using coeff = MassMatrixDependentCode< MeshDependentData >;
+        using coeff = SecondaryCoefficients< MeshDependentData >;
         using LocalIndex = typename Mesh::LocalIndexType;
         using LocalIndexPermutation = TNL::Containers::StaticArray< FaceIndexes::size, LocalIndex >;
 
@@ -73,7 +74,7 @@ struct NeumannMatrixRowSetter< TNL::Meshes::Grid< Dimension, MeshReal, Device, M
                         const IndexType & E,
                         const int & e )
     {
-        using coeff = MassMatrixDependentCode< MeshDependentData >;
+        using coeff = SecondaryCoefficients< MeshDependentData >;
 
         for( int j = 0; j < MeshDependentData::NumberOfEquations; j++ ) {
             for( int f = 0; f < MeshDependentData::FacesPerCell; f++ ) {

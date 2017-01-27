@@ -6,41 +6,15 @@ namespace mhfem
 {
 
 template< typename MeshDependentData, MassLumping = MeshDependentData::MassMatrix::lumping >
-class MassMatrixDependentCode
+struct MassLumpingDependentCoefficients
 {};
 
 template< typename MeshDependentData >
-class MassMatrixDependentCode< MeshDependentData, MassLumping::enabled >
+struct MassLumpingDependentCoefficients< MeshDependentData, MassLumping::enabled >
 {
-public:
     using RealType = typename MeshDependentData::RealType;
     using IndexType = typename MeshDependentData::IndexType;
     using MassMatrix = typename MeshDependentData::MassMatrix;
-
-    // TODO: refactoring, A_ijKEF does not depend on mass-lumping
-    __cuda_callable__
-    static inline RealType
-    A_ijKEF( const MeshDependentData & mdd,
-             const int & i,
-             const int & j,
-             const IndexType & K,
-             const IndexType & E,
-             const int & e,
-             const IndexType & F,
-             const int & f )
-    {
-//        RealType value = MassMatrix::b_ijKef( mdd, i, j, K, e, f );
-//        for( int xxx = 0; xxx < MeshDependentData::NumberOfEquations; xxx++ ) {
-//            value -= MassMatrix::b_ijKe( mdd, i, xxx, K, e ) * mdd.R_ijKe( xxx, j, K, f );
-//        }
-//        return value;
-        // more careful version with only one subtraction to avoid catastrophic truncation
-        RealType sum = 0.0;
-        for( int xxx = 0; xxx < MeshDependentData::NumberOfEquations; xxx++ ) {
-            sum += MassMatrix::b_ijKe( mdd, i, xxx, K, e ) * mdd.R_ijKe( xxx, j, K, f );
-        }
-        return MassMatrix::b_ijKef( mdd, i, j, K, e, f ) - sum;
-    }
 
     template< typename FaceVectorType >
     __cuda_callable__
@@ -82,31 +56,11 @@ public:
 };
 
 template< typename MeshDependentData >
-class MassMatrixDependentCode< MeshDependentData, MassLumping::disabled >
+struct MassLumpingDependentCoefficients< MeshDependentData, MassLumping::disabled >
 {
-public:
     using RealType = typename MeshDependentData::RealType;
     using IndexType = typename MeshDependentData::IndexType;
     using MassMatrix = typename MeshDependentData::MassMatrix;
-
-    // TODO: refactoring, A_ijKEF does not depend on mass-lumping
-    __cuda_callable__
-    static inline RealType
-    A_ijKEF( const MeshDependentData & mdd,
-             const int & i,
-             const int & j,
-             const IndexType & K,
-             const IndexType & E,
-             const int & e,
-             const IndexType & F,
-             const int & f )
-    {
-        RealType value = MassMatrix::b_ijKef( mdd, i, j, K, e, f );
-        for( int xxx = 0; xxx < MeshDependentData::NumberOfEquations; xxx++ ) {
-            value -= MassMatrix::b_ijKe( mdd, i, xxx, K, e ) * mdd.R_ijKe( xxx, j, K, f );
-        }
-        return value;
-    }
 
     template< typename FaceVectorType >
     __cuda_callable__

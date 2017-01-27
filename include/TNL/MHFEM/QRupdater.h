@@ -1,6 +1,6 @@
 #pragma once
 
-#include "MassMatrixDependentCode.h"
+#include "SecondaryCoefficients.h"
 #include "../lib_general/mesh_helpers.h"
 #include "../lib_general/LU.h"
 #include "../lib_general/StaticMatrix.h"
@@ -25,7 +25,7 @@ public:
     using DofVectorType = TNL::Containers::Vector< RealType, DeviceType, IndexType>;
     using LocalMatrixType = StaticMatrix< MeshDependentDataType::NumberOfEquations, MeshDependentDataType::NumberOfEquations, RealType >;
     using MassMatrix = typename MeshDependentDataType::MassMatrix;
-    using coeff = MassMatrixDependentCode< MeshDependentDataType >;
+    using coeff = SecondaryCoefficients< MeshDependentDataType >;
 
 //    template< int EntityDimension >
 //    __cuda_callable__

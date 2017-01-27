@@ -4,7 +4,7 @@
 #include <TNL/Meshes/Grid.h>
 #include <TNL/Operators/Operator.h>
 
-#include "MassMatrixDependentCode.h"
+#include "SecondaryCoefficients.h"
 
 namespace mhfem
 {
@@ -51,7 +51,7 @@ public:
 protected:
     TNL::SharedPointer< MeshType > mesh;
     TNL::SharedPointer< MeshDependentDataType > mdd;
-    using coeff = MassMatrixDependentCode< MeshDependentDataType >;
+    using coeff = SecondaryCoefficients< MeshDependentDataType >;
 };
 
 template< typename MeshReal,
@@ -97,7 +97,7 @@ public:
 protected:
     TNL::SharedPointer< MeshType > mesh;
     TNL::SharedPointer< MeshDependentDataType > mdd;
-    using coeff = MassMatrixDependentCode< MeshDependentDataType >;
+    using coeff = SecondaryCoefficients< MeshDependentDataType >;
 };
 
 template< typename MeshReal,
@@ -143,7 +143,7 @@ public:
 protected:
     TNL::SharedPointer< MeshType > mesh;
     TNL::SharedPointer< MeshDependentDataType > mdd;
-    using coeff = MassMatrixDependentCode< MeshDependentDataType >;
+    using coeff = SecondaryCoefficients< MeshDependentDataType >;
 };
 
 template< typename MeshReal,
@@ -189,7 +189,7 @@ public:
 protected:
     TNL::SharedPointer< MeshType > mesh;
     TNL::SharedPointer< MeshDependentDataType > mdd;
-    using coeff = MassMatrixDependentCode< MeshDependentDataType >;
+    using coeff = SecondaryCoefficients< MeshDependentDataType >;
 };
 
 } // namespace mhfem
