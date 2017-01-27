@@ -28,7 +28,7 @@ getLinearSystemRowLength( const MeshType & mesh,
                           const typename MeshType::Face & entity,
                           const int & i ) const
 {
-    TNL_ASSERT( ! mesh.isBoundaryEntity( entity ), );
+//    TNL_ASSERT( ! mesh.isBoundaryEntity( entity ), );
     return ( 2 * MeshDependentDataType::FacesPerCell - 1 ) * MeshDependentDataType::NumberOfEquations;
 }
 
@@ -50,7 +50,7 @@ setMatrixElements( DofFunctionPointer & u,
     const auto & mesh = this->mesh.template getData< DeviceType >();
     const auto & mdd = this->mdd.template getData< DeviceType >();
 
-    TNL_ASSERT( ! mesh.isBoundaryEntity( entity ), );
+//    TNL_ASSERT( ! mesh.isBoundaryEntity( entity ), );
 
     const IndexType E = entity.getIndex();
     const IndexType indexRow = i * mesh.template getEntitiesCount< typename MeshType::Face >() + E;
@@ -198,7 +198,7 @@ getLinearSystemRowLength( const MeshType & mesh,
                           const typename MeshType::Face & entity,
                           const int & i ) const
 {
-    TNL_ASSERT( ! mesh.isBoundaryEntity( entity ), );
+//    TNL_ASSERT( ! mesh.isBoundaryEntity( entity ), );
     return 3 * MeshDependentDataType::NumberOfEquations;
 }
 
@@ -222,7 +222,7 @@ setMatrixElements( DofFunctionPointer & u,
     const auto & mesh = this->mesh.template getData< DeviceType >();
     const auto & mdd = this->mdd.template getData< DeviceType >();
 
-    TNL_ASSERT( ! mesh.isBoundaryEntity( entity ), );
+//    TNL_ASSERT( ! mesh.isBoundaryEntity( entity ), );
 
     const IndexType E = entity.getIndex();
     const IndexType indexRow = i * mesh.template getEntitiesCount< typename MeshType::Face >() + E;
@@ -277,7 +277,7 @@ getLinearSystemRowLength( const MeshType & mesh,
                           const typename MeshType::Face & entity,
                           const int & i ) const
 {
-    TNL_ASSERT( ! mesh.isBoundaryEntity( entity ), );
+//    TNL_ASSERT( ! mesh.isBoundaryEntity( entity ), );
     return 7 * MeshDependentDataType::NumberOfEquations;
 }
 
@@ -301,7 +301,7 @@ setMatrixElements( DofVectorPointer & u,
     const auto & mesh = this->mesh.template getData< DeviceType >();
     const auto & mdd = this->mdd.template getData< DeviceType >();
 
-    TNL_ASSERT( ! mesh.isBoundaryEntity( entity ), );
+//    TNL_ASSERT( ! mesh.isBoundaryEntity( entity ), );
 
     const IndexType E = entity.getIndex();
     const IndexType indexRow = i * mesh.template getEntitiesCount< typename MeshType::Face >() + E;
@@ -388,7 +388,7 @@ getLinearSystemRowLength( const MeshType & mesh,
                           const typename MeshType::Face & entity,
                           const int & i ) const
 {
-    TNL_ASSERT( ! mesh.isBoundaryEntity( entity ), );
+//    TNL_ASSERT( ! mesh.isBoundaryEntity( entity ), );
     return 11 * MeshDependentDataType::NumberOfEquations;
 }
 
@@ -412,7 +412,7 @@ setMatrixElements( DofVectorPointer & u,
     const auto & mesh = this->mesh.template getData< DeviceType >();
     const auto & mdd = this->mdd.template getData< DeviceType >();
 
-    TNL_ASSERT( ! mesh.isBoundaryEntity( entity ), );
+//    TNL_ASSERT( ! mesh.isBoundaryEntity( entity ), );
 
     const IndexType E = entity.getIndex();
     const IndexType indexRow = i * mesh.template getEntitiesCount< typename MeshType::Face >() + E;

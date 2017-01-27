@@ -110,7 +110,7 @@ getLinearSystemRowLength( const MeshType & mesh,
                           const typename MeshType::Face & entity,
                           const int & i ) const
 {
-    TNL_ASSERT( mesh.isBoundaryEntity( entity ), );
+//    TNL_ASSERT( mesh.isBoundaryEntity( entity ), );
     if( this->isDirichletBoundary( mesh, i, entity ) )
         return 1;
     return MeshDependentDataType::FacesPerCell * MeshDependentDataType::NumberOfEquations;
@@ -134,7 +134,7 @@ setMatrixElements( DofVectorPointer & u,
     // dereference the smart pointer on device
     const auto & mesh = this->mesh.template getData< DeviceType >();
 
-    TNL_ASSERT( mesh.isBoundaryEntity( entity ), );
+//    TNL_ASSERT( mesh.isBoundaryEntity( entity ), );
 
     const IndexType E = entity.getIndex();
     const IndexType indexRow = i * mesh.template getEntitiesCount< typename MeshType::Face >() + E;
