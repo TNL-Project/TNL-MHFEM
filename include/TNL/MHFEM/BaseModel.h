@@ -248,12 +248,12 @@ public:
     DofVectorType R1;   // R_KF
     DofVectorType R2;   // R_K
 
-    // FIXME: nasty hack to pass tau to QRupdater
+    // FIXME: nasty hack to pass tau to LocalUpdaters
     RealType current_tau;
     // FIXME: nasty hack to pass time to CompositionalModel::r_X
     RealType current_time;
 
-    // FIXME: needed only to pass dofs to QRupdater::update_v
+    // FIXME: needed only to pass dofs to LocalUpdaters::update_v
     DofVectorType Z_iF;
 
 protected:

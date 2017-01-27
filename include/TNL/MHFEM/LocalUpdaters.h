@@ -7,14 +7,13 @@
 #include "../lib_general/StaticSharedArray.h"
 
 // TODO: bind with mesh-dependent data, e.g. as a subclass or local type
-// TODO: rename to LocalUpdaters or something like that (it updates more than just Q and R)
 
 namespace mhfem
 {
 
 template< typename Mesh,
           typename MeshDependentData >
-class QRupdater
+class LocalUpdaters
 {
 public:
     using MeshType = Mesh;

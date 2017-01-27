@@ -9,7 +9,7 @@
 #include "../lib_general/FaceAverageFunction.h"
 
 #include "Solver.h"
-#include "QRupdater.h"
+#include "LocalUpdaters.h"
 
 namespace mhfem
 {
@@ -312,7 +312,7 @@ preIterate( const RealType & time,
     // update coefficients b_ijKEF
     TNL::Meshes::Traverser< MeshType, typename MeshType::Cell, MeshDependentDataType::NumberOfEquations > traverser_Ki;
     timer_b.start();
-    traverser_Ki.template processAllEntities< MeshDependentDataType, typename QRupdater< MeshType, MeshDependentDataType >::update_b >( meshPointer, mdd );
+    traverser_Ki.template processAllEntities< MeshDependentDataType, typename LocalUpdaters< MeshType, MeshDependentDataType >::update_b >( meshPointer, mdd );
     timer_b.stop();
 
     // update vector coefficients (u, w, a), whose projection into the RTN_0(K) space
@@ -350,16 +350,16 @@ preIterate( const RealType & time,
                 upwindZFunction );       // in
     timer_upwind.stop();
 
-    // FIXME: nasty hack to pass tau to QRupdater
+    // FIXME: nasty hack to pass tau to LocalUpdaters
     mdd->current_tau = tau;
 
     timer_R.start();
-    traverser_Ki.template processAllEntities< MeshDependentDataType, typename QRupdater< MeshType, MeshDependentDataType >::update_R >( meshPointer, mdd );
+    traverser_Ki.template processAllEntities< MeshDependentDataType, typename LocalUpdaters< MeshType, MeshDependentDataType >::update_R >( meshPointer, mdd );
     timer_R.stop();
 
     TNL::Meshes::Traverser< MeshType, typename MeshType::Cell > traverser_K;
     timer_Q.start();
-    traverser_K.template processAllEntities< MeshDependentDataType, typename QRupdater< MeshType, MeshDependentDataType >::update_Q >( meshPointer, mdd );
+    traverser_K.template processAllEntities< MeshDependentDataType, typename LocalUpdaters< MeshType, MeshDependentDataType >::update_Q >( meshPointer, mdd );
     timer_Q.stop();
 
 //    std::cout << "N = " << mdd->N << std::endl;
@@ -471,7 +471,7 @@ postIterate( const RealType & time,
     //       velocity calculated this way is conservative, which is very important for upwinding.
     timer_velocities.start();
     TNL::Meshes::Traverser< MeshType, typename MeshType::Cell, MeshDependentDataType::NumberOfEquations > traverser_Ki;
-    traverser_Ki.template processAllEntities< MeshDependentDataType, typename QRupdater< MeshType, MeshDependentDataType >::update_v >( meshPointer, mdd );
+    traverser_Ki.template processAllEntities< MeshDependentDataType, typename LocalUpdaters< MeshType, MeshDependentDataType >::update_v >( meshPointer, mdd );
     timer_velocities.stop();
 
 //    std::cout << "solution (Z_iE): " << std::endl << *dofVectorPointer << std::endl;
