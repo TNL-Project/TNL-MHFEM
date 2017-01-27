@@ -84,13 +84,9 @@ public:
             const auto faceIndexes = getFacesForCell( mesh, K );
 
             // update coefficients R_ijKE
-            for( int j = 0; j < mdd.NumberOfEquations; j++ ) {
-                for( int e = 0; e < mdd.FacesPerCell; e++ ) {
-                    // assuming that the b_ijKe coefficient (accessed with MassMatrix::get( e, storage ) )
-                    // can be cached in L1 or L2 cache even on CUDA
+            for( int j = 0; j < mdd.NumberOfEquations; j++ )
+                for( int e = 0; e < mdd.FacesPerCell; e++ )
                     mdd.R_ijKe( i, j, K, e ) = coeff::R_ijKe( mdd, faceIndexes, i, j, K, e );
-                }
-            }
 
             // update coefficient R_iK
             RealType R = 0.0;

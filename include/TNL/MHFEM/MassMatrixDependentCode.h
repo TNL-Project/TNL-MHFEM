@@ -55,7 +55,7 @@ public:
         static_assert( FaceVectorType::size == MeshDependentData::FacesPerCell, "" );
 
         const IndexType & E = faceIndexes[ e ];
-        return mdd.m_upw[ mdd.getDofIndex( i, E ) ] * MassMatrix::b_ijKe( mdd, i, j, K, e ) * mdd.current_tau; // TODO: - u_ijKe
+        return mdd.m_upw[ mdd.getDofIndex( i, E ) ] * MassMatrix::b_ijKe( mdd, i, j, K, e ) * mdd.current_tau;
     }
 
     template< typename DofVectorType, typename FaceVectorType >
@@ -123,7 +123,7 @@ public:
         RealType R = 0.0;
         for( int f = 0; f < mdd.FacesPerCell; f++ ) {
             const IndexType & F = faceIndexes[ f ];
-            R += mdd.m_upw[ mdd.getDofIndex( i, F ) ] * MassMatrix::b_ijKef( mdd, i, j, K, f, e ) * mdd.current_tau; // TODO: - u_ijKe
+            R += mdd.m_upw[ mdd.getDofIndex( i, F ) ] * MassMatrix::b_ijKef( mdd, i, j, K, f, e ) * mdd.current_tau;
         }
         return R;
     }
