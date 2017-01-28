@@ -36,9 +36,7 @@ TNL::String
 Solver< Mesh, MeshDependentData, DifferentialOperator, BoundaryConditions, RightHandSide, Matrix >::
 getPrologHeader() const
 {
-    // TODO
-//    return TNL::String( "Single-phase flow" );
-    return TNL::String();
+    return TNL::String( "NumDwarf solver" );
 }
 
 template< typename Mesh,
@@ -169,12 +167,14 @@ setInitialCondition( const TNL::Config::ParameterContainer & parameters,
         return false;
 
     mdd->v.setValue( 0.0 );
-    mdd->Z_ijE_upw.setValue( 0.0 );
 
+    timer_b.reset();
     timer_R.reset();
     timer_Q.reset();
     timer_explicit.reset();
     timer_nonlinear.reset();
+    timer_velocities.reset();
+    timer_upwind.reset();
 
     return true;
 }
@@ -396,18 +396,6 @@ assemblyLinearSystem( const RealType & time,
 //        bPointer->save( rhsFileName );
 //    }
 //    iter++;
-
-//    // print matrix elements
-//    for( IndexType i = 0; i < dofs; i++ ) {
-//        for( IndexType j = 0; j < dofs; j++ ) {
-//            RealType value = matrix.getElement( i, j );
-//            if( value == 0 || value == 1 ) std::cout << value << " ";
-//            else if( value > 0 ) std::cout << "+ ";
-//            else if( value < 0 ) std::cout << "- ";
-//        }
-//        std::cout << "| " << b[ i ] << std::endl;
-//    }
-//    std::cout << matrix;
 }
 
 template< typename Mesh,
@@ -462,13 +450,13 @@ bool
 Solver< Mesh, MeshDependentData, DifferentialOperator, BoundaryConditions, RightHandSide, Matrix >::
 writeEpilog( TNL::Logger & logger )
 {
-    logger.writeParameter< double >( "velocities update time:", timer_velocities.getRealTime() );
-    logger.writeParameter< double >( "upwind update time:", timer_upwind.getRealTime() );
     logger.writeParameter< double >( "nonlinear update time:", timer_nonlinear.getRealTime() );
     logger.writeParameter< double >( "update_b time:", timer_b.getRealTime() );
+    logger.writeParameter< double >( "upwind update time:", timer_upwind.getRealTime() );
     logger.writeParameter< double >( "update_R time:", timer_R.getRealTime() );
     logger.writeParameter< double >( "update_Q time:", timer_Q.getRealTime() );
     logger.writeParameter< double >( "Z_iF -> Z_iK update time:", timer_explicit.getRealTime() );
+    logger.writeParameter< double >( "velocities update time:", timer_velocities.getRealTime() );
     return true;
 }
 
