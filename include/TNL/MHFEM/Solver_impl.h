@@ -6,7 +6,6 @@
 
 #include "../lib_general/mesh_helpers.h"
 #include "../lib_general/GenericEnumerator.h"
-#include "../lib_general/FaceAverageFunction.h"
 
 #include "Solver.h"
 #include "LocalUpdaters.h"
@@ -168,34 +167,6 @@ setInitialCondition( const TNL::Config::ParameterContainer & parameters,
 
     if( ! mdd->init( parameters, meshPointer ) )
         return false;
-
-    // update non-linear terms
-    // TODO: we actually need to update only m
-    GenericEnumerator< MeshType, MeshDependentDataType >::
-        template enumerate< &MeshDependentDataType::updateNonLinearTerms, typename MeshType::Cell >( meshPointer, mdd );
-
-    // this is done only once, so the following instances are not cached as class attributes
-
-    // initialize m_upw as an average of m on neighbouring cells
-    // bind output
-    upwindMeshFunction->bind( meshPointer, mdd->m_upw );
-    // bind input
-    using FaceAverageFunction = MobilityFaceAverageFunction< MeshType, MeshDependentDataType, BoundaryConditions >;
-    TNL::SharedPointer< FaceAverageFunction, DeviceType > faceAverageFunction;
-    faceAverageFunction->bind( meshPointer, mdd, boundaryConditionsPointer, mdd->m );
-    // evaluator
-    TNL::Functions::MeshFunctionEvaluator< DofFunction, FaceAverageFunction > faceAverageEvaluator;
-    faceAverageEvaluator.evaluate(
-            upwindMeshFunction,     // out
-            faceAverageFunction );  // in
-
-    // initialize dofVector as an average of mdd.Z on neighbouring cells
-    // rebind input
-    faceAverageFunction->bind( meshPointer, mdd, boundaryConditionsPointer, mdd->Z );
-    // reuse evaluator
-    faceAverageEvaluator.evaluate(
-            dofFunctionPointer,     // out
-            faceAverageFunction );  // in
 
     mdd->v.setValue( 0.0 );
     mdd->Z_ijE_upw.setValue( 0.0 );
