@@ -17,8 +17,8 @@ namespace BasisFunctions {
 template< typename CellType >
 struct RTN0 {};
 
-template< typename MeshConfig, typename CellTopology >
-struct RTN0< TNL::Meshes::MeshEntity< MeshConfig, CellTopology > >
+template< typename MeshConfig, typename Device, typename CellTopology >
+struct RTN0< TNL::Meshes::MeshEntity< MeshConfig, Device, CellTopology > >
 {
     static_assert( std::is_same< CellTopology, TNL::Meshes::MeshEdgeTopology >::value ||
                    std::is_same< CellTopology, TNL::Meshes::MeshTriangleTopology >::value ||
@@ -26,7 +26,7 @@ struct RTN0< TNL::Meshes::MeshEntity< MeshConfig, CellTopology > >
                    "The RTN0 space is not implemented for the requested entity topology yet." );
 
     using MeshType = TNL::Meshes::Mesh< MeshConfig >;
-    using CellType = TNL::Meshes::MeshEntity< MeshConfig, CellTopology >;
+    using CellType = TNL::Meshes::MeshEntity< MeshConfig, Device, CellTopology >;
     using PointType = typename TNL::Meshes::MeshTraits< MeshConfig >::PointType;
     using CoordinatesType = TNL::Containers::StaticVector< FacesPerCell< CellType >::value, typename PointType::RealType >;
 

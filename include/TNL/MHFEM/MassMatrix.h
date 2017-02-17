@@ -467,11 +467,11 @@ public:
 };
 
 
-template< typename MeshConfig >
-class MassMatrix< TNL::Meshes::MeshEntity< MeshConfig, TNL::Meshes::MeshEdgeTopology >, MassLumping::disabled >
+template< typename MeshConfig, typename Device >
+class MassMatrix< TNL::Meshes::MeshEntity< MeshConfig, Device, TNL::Meshes::MeshEdgeTopology >, MassLumping::disabled >
 {
 public:
-    using MeshEntity = TNL::Meshes::MeshEntity< MeshConfig, TNL::Meshes::MeshEdgeTopology >;
+    using MeshEntity = TNL::Meshes::MeshEntity< MeshConfig, Device, TNL::Meshes::MeshEdgeTopology >;
     using LocalIndex = typename MeshEntity::LocalIndexType;
     static constexpr MassLumping lumping = MassLumping::disabled;
 
@@ -529,11 +529,11 @@ public:
     }
 };
 
-template< typename MeshConfig >
-class MassMatrix< TNL::Meshes::MeshEntity< MeshConfig, TNL::Meshes::MeshTriangleTopology >, MassLumping::disabled >
+template< typename MeshConfig, typename Device >
+class MassMatrix< TNL::Meshes::MeshEntity< MeshConfig, Device, TNL::Meshes::MeshTriangleTopology >, MassLumping::disabled >
 {
 public:
-    using MeshEntity = TNL::Meshes::MeshEntity< MeshConfig, TNL::Meshes::MeshTriangleTopology >;
+    using MeshEntity = TNL::Meshes::MeshEntity< MeshConfig, Device, TNL::Meshes::MeshTriangleTopology >;
     using LocalIndex = typename MeshEntity::LocalIndexType;
     static constexpr MassLumping lumping = MassLumping::disabled;
 
