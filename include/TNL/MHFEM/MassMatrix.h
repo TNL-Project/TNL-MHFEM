@@ -5,7 +5,9 @@
 
 #include "../lib_general/mesh_helpers.h"
 #include "../lib_general/StaticMatrix.h"
-#include "../lib_general/GE.h"
+#include "../lib_general/LU.h"
+
+//#include <armadillo>
 
 namespace mhfem
 {
@@ -551,8 +553,6 @@ public:
     {
         static_assert( std::is_same< typename Mesh::Config, MeshConfig >::value, "wrong mesh" );
 
-        StaticMatrix< 3, 6, typename Mesh::RealType > matrix;
-
         const auto& v0 = mesh.template getEntity< 0 >( entity.template getSubentityIndex< 0 >( 0 ) );
         const auto& v1 = mesh.template getEntity< 0 >( entity.template getSubentityIndex< 0 >( 1 ) );
         const auto& v2 = mesh.template getEntity< 0 >( entity.template getSubentityIndex< 0 >( 2 ) );
@@ -568,6 +568,96 @@ public:
         const auto K = entity.getIndex();
         const auto denominator = 24 * getEntityMeasure( mesh, entity );
 
+
+        // most stable version using armadillo/LAPACK
+//        arma::mat A( 3, 3 );
+//
+//        A( 0, 0 ) = ( 3 * P00 + P11 - 3 * P01 ) / denominator;
+//        A( 1, 1 ) = ( P00 + 3 * P11 - 3 * P01 ) / denominator;
+//        A( 2, 2 ) = ( P00 + P11 + P01 ) / denominator;
+//        A( 0, 1 ) = ( 3 * P01 - P00 - P11 ) / denominator;
+//        A( 0, 2 ) = ( P11 - P00 - P01 ) / denominator;
+//        A( 1, 2 ) = ( P00 - P11 - P01 ) / denominator;
+//
+//        A( 1, 0 ) = A( 0, 1 );
+//        A( 2, 0 ) = A( 0, 2 );
+//        A( 2, 1 ) = A( 1, 2 );
+//
+////        arma::mat a = arma::inv( A );
+//        arma::mat a = arma::inv_sympd( A );
+//
+////        std::cerr << "K = " << K << ": cond(A) = " << arma::cond(A) << ", cond(a) = " << arma::cond(a) << ", cond(Aa) = " << cond(A*a) << std::endl;
+//
+//        typename MeshDependentData::RealType* storage = mdd.b_ijK( i, j, K );
+//        // store the inverse in the packed format (upper triangle, column by column)
+//        // see: http://www.netlib.org/lapack/lug/node123.html
+//        storage[ 0 ] = a( 0, 0 ) * mdd.D_ijK( i, j, K );
+//        storage[ 1 ] = a( 0, 1 ) * mdd.D_ijK( i, j, K );
+//        storage[ 2 ] = a( 1, 1 ) * mdd.D_ijK( i, j, K );
+//        storage[ 3 ] = a( 0, 2 ) * mdd.D_ijK( i, j, K );
+//        storage[ 4 ] = a( 1, 2 ) * mdd.D_ijK( i, j, K );
+//        storage[ 5 ] = a( 2, 2 ) * mdd.D_ijK( i, j, K );
+//
+//        // the last 3 values are the sums for the b_ijK coefficients
+//        storage[ 6 ] = ( a( 0, 0 ) + a( 0, 1 ) + a( 0, 2 ) ) * mdd.D_ijK( i, j, K );
+//        storage[ 7 ] = ( a( 0, 1 ) + a( 1, 1 ) + a( 1, 2 ) ) * mdd.D_ijK( i, j, K );
+//        storage[ 8 ] = ( a( 0, 2 ) + a( 1, 2 ) + a( 2, 2 ) ) * mdd.D_ijK( i, j, K );
+
+
+
+//        // FIXME: our implementation of GE is not numerically stable - maybe we need pivoting
+//
+//        StaticMatrix< 3, 6, typename Mesh::RealType > matrix;
+//
+//        matrix.setElementFast( 0, 0,  ( 3 * P00 + P11 - 3 * P01 ) / denominator );
+//        matrix.setElementFast( 1, 1,  ( P00 + 3 * P11 - 3 * P01 ) / denominator );
+//        matrix.setElementFast( 2, 2,  ( P00 + P11 + P01 ) / denominator );
+//        matrix.setElementFast( 0, 1,  ( 3 * P01 - P00 - P11 ) / denominator );
+//        matrix.setElementFast( 0, 2,  ( P11 - P00 - P01 ) / denominator );
+//        matrix.setElementFast( 1, 2,  ( P00 - P11 - P01 ) / denominator );
+//
+//        matrix.setElementFast( 1, 0,  matrix.getElementFast( 0, 1 ) );
+//        matrix.setElementFast( 2, 0,  matrix.getElementFast( 0, 2 ) );
+//        matrix.setElementFast( 2, 1,  matrix.getElementFast( 1, 2 ) );
+//
+//        // set identity in the right half
+//        for( LocalIndex i = 0; i < 3; i++ )
+//            for( LocalIndex j = 0; j < 3; j++ )
+//                if( i == j )
+//                    matrix.setElementFast( i, j + 3, 1.0 );
+//                else
+//                    matrix.setElementFast( i, j + 3, 0.0 );
+//
+////        if( K == 300 )
+////            std::cout << "matrix before inversion:\n" << matrix;
+//        // invert
+//        GE( matrix );
+////        if( K == 300 )
+////            std::cout << "matrix after inversion:\n" << matrix;
+//
+//        typename MeshDependentData::RealType* storage = mdd.b_ijK( i, j, K );
+//        // store the inverse in the packed format (upper triangle, column by column)
+//        // see: http://www.netlib.org/lapack/lug/node123.html
+//        storage[ 0 ] = matrix.getElementFast( 0, 0 ) * mdd.D_ijK( i, j, K );
+//        storage[ 1 ] = matrix.getElementFast( 0, 1 ) * mdd.D_ijK( i, j, K );
+//        storage[ 2 ] = matrix.getElementFast( 1, 1 ) * mdd.D_ijK( i, j, K );
+//        storage[ 3 ] = matrix.getElementFast( 0, 2 ) * mdd.D_ijK( i, j, K );
+//        storage[ 4 ] = matrix.getElementFast( 1, 2 ) * mdd.D_ijK( i, j, K );
+//        storage[ 5 ] = matrix.getElementFast( 2, 2 ) * mdd.D_ijK( i, j, K );
+//
+//        // the last 3 values are the sums for the b_ijK coefficients
+//        storage[ 6 ] = ( matrix.getElementFast( 0, 0 ) + matrix.getElementFast( 0, 1 ) + matrix.getElementFast( 0, 2 ) ) * mdd.D_ijK( i, j, K );
+//        storage[ 7 ] = ( matrix.getElementFast( 0, 1 ) + matrix.getElementFast( 1, 1 ) + matrix.getElementFast( 1, 2 ) ) * mdd.D_ijK( i, j, K );
+//        storage[ 8 ] = ( matrix.getElementFast( 0, 2 ) + matrix.getElementFast( 1, 2 ) + matrix.getElementFast( 2, 2 ) ) * mdd.D_ijK( i, j, K );
+
+
+
+        // LU decomposition is stable
+        // TODO: use Cholesky instead
+
+        StaticMatrix< 3, 3, typename Mesh::RealType > matrix;
+        TNL::Containers::StaticVector< 3, typename Mesh::RealType > v;
+
         matrix.setElementFast( 0, 0,  ( 3 * P00 + P11 - 3 * P01 ) / denominator );
         matrix.setElementFast( 1, 1,  ( P00 + 3 * P11 - 3 * P01 ) / denominator );
         matrix.setElementFast( 2, 2,  ( P00 + P11 + P01 ) / denominator );
@@ -579,35 +669,34 @@ public:
         matrix.setElementFast( 2, 0,  matrix.getElementFast( 0, 2 ) );
         matrix.setElementFast( 2, 1,  matrix.getElementFast( 1, 2 ) );
 
-        // set identity in the right half
-        for( LocalIndex i = 0; i < 3; i++ )
-            for( LocalIndex j = 0; j < 3; j++ )
-                if( i == j )
-                    matrix.setElementFast( i, j + 3, 1.0 );
-                else
-                    matrix.setElementFast( i, j + 3, 0.0 );
-
-//        if( K == 300 )
-//            std::cout << "matrix before inversion:\n" << matrix;
-        // invert
-        GE( matrix );
-//        if( K == 300 )
-//            std::cout << "matrix after inversion:\n" << matrix;
+        LU_factorize( matrix );
 
         typename MeshDependentData::RealType* storage = mdd.b_ijK( i, j, K );
         // store the inverse in the packed format (upper triangle, column by column)
         // see: http://www.netlib.org/lapack/lug/node123.html
-        storage[ 0 ] = matrix.getElementFast( 0, 0 ) * mdd.D_ijK( i, j, K );
-        storage[ 1 ] = matrix.getElementFast( 0, 1 ) * mdd.D_ijK( i, j, K );
-        storage[ 2 ] = matrix.getElementFast( 1, 1 ) * mdd.D_ijK( i, j, K );
-        storage[ 3 ] = matrix.getElementFast( 0, 2 ) * mdd.D_ijK( i, j, K );
-        storage[ 4 ] = matrix.getElementFast( 1, 2 ) * mdd.D_ijK( i, j, K );
-        storage[ 5 ] = matrix.getElementFast( 2, 2 ) * mdd.D_ijK( i, j, K );
+
+        v.setValue( 0.0 );
+        v[ 0 ] = 1.0;
+        LU_solve( matrix, v, v );
+        storage[ 0 ] = v[ 0 ] * mdd.D_ijK( i, j, K );
+
+        v.setValue( 0.0 );
+        v[ 1 ] = 1.0;
+        LU_solve( matrix, v, v );
+        storage[ 1 ] = v[ 0 ] * mdd.D_ijK( i, j, K );
+        storage[ 2 ] = v[ 1 ] * mdd.D_ijK( i, j, K );
+
+        v.setValue( 0.0 );
+        v[ 2 ] = 1.0;
+        LU_solve( matrix, v, v );
+        storage[ 3 ] = v[ 0 ] * mdd.D_ijK( i, j, K );
+        storage[ 4 ] = v[ 1 ] * mdd.D_ijK( i, j, K );
+        storage[ 5 ] = v[ 2 ] * mdd.D_ijK( i, j, K );
 
         // the last 3 values are the sums for the b_ijK coefficients
-        storage[ 6 ] = ( matrix.getElementFast( 0, 0 ) + matrix.getElementFast( 0, 1 ) + matrix.getElementFast( 0, 2 ) ) * mdd.D_ijK( i, j, K );
-        storage[ 7 ] = ( matrix.getElementFast( 0, 1 ) + matrix.getElementFast( 1, 1 ) + matrix.getElementFast( 1, 2 ) ) * mdd.D_ijK( i, j, K );
-        storage[ 8 ] = ( matrix.getElementFast( 0, 2 ) + matrix.getElementFast( 1, 2 ) + matrix.getElementFast( 2, 2 ) ) * mdd.D_ijK( i, j, K );
+        storage[ 6 ] = storage[ 0 ] + storage[ 1 ] + storage[ 3 ];
+        storage[ 7 ] = storage[ 1 ] + storage[ 2 ] + storage[ 4 ];
+        storage[ 8 ] = storage[ 3 ] + storage[ 4 ] + storage[ 5 ];
     }
 
     template< typename MeshDependentData >
