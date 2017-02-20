@@ -274,6 +274,14 @@ preIterate( const RealType & time,
     mdd->Z_iF.bind( *dofVectorPointer );
     mdd->current_time = time;
 
+    // FIXME: nasty hack to pass tau to LocalUpdaters
+    mdd->current_tau = tau;
+
+    // not necessary for correctness, but for correct timings
+    #ifdef HAVE_CUDA
+    TNL::Devices::Cuda::synchronizeDevice();
+    #endif
+
     // update non-linear terms
     timer_nonlinear.start();
     GenericEnumerator< MeshType, MeshDependentDataType >::
@@ -320,9 +328,6 @@ preIterate( const RealType & time,
                 upwindZMeshFunction,     // out
                 upwindZFunction );       // in
     timer_upwind.stop();
-
-    // FIXME: nasty hack to pass tau to LocalUpdaters
-    mdd->current_tau = tau;
 
     timer_R.start();
     traverser_Ki.template processAllEntities< MeshDependentDataType, typename LocalUpdaters< MeshType, MeshDependentDataType >::update_R >( meshPointer, mdd );
