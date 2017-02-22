@@ -166,7 +166,7 @@ setInitialCondition( const TNL::Config::ParameterContainer & parameters,
     if( ! mdd->init( parameters, meshPointer ) )
         return false;
 
-    mdd->v.setValue( 0.0 );
+    mdd->v_iKe.setValue( 0.0 );
 
     timer_b.reset();
     timer_R.reset();
@@ -247,7 +247,7 @@ makeSnapshot( const RealType & time,
 //        return false;
 
 //    std::cout << "solution (Z_iE): " << std::endl << dofVector << std::endl;
-//    std::cout << "solution (Z_iK): " << std::endl << mdd->Z << std::endl;
+//    std::cout << "solution (Z_iK): " << std::endl << mdd->Z_iK.getStorageArray() << std::endl;
 //    std::cout << "mobility (m_iK): " << std::endl << mdd->m << std::endl;
 
     return true;
@@ -309,7 +309,7 @@ preIterate( const RealType & time,
     //       velocity calculated this way is conservative, which is very important for upwinding.
     timer_upwind.start();
         // bind output
-        upwindMeshFunction->bind( meshPointer, mdd->m_upw );
+        upwindMeshFunction->bind( meshPointer, mdd->m_iE_upw.getStorageArray() );
         // bind inputs
         upwindFunction->bind( meshPointer, mdd, boundaryConditionsPointer );
         // evaluate
@@ -320,7 +320,7 @@ preIterate( const RealType & time,
         // upwind Z_ijE_upw (this needs the a_ij and u_ij coefficients)
         timer_upwind.start();
         // bind output
-        upwindZMeshFunction->bind( meshPointer, mdd->Z_ijE_upw );
+        upwindZMeshFunction->bind( meshPointer, mdd->Z_ijE_upw.getStorageArray() );
         // bind inputs
         upwindZFunction->bind( meshPointer, mdd, boundaryConditionsPointer, *dofVectorPointer );
         // evaluate
@@ -348,7 +348,7 @@ preIterate( const RealType & time,
 //    std::cout << "f = " << mdd->f << std::endl;
 
 //    std::cout << "b = " << mdd->b << std::endl;
-//    std::cout << "m_upw = " << mdd->m_upw << std::endl;
+//    std::cout << "m_upw = " << mdd->m_iE_upw.getStorageArray() << std::endl;
 //    std::cout << "R_ijKF = " << mdd->R1 << std::endl;
 //    std::cout << "R_iK = " << mdd->R2 << std::endl;
 
@@ -422,7 +422,7 @@ postIterate( const RealType & time,
 
     timer_explicit.start();
     // bind output
-    meshFunctionZK->bind( meshPointer, mdd->Z );
+    meshFunctionZK->bind( meshPointer, mdd->Z_iK.getStorageArray() );
     // bind inputs
     functionZK->bind( meshPointer, mdd, *dofVectorPointer );
     // evaluate
@@ -439,7 +439,7 @@ postIterate( const RealType & time,
     timer_velocities.stop();
 
 //    std::cout << "solution (Z_iE): " << std::endl << *dofVectorPointer << std::endl;
-//    std::cout << "solution (Z_iK): " << std::endl << mdd->Z << std::endl;
+//    std::cout << "solution (Z_iK): " << std::endl << mdd->Z_iK.getStorageArray() << std::endl;
 //    std::cin.get();
 
     return true;

@@ -4,6 +4,7 @@
 
 #include "MassMatrix.h"
 #include "../lib_general/FacesPerCell.h"
+#include "../lib_general/ndarray.h"
 
 namespace mhfem
 {
@@ -11,6 +12,9 @@ namespace mhfem
 template< typename Mesh,
           typename Real,
           typename Index,
+          // This can't be taken from ModelImplementation as a compile-time constant,
+          // because it inherits from BaseModel so it is not known at this time.
+          int NumberOfEquations,
           typename ModelImplementation,
           // this is not a non-typename parameter due to deficiency in TypeResolver
 //          MassLumping lumping = MassLumping::enabled >
@@ -80,119 +84,100 @@ public:
     }
 
     // accessor for auxiliary dofs
-    __cuda_callable__
-    RealType & Z_iK( const int & i, const IndexType & K )
-    {
-        return Z[ i * numberOfCells + K ];
-    }
-    __cuda_callable__
-    const RealType & Z_iK( const int & i, const IndexType & K ) const
-    {
-        return Z[ i * numberOfCells + K ];
-    }
+    sndarray::NDArray< RealType,
+                       sndarray::SizesHolder< IndexType, NumberOfEquations, 0 >,  // i, K
+                       std::index_sequence< 0, 1 >,  // i, K  (host)
+                       std::index_sequence< 0, 1 >,  // i, K  (cuda)
+                       DeviceType >
+                Z_iK;
 
     // accessors for coefficients
-    // TODO: write accessors for m_upw, f
-    // TODO: optimize/specialize storage layout for CUDA
     // TODO: optimize for models that don't use all coefficients
-    __cuda_callable__
-    RealType & N_ijK( const int & i, const int & j, const IndexType & K )
-    {
-        return N[ n * n * K + i * n + j ];
-    }
-    __cuda_callable__
-    const RealType & N_ijK( const int & i, const int & j, const IndexType & K ) const
-    {
-        return N[ n * n * K + i * n + j ];
-    }
+    sndarray::NDArray< RealType,
+                       sndarray::SizesHolder< IndexType, NumberOfEquations, NumberOfEquations, 0 >,  // i, j, K
+                       std::index_sequence< 0, 2, 1 >,  // i, K, j  (host)
+                       std::index_sequence< 0, 1, 2 >,  // i, j, K  (cuda)
+                       DeviceType >
+                N_ijK;
 
-    __cuda_callable__
-    RealType & u_ijKe( const int & i, const int & j, const IndexType & K, const int & e )
-    {
-        return u[ n * n * K * FacesPerCell + i * n * FacesPerCell + j * FacesPerCell + e ];
-    }
-    __cuda_callable__
-    const RealType & u_ijKe( const int & i, const int & j, const IndexType & K, const int & e ) const
-    {
-        return u[ n * n * K * FacesPerCell + i * n * FacesPerCell + j * FacesPerCell + e ];
-    }
+    sndarray::NDArray< RealType,
+                       sndarray::SizesHolder< IndexType, NumberOfEquations, NumberOfEquations, 0, FacesPerCell >,  // i, j, K, e
+                       std::index_sequence< 0, 2, 1, 3 >,  // i, K, j, e  (host)
+                       std::index_sequence< 0, 1, 3, 2 >,  // i, j, e, K  (cuda)
+                       DeviceType >
+                u_ijKe;
 
-    __cuda_callable__
-    RealType & m_iK( const int & i, const IndexType & K )
-    {
-//        return m[ n * K + i ];
-        return m[ i * numberOfCells + K ];
-    }
-    __cuda_callable__
-    const RealType & m_iK( const int & i, const IndexType & K ) const
-    {
-//        return m[ n * K + i ];
-        return m[ i * numberOfCells + K ];
-    }
+    sndarray::NDArray< RealType,
+                       sndarray::SizesHolder< IndexType, NumberOfEquations, 0 >,  // i, K
+                       std::index_sequence< 0, 1 >,  // i, K  (host)
+                       std::index_sequence< 0, 1 >,  // i, K  (cuda)
+                       DeviceType >
+                m_iK;
 
     // NOTE: only for D isotropic (represented by scalar value)
-    __cuda_callable__
-    RealType & D_ijK( const int & i, const int & j, const IndexType & K )
-    {
-        return D[ n * n * K + i * n + j ];
-    }
+    sndarray::NDArray< RealType,
+                       sndarray::SizesHolder< IndexType, NumberOfEquations, NumberOfEquations, 0 >,  // i, j, K
+                       std::index_sequence< 0, 2, 1 >,  // i, K, j  (host)
+                       std::index_sequence< 0, 1, 2 >,  // i, j, K  (cuda)
+                       DeviceType >
+                D_ijK;
 
-    __cuda_callable__
-    RealType & w_iKe( const int & i, const IndexType & K, const int & e )
-    {
-        return w[ n * K * FacesPerCell + i * FacesPerCell + e ];
-    }
-    __cuda_callable__
-    const RealType & w_iKe( const int & i, const IndexType & K, const int & e ) const
-    {
-        return w[ n * K * FacesPerCell + i * FacesPerCell + e ];
-    }
+    sndarray::NDArray< RealType,
+                       sndarray::SizesHolder< IndexType, NumberOfEquations, 0, FacesPerCell >,  // i, K, e
+                       std::index_sequence< 0, 1, 2 >,  // i, K, e  (host)
+                       std::index_sequence< 0, 2, 1 >,  // i, e, K  (cuda)
+                       DeviceType >
+                w_iKe;
 
-    __cuda_callable__
-    RealType & a_ijKe( const int & i, const int & j, const IndexType & K, const int & e )
-    {
-        return a[ n * n * K * FacesPerCell + i * n * FacesPerCell + j * FacesPerCell + e ];
-    }
-    __cuda_callable__
-    const RealType & a_ijKe( const int & i, const int & j, const IndexType & K, const int & e ) const
-    {
-        return a[ n * n * K * FacesPerCell + i * n * FacesPerCell + j * FacesPerCell + e ];
-    }
+    sndarray::NDArray< RealType,
+                       sndarray::SizesHolder< IndexType, NumberOfEquations, NumberOfEquations, 0, FacesPerCell >,  // i, j, K, e
+                       std::index_sequence< 0, 2, 1, 3 >,  // i, K, j, e  (host)
+                       std::index_sequence< 0, 1, 3, 2 >,  // i, j, e, K  (cuda)
+                       DeviceType >
+                a_ijKe;
 
-    __cuda_callable__
-    RealType & r_ijK( const int & i, const int & j, const IndexType & K )
-    {
-        return r[ n * n * K + i * n + j ];
-    }
-    __cuda_callable__
-    const RealType & r_ijK( const int & i, const int & j, const IndexType & K ) const
-    {
-        return r[ n * n * K + i * n + j ];
-    }
+    sndarray::NDArray< RealType,
+                       sndarray::SizesHolder< IndexType, NumberOfEquations, NumberOfEquations, 0 >,  // i, j, K
+                       std::index_sequence< 0, 2, 1 >,  // i, K, j  (host)
+                       std::index_sequence< 0, 1, 2 >,  // i, j, K  (cuda)
+                       DeviceType >
+                r_ijK;
 
-    __cuda_callable__
-    RealType & f_iK( const int & i, const IndexType & K )
-    {
-        return f[ i * numberOfCells + K ];
-    }
-    __cuda_callable__
-    const RealType & f_iK( const int & i, const IndexType & K ) const
-    {
-        return f[ i * numberOfCells + K ];
-    }
+    sndarray::NDArray< RealType,
+                       sndarray::SizesHolder< IndexType, NumberOfEquations, 0 >,  // i, K
+                       std::index_sequence< 0, 1 >,  // i, K  (host)
+                       std::index_sequence< 0, 1 >,  // i, K  (cuda)
+                       DeviceType >
+                f_iK;
 
-    __cuda_callable__
-    const RealType & v_iKe( const int & i, const IndexType & K, const int & e ) const
-    {
-        return v[ ( n * K + i ) * FacesPerCell + e ];
-    }
-    __cuda_callable__
-    RealType & v_iKe( const int & i, const IndexType & K, const int & e )
-    {
-        return v[ ( n * K + i ) * FacesPerCell + e ];
-    }
+
+    // coefficients specific to the MHFEM scheme
+
+    // conservative velocities for upwind: \vec v_i = - \sum_j \mat D_ij \grad Z_j + \vec w_i
+    sndarray::NDArray< RealType,
+                       sndarray::SizesHolder< IndexType, NumberOfEquations, 0, FacesPerCell >,  // i, K, e
+                       std::index_sequence< 0, 1, 2 >,  // i, K, e  (host)
+                       std::index_sequence< 0, 2, 1 >,  // i, e, K  (cuda)
+                       DeviceType >
+                v_iKe;
+
+    sndarray::NDArray< RealType,
+                       sndarray::SizesHolder< IndexType, NumberOfEquations, 0 >,  // i, E
+                       std::index_sequence< 0, 1 >,  // i, E  (host)
+                       std::index_sequence< 0, 1 >,  // i, E  (cuda)
+                       DeviceType >
+                m_iE_upw;
+
+    sndarray::NDArray< RealType,
+                       sndarray::SizesHolder< IndexType, NumberOfEquations, NumberOfEquations, 0 >,  // i, j, E
+                       // NOTE: this must match the manual indexing in the UpwindZ class
+                       std::index_sequence< 0, 1, 2 >,  // i, j, E  (host)
+                       std::index_sequence< 0, 1, 2 >,  // i, j, E  (cuda)
+                       DeviceType >
+                Z_ijE_upw;
 
     // accessors for local matrices/vectors
+    // TODO: implement SlicedNDArray, write accessor classes for slices and optimize the storage layout for CUDA
     __cuda_callable__
     RealType* b_ijK( const int & i, const int & j, const IndexType & K )
     {
@@ -234,15 +219,7 @@ public:
     }
 
 //protected:
-    // auxiliary dofs
-    DofVectorType Z;
-
-    // coefficients
-    DofVectorType N, u, m, D, w, a, r, f;
-
     // specific to MHFEM scheme
-    DofVectorType v;    // conservative velocities for upwind: \vec v_i = - \sum_j \mat D_ij \grad Z_j + \vec w_i
-    DofVectorType m_upw, Z_ijE_upw;
     DofVectorType b;    // each "row" represents the local matrix (b_ijK)_EF
     
     DofVectorType R1;   // R_KF
@@ -262,8 +239,7 @@ protected:
     IndexType numberOfFaces = 0;
 
 private:
-    // FIXME: n can't be static constexpr because according to nvcc, ModelImplementation is an incomplete type (works in GCC though)
-    const int n = ModelImplementation::NumberOfEquations;
+    static constexpr int n = NumberOfEquations;
     static constexpr int d = MeshType::getMeshDimension();
 };
 

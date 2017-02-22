@@ -55,7 +55,7 @@ struct SecondaryCoefficients
         R *= getEntityMeasure( mesh, entity );
         for( int e = 0; e < mdd.FacesPerCell; e++ ) {
             const IndexType & E = faceIndexes[ e ];
-            R -= mdd.m_upw[ mdd.getDofIndex( i, E ) ] * mdd.w_iKe( i, K, e ) * mdd.current_tau;
+            R -= mdd.m_iE_upw( i, E ) * mdd.w_iKe( i, K, e ) * mdd.current_tau;
         }
 
         // sum into separate variable to do only one subtraction (avoids catastrophic truncation)
@@ -64,7 +64,7 @@ struct SecondaryCoefficients
             for( int e = 0; e < mdd.FacesPerCell; e++ ) {
                 const IndexType & E = faceIndexes[ e ];
                 aux += ( mdd.a_ijKe( i, j, K, e ) + mdd.u_ijKe( i, j, K, e ) )
-                       * mdd.Z_ijE_upw[ mdd.getDofIndex( i * mdd.NumberOfEquations + j, E ) ] * mdd.current_tau;
+                       * mdd.Z_ijE_upw( i, j, E ) * mdd.current_tau;
             }
         R -= aux;
 
@@ -85,7 +85,7 @@ struct SecondaryCoefficients
         RealType Q = 0.0;
         for( int e = 0; e < mdd.FacesPerCell; e++ ) {
             const IndexType & E = faceIndexes[ e ];
-            Q += mdd.m_upw[ mdd.getDofIndex( i, E ) ] * MassMatrix::b_ijKe( mdd, i, j, K, e ) - mdd.u_ijKe( i, j, K, e );
+            Q += mdd.m_iE_upw( i, E ) * MassMatrix::b_ijKe( mdd, i, j, K, e ) - mdd.u_ijKe( i, j, K, e );
         }
         Q *= mdd.current_tau;
         Q += getEntityMeasure( mesh, entity ) * ( mdd.N_ijK( i, j, K ) + mdd.r_ijK( i, j, K ) * mdd.current_tau );

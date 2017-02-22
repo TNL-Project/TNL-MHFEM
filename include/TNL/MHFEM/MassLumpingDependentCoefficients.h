@@ -29,7 +29,7 @@ struct MassLumpingDependentCoefficients< MeshDependentData, MassLumping::enabled
         static_assert( FaceVectorType::size == MeshDependentData::FacesPerCell, "" );
 
         const IndexType & E = faceIndexes[ e ];
-        return mdd.m_upw[ mdd.getDofIndex( i, E ) ] * MassMatrix::b_ijKe( mdd, i, j, K, e ) * mdd.current_tau;
+        return mdd.m_iE_upw( i, E ) * MassMatrix::b_ijKe( mdd, i, j, K, e ) * mdd.current_tau;
     }
 
     template< typename DofVectorType, typename FaceVectorType >
@@ -77,7 +77,7 @@ struct MassLumpingDependentCoefficients< MeshDependentData, MassLumping::disable
         RealType R = 0.0;
         for( int f = 0; f < mdd.FacesPerCell; f++ ) {
             const IndexType & F = faceIndexes[ f ];
-            R += mdd.m_upw[ mdd.getDofIndex( i, F ) ] * MassMatrix::b_ijKef( mdd, i, j, K, f, e ) * mdd.current_tau;
+            R += mdd.m_iE_upw( i, F ) * MassMatrix::b_ijKef( mdd, i, j, K, f, e ) * mdd.current_tau;
         }
         return R;
     }
