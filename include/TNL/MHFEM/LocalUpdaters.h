@@ -78,12 +78,18 @@ public:
             using LocalMatrixType = StaticMatrix< MeshDependentDataType::NumberOfEquations, MeshDependentDataType::NumberOfEquations, RealType >;
 #ifndef __CUDA_ARCH__
             LocalMatrixType Q;
+            RealType rhs[ MeshDependentDataType::NumberOfEquations ];
 #else
             // TODO: use dynamic allocation via Devices::Cuda::getSharedMemory
             // (we'll need to pass custom launch configuration to the traverser)
             // TODO: the traverser for Mesh will use 256 threads per block even in 3D
             __shared__ LocalMatrixType __Qs[ ( MeshType::getMeshDimension() < 3 ) ? 256 : 512 ];
             LocalMatrixType& Q = __Qs[ ( ( threadIdx.z * blockDim.y ) + threadIdx.y ) * blockDim.x + threadIdx.x ];
+
+            __shared__ RealType __rhss[ MeshDependentDataType::NumberOfEquations * ( ( MeshType::getMeshDimension() < 3 ) ? 256 : 512 ) ];
+            RealType* rhs = &__rhss[ MeshDependentDataType::NumberOfEquations * (
+                                        ( ( threadIdx.z * blockDim.y ) + threadIdx.y ) * blockDim.x + threadIdx.x
+                                    ) ];
 #endif
 
             for( int i = 0; i < mdd.NumberOfEquations; i++ ) {
@@ -108,13 +114,28 @@ public:
 
             LU_factorize( Q );
 
-            using SharedVectorType = StaticSharedArray< MeshDependentDataType::NumberOfEquations, RealType >;
-            SharedVectorType rk( &mdd.R_iK( 0, K ) );
-            LU_solve( Q, rk, rk );
+//            using SharedVectorType = StaticSharedArray< MeshDependentDataType::NumberOfEquations, RealType >;
+//            SharedVectorType rk( &mdd.R_iK( 0, K ) );
+//            LU_solve( Q, rk, rk );
+//            for( int j = 0; j < mdd.NumberOfEquations; j++ )
+//                for( int e = 0; e < mdd.FacesPerCell; e++ ) {
+//                    SharedVectorType rke( &mdd.R_ijKe( 0, j, K, e ) );
+//                    LU_solve( Q, rke, rke );
+//                }
+
+            for( int i = 0; i < MeshDependentDataType::NumberOfEquations; i++ )
+                rhs[ i ] = mdd.R_iK( i, K );
+            LU_solve_inplace( Q, rhs );
+            for( int i = 0; i < MeshDependentDataType::NumberOfEquations; i++ )
+                mdd.R_iK( i, K ) = rhs[ i ];
+
             for( int j = 0; j < mdd.NumberOfEquations; j++ )
                 for( int e = 0; e < mdd.FacesPerCell; e++ ) {
-                    SharedVectorType rke( &mdd.R_ijKe( 0, j, K, e ) );
-                    LU_solve( Q, rke, rke );
+                    for( int i = 0; i < MeshDependentDataType::NumberOfEquations; i++ )
+                        rhs[ i ] = mdd.R_ijKe( i, j, K, e );
+                    LU_solve_inplace( Q, rhs );
+                    for( int i = 0; i < MeshDependentDataType::NumberOfEquations; i++ )
+                        mdd.R_ijKe( i, j, K, e ) = rhs[ i ];
                 }
         }
     };
