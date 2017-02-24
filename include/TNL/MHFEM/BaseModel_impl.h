@@ -51,9 +51,9 @@ allocate( const MeshType & mesh )
 
     if( ! b.setSize( n * n * numberOfCells * MassMatrix::size ) )
         return false;
-    if( ! R1.setSize( n * n * numberOfCells * FacesPerCell ) )
+    if( ! R_ijKe.setSizes( 0, 0, numberOfCells, 0 ) )
         return false;
-    if( ! R2.setSize( n * numberOfCells ) )
+    if( ! R_iK.setSizes( 0, numberOfCells ) )
         return false;
 
     return true;

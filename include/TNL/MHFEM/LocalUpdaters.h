@@ -78,7 +78,7 @@ public:
             using LocalMatrixType = StaticMatrix< MeshDependentDataType::NumberOfEquations, MeshDependentDataType::NumberOfEquations, RealType >;
 #ifndef __CUDA_ARCH__
             LocalMatrixType Q;
-            RealType rhs[ MeshDependentDataType::NumberOfEquations ];
+//            RealType rhs[ MeshDependentDataType::NumberOfEquations ];
 #else
             // TODO: use dynamic allocation via Devices::Cuda::getSharedMemory
             // (we'll need to pass custom launch configuration to the traverser)
@@ -86,10 +86,11 @@ public:
             __shared__ LocalMatrixType __Qs[ ( MeshType::getMeshDimension() < 3 ) ? 256 : 512 ];
             LocalMatrixType& Q = __Qs[ ( ( threadIdx.z * blockDim.y ) + threadIdx.y ) * blockDim.x + threadIdx.x ];
 
-            __shared__ RealType __rhss[ MeshDependentDataType::NumberOfEquations * ( ( MeshType::getMeshDimension() < 3 ) ? 256 : 512 ) ];
-            RealType* rhs = &__rhss[ MeshDependentDataType::NumberOfEquations * (
-                                        ( ( threadIdx.z * blockDim.y ) + threadIdx.y ) * blockDim.x + threadIdx.x
-                                    ) ];
+            // TODO: this limits the kernel to 1 block on Fermi - maybe cudaFuncCachePreferShared specifically for this kernel would help
+//            __shared__ RealType __rhss[ MeshDependentDataType::NumberOfEquations * ( ( MeshType::getMeshDimension() < 3 ) ? 256 : 512 ) ];
+//            RealType* rhs = &__rhss[ MeshDependentDataType::NumberOfEquations * (
+//                                        ( ( threadIdx.z * blockDim.y ) + threadIdx.y ) * blockDim.x + threadIdx.x
+//                                    ) ];
 #endif
 
             for( int i = 0; i < mdd.NumberOfEquations; i++ ) {
@@ -122,6 +123,8 @@ public:
 //                    SharedVectorType rke( &mdd.R_ijKe( 0, j, K, e ) );
 //                    LU_solve( Q, rke, rke );
 //                }
+
+            RealType rhs[ MeshDependentDataType::NumberOfEquations ];
 
             for( int i = 0; i < MeshDependentDataType::NumberOfEquations; i++ )
                 rhs[ i ] = mdd.R_iK( i, K );

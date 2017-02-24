@@ -191,40 +191,24 @@ public:
         return &b[ ((K * n + i) * n + j) * MassMatrix::size ];
     }
 
-    __cuda_callable__
-    RealType & R_ijKe( const int & i, const int & j, const IndexType & K, const int & e )
-    {
-//        return R1[ n * n * K * FacesPerCell + i * n * FacesPerCell + j * FacesPerCell + e ];
-        // stored in column-major orientation with respect to i,j
-        return R1[ n * n * K * FacesPerCell + n * j * FacesPerCell + n * e + i ];
-    }
-    __cuda_callable__
-    const RealType & R_ijKe( const int & i, const int & j, const IndexType & K, const int & e ) const
-    {
-//        return R1[ n * n * K * FacesPerCell + i * n * FacesPerCell + j * FacesPerCell + e ];
-        // stored in column-major orientation with respect to i,j
-        return R1[ n * n * K * FacesPerCell + n * j * FacesPerCell + n * e + i ];
-    }
+    sndarray::NDArray< RealType,
+                       sndarray::SizesHolder< IndexType, NumberOfEquations, NumberOfEquations, 0, FacesPerCell >,  // i, j, K, e
+                       std::index_sequence< 0, 2, 1, 3 >,  // i, K, j, e  (host)
+                       std::index_sequence< 0, 1, 3, 2 >,  // i, j, e, K  (cuda)
+                       DeviceType >
+                R_ijKe;
 
-    __cuda_callable__
-    RealType & R_iK( const int & i, const IndexType & K )
-    {
-        return R2[ n * K + i ];
-    }
-
-    __cuda_callable__
-    const RealType & R_iK( const int & i, const IndexType & K ) const
-    {
-        return R2[ n * K + i ];
-    }
+    sndarray::NDArray< RealType,
+                       sndarray::SizesHolder< IndexType, NumberOfEquations, 0 >,  // i, K
+                       std::index_sequence< 0, 1 >,  // i, K  (host)
+                       std::index_sequence< 0, 1 >,  // i, K  (cuda)
+                       DeviceType >
+                R_iK;
 
 //protected:
     // specific to MHFEM scheme
     DofVectorType b;    // each "row" represents the local matrix (b_ijK)_EF
     
-    DofVectorType R1;   // R_KF
-    DofVectorType R2;   // R_K
-
     // FIXME: nasty hack to pass tau to LocalUpdaters
     RealType current_tau;
     // FIXME: nasty hack to pass time to CompositionalModel::r_X
