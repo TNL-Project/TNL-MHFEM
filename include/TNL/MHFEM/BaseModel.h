@@ -176,20 +176,13 @@ public:
                        DeviceType >
                 Z_ijE_upw;
 
-    // accessors for local matrices/vectors
-    // TODO: implement SlicedNDArray, write accessor classes for slices and optimize the storage layout for CUDA
-    __cuda_callable__
-    RealType* b_ijK( const int & i, const int & j, const IndexType & K )
-    {
-        // returns address of the first element of the mass matrix b_ijK
-        return &b[ ((K * n + i) * n + j) * MassMatrix::size ];
-    }
-    __cuda_callable__
-    const RealType* b_ijK( const int & i, const int & j, const IndexType & K ) const
-    {
-        // returns address of the first element of the mass matrix b_ijK
-        return &b[ ((K * n + i) * n + j) * MassMatrix::size ];
-    }
+    // values with different 's' represent the local matrix b_ijK
+    sndarray::NDArray< RealType,
+                       sndarray::SizesHolder< IndexType, NumberOfEquations, NumberOfEquations, 0, MassMatrix::size >,  // i, j, K, s
+                       std::index_sequence< 0, 2, 1, 3 >,  // i, K, j, s  (host)
+                       std::index_sequence< 0, 1, 3, 2 >,  // i, j, s, K  (cuda)
+                       DeviceType >
+                b_ijK_storage;
 
     sndarray::NDArray< RealType,
                        sndarray::SizesHolder< IndexType, NumberOfEquations, NumberOfEquations, 0, FacesPerCell >,  // i, j, K, e
@@ -206,8 +199,6 @@ public:
                 R_iK;
 
 //protected:
-    // specific to MHFEM scheme
-    DofVectorType b;    // each "row" represents the local matrix (b_ijK)_EF
     
     // FIXME: nasty hack to pass tau to LocalUpdaters
     RealType current_tau;
@@ -221,10 +212,6 @@ protected:
     // number of entities of the mesh for which the vectors are allocated
     IndexType numberOfCells = 0;
     IndexType numberOfFaces = 0;
-
-private:
-    static constexpr int n = NumberOfEquations;
-    static constexpr int d = MeshType::getMeshDimension();
 };
 
 } // namespace mhfem

@@ -9,8 +9,9 @@
 
 //#include <armadillo>
 
-namespace mhfem
-{
+// TODO: implement SlicedNDArray, write accessor classes for slices and use them in the update methods below
+
+namespace mhfem {
 
 enum class MassLumping {
     enabled,
@@ -44,8 +45,7 @@ public:
             const int & j )
     {
         const auto K = entity.getIndex();
-        typename MeshDependentData::RealType* storage = mdd.b_ijK( i, j, K );
-        storage[ 0 ] = 2 * mdd.D_ijK( i, j, K ) * mesh.template getSpaceStepsProducts< -1 >();  // h_x^-1
+        mdd.b_ijK_storage( i, j, K, 0 ) = 2 * mdd.D_ijK( i, j, K ) * mesh.template getSpaceStepsProducts< -1 >();  // h_x^-1
     }
 
     template< typename MeshDependentData >
@@ -60,9 +60,8 @@ public:
     {
         TNL_ASSERT( e < FacesPerCell< MeshEntity >::value && f < FacesPerCell< MeshEntity >::value, );
 
-        const typename MeshDependentData::RealType* storage = mdd.b_ijK( i, j, K );
         if( e == f )
-            return storage[ 0 ];
+            return mdd.b_ijK_storage( i, j, K, 0 );
         return 0.0;
     }
 
@@ -77,8 +76,7 @@ public:
     {
         TNL_ASSERT( e < FacesPerCell< MeshEntity >::value, );
 
-        const typename MeshDependentData::RealType* storage = mdd.b_ijK( i, j, K );
-        return storage[ 0 ];
+        return mdd.b_ijK_storage( i, j, K, 0 );
     }
 };
 
@@ -103,8 +101,7 @@ public:
             const int & j )
     {
         const auto K = entity.getIndex();
-        typename MeshDependentData::RealType* storage = mdd.b_ijK( i, j, K );
-        storage[ 0 ] = 2 * mdd.D_ijK( i, j, K ) * mesh.template getSpaceStepsProducts< -1 >();  // h_x^-1
+        mdd.b_ijK_storage( i, j, K, 0 ) = 2 * mdd.D_ijK( i, j, K ) * mesh.template getSpaceStepsProducts< -1 >();  // h_x^-1
     }
 
     template< typename MeshDependentData >
@@ -119,10 +116,9 @@ public:
     {
         TNL_ASSERT( e < FacesPerCell< MeshEntity >::value && f < FacesPerCell< MeshEntity >::value, );
 
-        const typename MeshDependentData::RealType* storage = mdd.b_ijK( i, j, K );
         if( e == f )
-            return 2 * storage[ 0 ];
-        return storage[ 0 ];
+            return 2 * mdd.b_ijK_storage( i, j, K, 0 );
+        return mdd.b_ijK_storage( i, j, K, 0 );
     }
 
     template< typename MeshDependentData >
@@ -136,8 +132,7 @@ public:
     {
         TNL_ASSERT( e < FacesPerCell< MeshEntity >::value, );
 
-        const typename MeshDependentData::RealType* storage = mdd.b_ijK( i, j, K );
-        return 3 * storage[ 0 ];
+        return 3 * mdd.b_ijK_storage( i, j, K, 0 );
     }
 };
 
@@ -163,11 +158,10 @@ public:
             const int & j )
     {
         const auto K = entity.getIndex();
-        typename MeshDependentData::RealType* storage = mdd.b_ijK( i, j, K );
         // value for vertical faces (e=0, e=1)
-        storage[ 0 ] = 2 * mdd.D_ijK( i, j, K ) * mesh.template getSpaceStepsProducts< -1, 1 >();  // h_y / h_x
+        mdd.b_ijK_storage( i, j, K, 0 ) = 2 * mdd.D_ijK( i, j, K ) * mesh.template getSpaceStepsProducts< -1, 1 >();  // h_y / h_x
         // value for horizontal faces (e=2, e=3)
-        storage[ 1 ] = 2 * mdd.D_ijK( i, j, K ) * mesh.template getSpaceStepsProducts< 1, -1 >();  // h_x / h_y
+        mdd.b_ijK_storage( i, j, K, 1 ) = 2 * mdd.D_ijK( i, j, K ) * mesh.template getSpaceStepsProducts< 1, -1 >();  // h_x / h_y
     }
 
     template< typename MeshDependentData >
@@ -182,15 +176,14 @@ public:
     {
         TNL_ASSERT( e < FacesPerCell< MeshEntity >::value && f < FacesPerCell< MeshEntity >::value, );
 
-        const typename MeshDependentData::RealType* storage = mdd.b_ijK( i, j, K );
         // non-diagonal entries
         if( e != f )
             return 0.0;
         // vertical face (e=0, e=1)
         if( e < 2 )
-            return storage[ 0 ];
+            return mdd.b_ijK_storage( i, j, K, 0 );
         // horizontal face (e=2, e=3)
-        return storage[ 1 ];
+        return mdd.b_ijK_storage( i, j, K, 1 );
     }
 
     template< typename MeshDependentData >
@@ -204,12 +197,11 @@ public:
     {
         TNL_ASSERT( e < FacesPerCell< MeshEntity >::value, );
 
-        const typename MeshDependentData::RealType* storage = mdd.b_ijK( i, j, K );
         // vertical face (e=0, e=1)
         if( e < 2 )
-            return storage[ 0 ];
+            return mdd.b_ijK_storage( i, j, K, 0 );
         // horizontal face (e=2, e=3)
-        return storage[ 1 ];
+        return mdd.b_ijK_storage( i, j, K, 1 );
     }
 };
 
@@ -234,11 +226,10 @@ public:
             const int & j )
     {
         const auto K = entity.getIndex();
-        typename MeshDependentData::RealType* storage = mdd.b_ijK( i, j, K );
         // value for vertical faces (e=0, e=1)
-        storage[ 0 ] = 2 * mdd.D_ijK( i, j, K ) * mesh.template getSpaceStepsProducts< -1, 1 >();  // h_y / h_x
+        mdd.b_ijK_storage( i, j, K, 0 ) = 2 * mdd.D_ijK( i, j, K ) * mesh.template getSpaceStepsProducts< -1, 1 >();  // h_y / h_x
         // value for horizontal faces (e=2, e=3)
-        storage[ 1 ] = 2 * mdd.D_ijK( i, j, K ) * mesh.template getSpaceStepsProducts< 1, -1 >();  // h_x / h_y
+        mdd.b_ijK_storage( i, j, K, 1 ) = 2 * mdd.D_ijK( i, j, K ) * mesh.template getSpaceStepsProducts< 1, -1 >();  // h_x / h_y
     }
 
     template< typename MeshDependentData >
@@ -253,22 +244,21 @@ public:
     {
         TNL_ASSERT( e < FacesPerCell< MeshEntity >::value && f < FacesPerCell< MeshEntity >::value, );
 
-        const typename MeshDependentData::RealType* storage = mdd.b_ijK( i, j, K );
         // vertical faces (e,f = 0 or 1)
         if( e < 2 && f < 2 ) {
             if( e == f )
                 // diagonal
-                return 2 * storage[ 0 ];
+                return 2 * mdd.b_ijK_storage( i, j, K, 0 );
             // non-diagonal
-            return storage[ 0 ];
+            return mdd.b_ijK_storage( i, j, K, 0 );
         }
         // horizontal faces (e,f = 2 or 3)
         if( e >= 2 && f >= 2 ) {
             if( e == f )
                 // diagonal
-                return 2 * storage[ 1 ];
+                return 2 * mdd.b_ijK_storage( i, j, K, 1 );
             // non-diagonal
-            return storage[ 1 ];
+            return mdd.b_ijK_storage( i, j, K, 1 );
         }
         // non-diagonal blocks
         return 0.0;
@@ -285,12 +275,11 @@ public:
     {
         TNL_ASSERT( e < FacesPerCell< MeshEntity >::value, );
 
-        const typename MeshDependentData::RealType* storage = mdd.b_ijK( i, j, K );
         // vertical face (e=0, e=1)
         if( e < 2 )
-            return 3 * storage[ 0 ];
+            return 3 * mdd.b_ijK_storage( i, j, K, 0 );
         // horizontal face (e=2, e=3)
-        return 3 * storage[ 1 ];
+        return 3 * mdd.b_ijK_storage( i, j, K, 1 );
     }
 };
 
@@ -316,13 +305,12 @@ public:
             const int & j )
     {
         const auto K = entity.getIndex();
-        typename MeshDependentData::RealType* storage = mdd.b_ijK( i, j, K );
         // value for n_x faces (e=0, e=1)
-        storage[ 0 ] = 2 * mdd.D_ijK( i, j, K ) * mesh.template getSpaceStepsProducts< -1, 1, 1 >();  // h_y * h_z / h_x
+        mdd.b_ijK_storage( i, j, K, 0 ) = 2 * mdd.D_ijK( i, j, K ) * mesh.template getSpaceStepsProducts< -1, 1, 1 >();  // h_y * h_z / h_x
         // value for n_y faces (e=2, e=3)
-        storage[ 1 ] = 2 * mdd.D_ijK( i, j, K ) * mesh.template getSpaceStepsProducts< 1, -1, 1 >();  // h_x * h_z / h_y
+        mdd.b_ijK_storage( i, j, K, 1 ) = 2 * mdd.D_ijK( i, j, K ) * mesh.template getSpaceStepsProducts< 1, -1, 1 >();  // h_x * h_z / h_y
         // value for n_z faces (e=4, e=5)
-        storage[ 2 ] = 2 * mdd.D_ijK( i, j, K ) * mesh.template getSpaceStepsProducts< 1, 1, -1 >();  // h_x * h_y / h_z
+        mdd.b_ijK_storage( i, j, K, 2 ) = 2 * mdd.D_ijK( i, j, K ) * mesh.template getSpaceStepsProducts< 1, 1, -1 >();  // h_x * h_y / h_z
     }
 
     template< typename MeshDependentData >
@@ -337,18 +325,17 @@ public:
     {
         TNL_ASSERT( e < FacesPerCell< MeshEntity >::value && f < FacesPerCell< MeshEntity >::value, );
 
-        const typename MeshDependentData::RealType* storage = mdd.b_ijK( i, j, K );
         // non-diagonal entries
         if( e != f )
             return 0.0;
         // n_x face (e=0, e=1)
         if( e < 2 )
-            return storage[ 0 ];
+            return mdd.b_ijK_storage( i, j, K, 0 );
         // n_y face (e=2, e=3)
         if( e < 4 )
-            return storage[ 1 ];
+            return mdd.b_ijK_storage( i, j, K, 1 );
         // n_z face (e=4, e=5)
-        return storage[ 2 ];
+        return mdd.b_ijK_storage( i, j, K, 2 );
     }
 
     template< typename MeshDependentData >
@@ -362,15 +349,14 @@ public:
     {
         TNL_ASSERT( e < FacesPerCell< MeshEntity >::value, );
 
-        const typename MeshDependentData::RealType* storage = mdd.b_ijK( i, j, K );
         // n_x face (e=0, e=1)
         if( e < 2 )
-            return storage[ 0 ];
+            return mdd.b_ijK_storage( i, j, K, 0 );
         // n_y face (e=2, e=3)
         if( e < 4 )
-            return storage[ 1 ];
+            return mdd.b_ijK_storage( i, j, K, 1 );
         // n_z face (e=4, e=5)
-        return storage[ 2 ];
+        return mdd.b_ijK_storage( i, j, K, 2 );
     }
 };
 
@@ -395,13 +381,12 @@ public:
             const int & j )
     {
         const auto K = entity.getIndex();
-        typename MeshDependentData::RealType* storage = mdd.b_ijK( i, j, K );
         // value for n_x faces (e=0, e=1)
-        storage[ 0 ] = 2 * mdd.D_ijK( i, j, K ) * mesh.template getSpaceStepsProducts< -1, 1, 1 >();  // h_y * h_z / h_x
+        mdd.b_ijK_storage( i, j, K, 0 ) = 2 * mdd.D_ijK( i, j, K ) * mesh.template getSpaceStepsProducts< -1, 1, 1 >();  // h_y * h_z / h_x
         // value for n_y faces (e=2, e=3)
-        storage[ 1 ] = 2 * mdd.D_ijK( i, j, K ) * mesh.template getSpaceStepsProducts< 1, -1, 1 >();  // h_x * h_z / h_y
+        mdd.b_ijK_storage( i, j, K, 1 ) = 2 * mdd.D_ijK( i, j, K ) * mesh.template getSpaceStepsProducts< 1, -1, 1 >();  // h_x * h_z / h_y
         // value for n_z faces (e=4, e=5)
-        storage[ 2 ] = 2 * mdd.D_ijK( i, j, K ) * mesh.template getSpaceStepsProducts< 1, 1, -1 >();  // h_x * h_y / h_z
+        mdd.b_ijK_storage( i, j, K, 2 ) = 2 * mdd.D_ijK( i, j, K ) * mesh.template getSpaceStepsProducts< 1, 1, -1 >();  // h_x * h_y / h_z
     }
 
     template< typename MeshDependentData >
@@ -416,30 +401,29 @@ public:
     {
         TNL_ASSERT( e < FacesPerCell< MeshEntity >::value && f < FacesPerCell< MeshEntity >::value, );
 
-        const typename MeshDependentData::RealType* storage = mdd.b_ijK( i, j, K );
         // n_x faces (e,f = 0 or 1)
         if( e < 2 && f < 2 ) {
             if( e == f )
                 // diagonal
-                return 2 * storage[ 0 ];
+                return 2 * mdd.b_ijK_storage( i, j, K, 0 );
             // non-diagonal
-            return storage[ 0 ];
+            return mdd.b_ijK_storage( i, j, K, 0 );
         }
         // n_y faces (e,f = 2 or 3)
         if( e >= 2 && f >= 2 && e < 4 && f < 4 ) {
             if( e == f )
                 // diagonal
-                return 2 * storage[ 1 ];
+                return 2 * mdd.b_ijK_storage( i, j, K, 1 );
             // non-diagonal
-            return storage[ 1 ];
+            return mdd.b_ijK_storage( i, j, K, 1 );
         }
         // n_z faces (e,f = 4 or 5)
         if( e >= 4 && f >= 4 ) {
             if( e == f )
                 // diagonal
-                return 2 * storage[ 2 ];
+                return 2 * mdd.b_ijK_storage( i, j, K, 2 );
             // non-diagonal
-            return storage[ 2 ];
+            return mdd.b_ijK_storage( i, j, K, 2 );
         }
         // non-diagonal blocks
         return 0.0;
@@ -456,15 +440,14 @@ public:
     {
         TNL_ASSERT( e < FacesPerCell< MeshEntity >::value, );
 
-        const typename MeshDependentData::RealType* storage = mdd.b_ijK( i, j, K );
         // n_x face (e=0, e=1)
         if( e < 2 )
-            return 3 * storage[ 0 ];
+            return 3 * mdd.b_ijK_storage( i, j, K, 0 );
         // n_y face (e=2, e=3)
         if( e < 4 )
-            return 3 * storage[ 1 ];
+            return 3 * mdd.b_ijK_storage( i, j, K, 1 );
         // n_z face (e=4, e=5)
-        return 3 * storage[ 2 ];
+        return 3 * mdd.b_ijK_storage( i, j, K, 2 );
     }
 };
 
@@ -492,9 +475,8 @@ public:
         static_assert( std::is_same< typename Mesh::Config, MeshConfig >::value, "wrong mesh" );
 
         const auto K = entity.getIndex();
-        typename MeshDependentData::RealType* storage = mdd.b_ijK( i, j, K );
         const auto h_x = getEntityMeasure( mesh, entity );
-        storage[ 0 ] = 2 * mdd.D_ijK( i, j, K ) / h_x;
+        mdd.b_ijK_storage( i, j, K, 0 ) = 2 * mdd.D_ijK( i, j, K ) / h_x;
     }
 
     template< typename MeshDependentData >
@@ -509,10 +491,9 @@ public:
     {
         TNL_ASSERT( e < FacesPerCell< MeshEntity >::value && f < FacesPerCell< MeshEntity >::value, );
 
-        const typename MeshDependentData::RealType* storage = mdd.b_ijK( i, j, K );
         if( e == f )
-            return 2 * storage[ 0 ];
-        return storage[ 0 ];
+            return 2 * mdd.b_ijK_storage( i, j, K, 0 );
+        return mdd.b_ijK_storage( i, j, K, 0 );
     }
 
     template< typename MeshDependentData >
@@ -526,8 +507,7 @@ public:
     {
         TNL_ASSERT( e < FacesPerCell< MeshEntity >::value, );
 
-        const typename MeshDependentData::RealType* storage = mdd.b_ijK( i, j, K );
-        return 3 * storage[ 0 ];
+        return 3 * mdd.b_ijK_storage( i, j, K, 0 );
     }
 };
 
@@ -588,20 +568,19 @@ public:
 //
 ////        std::cerr << "K = " << K << ": cond(A) = " << arma::cond(A) << ", cond(a) = " << arma::cond(a) << ", cond(Aa) = " << cond(A*a) << std::endl;
 //
-//        typename MeshDependentData::RealType* storage = mdd.b_ijK( i, j, K );
 //        // store the inverse in the packed format (upper triangle, column by column)
 //        // see: http://www.netlib.org/lapack/lug/node123.html
-//        storage[ 0 ] = a( 0, 0 ) * mdd.D_ijK( i, j, K );
-//        storage[ 1 ] = a( 0, 1 ) * mdd.D_ijK( i, j, K );
-//        storage[ 2 ] = a( 1, 1 ) * mdd.D_ijK( i, j, K );
-//        storage[ 3 ] = a( 0, 2 ) * mdd.D_ijK( i, j, K );
-//        storage[ 4 ] = a( 1, 2 ) * mdd.D_ijK( i, j, K );
-//        storage[ 5 ] = a( 2, 2 ) * mdd.D_ijK( i, j, K );
+//        mdd.b_ijK_storage( i, j, K, 0 ) = a( 0, 0 ) * mdd.D_ijK( i, j, K );
+//        mdd.b_ijK_storage( i, j, K, 1 ) = a( 0, 1 ) * mdd.D_ijK( i, j, K );
+//        mdd.b_ijK_storage( i, j, K, 2 ) = a( 1, 1 ) * mdd.D_ijK( i, j, K );
+//        mdd.b_ijK_storage( i, j, K, 3 ) = a( 0, 2 ) * mdd.D_ijK( i, j, K );
+//        mdd.b_ijK_storage( i, j, K, 4 ) = a( 1, 2 ) * mdd.D_ijK( i, j, K );
+//        mdd.b_ijK_storage( i, j, K, 5 ) = a( 2, 2 ) * mdd.D_ijK( i, j, K );
 //
 //        // the last 3 values are the sums for the b_ijK coefficients
-//        storage[ 6 ] = ( a( 0, 0 ) + a( 0, 1 ) + a( 0, 2 ) ) * mdd.D_ijK( i, j, K );
-//        storage[ 7 ] = ( a( 0, 1 ) + a( 1, 1 ) + a( 1, 2 ) ) * mdd.D_ijK( i, j, K );
-//        storage[ 8 ] = ( a( 0, 2 ) + a( 1, 2 ) + a( 2, 2 ) ) * mdd.D_ijK( i, j, K );
+//        mdd.b_ijK_storage( i, j, K, 6 ) = ( a( 0, 0 ) + a( 0, 1 ) + a( 0, 2 ) ) * mdd.D_ijK( i, j, K );
+//        mdd.b_ijK_storage( i, j, K, 7 ) = ( a( 0, 1 ) + a( 1, 1 ) + a( 1, 2 ) ) * mdd.D_ijK( i, j, K );
+//        mdd.b_ijK_storage( i, j, K, 8 ) = ( a( 0, 2 ) + a( 1, 2 ) + a( 2, 2 ) ) * mdd.D_ijK( i, j, K );
 
 
 
@@ -635,20 +614,19 @@ public:
 ////        if( K == 300 )
 ////            std::cout << "matrix after inversion:\n" << matrix;
 //
-//        typename MeshDependentData::RealType* storage = mdd.b_ijK( i, j, K );
 //        // store the inverse in the packed format (upper triangle, column by column)
 //        // see: http://www.netlib.org/lapack/lug/node123.html
-//        storage[ 0 ] = matrix.getElementFast( 0, 0 ) * mdd.D_ijK( i, j, K );
-//        storage[ 1 ] = matrix.getElementFast( 0, 1 ) * mdd.D_ijK( i, j, K );
-//        storage[ 2 ] = matrix.getElementFast( 1, 1 ) * mdd.D_ijK( i, j, K );
-//        storage[ 3 ] = matrix.getElementFast( 0, 2 ) * mdd.D_ijK( i, j, K );
-//        storage[ 4 ] = matrix.getElementFast( 1, 2 ) * mdd.D_ijK( i, j, K );
-//        storage[ 5 ] = matrix.getElementFast( 2, 2 ) * mdd.D_ijK( i, j, K );
+//        mdd.b_ijK_storage( i, j, K, 0 ) = matrix.getElementFast( 0, 0 ) * mdd.D_ijK( i, j, K );
+//        mdd.b_ijK_storage( i, j, K, 1 ) = matrix.getElementFast( 0, 1 ) * mdd.D_ijK( i, j, K );
+//        mdd.b_ijK_storage( i, j, K, 2 ) = matrix.getElementFast( 1, 1 ) * mdd.D_ijK( i, j, K );
+//        mdd.b_ijK_storage( i, j, K, 3 ) = matrix.getElementFast( 0, 2 ) * mdd.D_ijK( i, j, K );
+//        mdd.b_ijK_storage( i, j, K, 4 ) = matrix.getElementFast( 1, 2 ) * mdd.D_ijK( i, j, K );
+//        mdd.b_ijK_storage( i, j, K, 5 ) = matrix.getElementFast( 2, 2 ) * mdd.D_ijK( i, j, K );
 //
 //        // the last 3 values are the sums for the b_ijK coefficients
-//        storage[ 6 ] = ( matrix.getElementFast( 0, 0 ) + matrix.getElementFast( 0, 1 ) + matrix.getElementFast( 0, 2 ) ) * mdd.D_ijK( i, j, K );
-//        storage[ 7 ] = ( matrix.getElementFast( 0, 1 ) + matrix.getElementFast( 1, 1 ) + matrix.getElementFast( 1, 2 ) ) * mdd.D_ijK( i, j, K );
-//        storage[ 8 ] = ( matrix.getElementFast( 0, 2 ) + matrix.getElementFast( 1, 2 ) + matrix.getElementFast( 2, 2 ) ) * mdd.D_ijK( i, j, K );
+//        mdd.b_ijK_storage( i, j, K, 6 ) = ( matrix.getElementFast( 0, 0 ) + matrix.getElementFast( 0, 1 ) + matrix.getElementFast( 0, 2 ) ) * mdd.D_ijK( i, j, K );
+//        mdd.b_ijK_storage( i, j, K, 7 ) = ( matrix.getElementFast( 0, 1 ) + matrix.getElementFast( 1, 1 ) + matrix.getElementFast( 1, 2 ) ) * mdd.D_ijK( i, j, K );
+//        mdd.b_ijK_storage( i, j, K, 8 ) = ( matrix.getElementFast( 0, 2 ) + matrix.getElementFast( 1, 2 ) + matrix.getElementFast( 2, 2 ) ) * mdd.D_ijK( i, j, K );
 
 
 
@@ -671,32 +649,31 @@ public:
 
         LU_factorize( matrix );
 
-        typename MeshDependentData::RealType* storage = mdd.b_ijK( i, j, K );
         // store the inverse in the packed format (upper triangle, column by column)
         // see: http://www.netlib.org/lapack/lug/node123.html
 
         v.setValue( 0.0 );
         v[ 0 ] = 1.0;
         LU_solve( matrix, v, v );
-        storage[ 0 ] = v[ 0 ] * mdd.D_ijK( i, j, K );
+        mdd.b_ijK_storage( i, j, K, 0 ) = v[ 0 ] * mdd.D_ijK( i, j, K );
 
         v.setValue( 0.0 );
         v[ 1 ] = 1.0;
         LU_solve( matrix, v, v );
-        storage[ 1 ] = v[ 0 ] * mdd.D_ijK( i, j, K );
-        storage[ 2 ] = v[ 1 ] * mdd.D_ijK( i, j, K );
+        mdd.b_ijK_storage( i, j, K, 1 ) = v[ 0 ] * mdd.D_ijK( i, j, K );
+        mdd.b_ijK_storage( i, j, K, 2 ) = v[ 1 ] * mdd.D_ijK( i, j, K );
 
         v.setValue( 0.0 );
         v[ 2 ] = 1.0;
         LU_solve( matrix, v, v );
-        storage[ 3 ] = v[ 0 ] * mdd.D_ijK( i, j, K );
-        storage[ 4 ] = v[ 1 ] * mdd.D_ijK( i, j, K );
-        storage[ 5 ] = v[ 2 ] * mdd.D_ijK( i, j, K );
+        mdd.b_ijK_storage( i, j, K, 3 ) = v[ 0 ] * mdd.D_ijK( i, j, K );
+        mdd.b_ijK_storage( i, j, K, 4 ) = v[ 1 ] * mdd.D_ijK( i, j, K );
+        mdd.b_ijK_storage( i, j, K, 5 ) = v[ 2 ] * mdd.D_ijK( i, j, K );
 
         // the last 3 values are the sums for the b_ijK coefficients
-        storage[ 6 ] = storage[ 0 ] + storage[ 1 ] + storage[ 3 ];
-        storage[ 7 ] = storage[ 1 ] + storage[ 2 ] + storage[ 4 ];
-        storage[ 8 ] = storage[ 3 ] + storage[ 4 ] + storage[ 5 ];
+        mdd.b_ijK_storage( i, j, K, 6 ) = mdd.b_ijK_storage( i, j, K, 0 ) + mdd.b_ijK_storage( i, j, K, 1 ) + mdd.b_ijK_storage( i, j, K, 3 );
+        mdd.b_ijK_storage( i, j, K, 7 ) = mdd.b_ijK_storage( i, j, K, 1 ) + mdd.b_ijK_storage( i, j, K, 2 ) + mdd.b_ijK_storage( i, j, K, 4 );
+        mdd.b_ijK_storage( i, j, K, 8 ) = mdd.b_ijK_storage( i, j, K, 3 ) + mdd.b_ijK_storage( i, j, K, 4 ) + mdd.b_ijK_storage( i, j, K, 5 );
     }
 
     template< typename MeshDependentData >
@@ -714,8 +691,7 @@ public:
         if( e > f )
             TNL::swap( e, f );
 
-        const typename MeshDependentData::RealType* storage = mdd.b_ijK( i, j, K );
-        return storage[ e + ( f * (f+1) ) / 2 ];
+        return mdd.b_ijK_storage( i, j, K, e + ( f * (f+1) ) / 2 );
     }
 
     template< typename MeshDependentData >
@@ -729,8 +705,7 @@ public:
     {
         TNL_ASSERT( e < FacesPerCell< MeshEntity >::value, );
 
-        const typename MeshDependentData::RealType* storage = mdd.b_ijK( i, j, K );
-        return storage[ 6 + e ];
+        return mdd.b_ijK_storage( i, j, K, 6 + e );
     }
 };
 

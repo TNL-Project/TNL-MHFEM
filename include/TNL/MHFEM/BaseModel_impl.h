@@ -49,7 +49,7 @@ allocate( const MeshType & mesh )
     if( ! Z_ijE_upw.setSizes( 0, 0, numberOfFaces ) )
         return false;
 
-    if( ! b.setSize( n * n * numberOfCells * MassMatrix::size ) )
+    if( ! b_ijK_storage.setSizes( 0, 0, numberOfCells, 0 ) )
         return false;
     if( ! R_ijKe.setSizes( 0, 0, numberOfCells, 0 ) )
         return false;
