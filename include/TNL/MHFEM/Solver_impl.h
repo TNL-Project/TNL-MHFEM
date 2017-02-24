@@ -80,8 +80,6 @@ setup( const MeshPointer & meshPointer,
 {
     // prefix for snapshots
     outputPrefix = parameters.getParameter< TNL::String >( "output-prefix" ) + TNL::String("-");
-    // for condition in preIterate
-    initialTime = parameters.getParameter< double >( "initial-time" );
 
     // Our kernels for LocalUpdaters and DifferentialOperator have many local memory spills,
     // so this helps a lot. It does not affect TNL's reduction and multireduction algorithms,

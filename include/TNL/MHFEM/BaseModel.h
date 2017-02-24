@@ -55,20 +55,6 @@ public:
 
     // indexing functions
     __cuda_callable__
-    IndexType indexDofToFace( const IndexType & indexDof ) const
-    {
-//        return indexDof / n;
-        return indexDof % numberOfFaces;
-    }
-
-    __cuda_callable__
-    IndexType indexDofToEqno( const IndexType & indexDof ) const
-    {
-//        return indexDof % n;
-        return indexDof / numberOfFaces;
-    }
-
-    __cuda_callable__
     IndexType getDofIndex( const int & i, const IndexType & indexFace ) const
     {
 //        return n * indexFace + i;
