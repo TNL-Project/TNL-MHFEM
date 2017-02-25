@@ -25,7 +25,7 @@ struct RTN0< TNL::Meshes::MeshEntity< MeshConfig, Device, CellTopology > >
                    std::is_same< CellTopology, TNL::Meshes::MeshTetrahedronTopology >::value,
                    "The RTN0 space is not implemented for the requested entity topology yet." );
 
-    using MeshType = TNL::Meshes::Mesh< MeshConfig >;
+    using MeshType = TNL::Meshes::Mesh< MeshConfig, Device >;
     using CellType = TNL::Meshes::MeshEntity< MeshConfig, Device, CellTopology >;
     using PointType = typename TNL::Meshes::MeshTraits< MeshConfig >::PointType;
     using CoordinatesType = TNL::Containers::StaticVector< FacesPerCell< CellType >::value, typename PointType::RealType >;
