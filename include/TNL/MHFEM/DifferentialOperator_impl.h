@@ -53,7 +53,7 @@ setMatrixElements( DofFunctionPointer & u,
 //    TNL_ASSERT( ! mesh.isBoundaryEntity( entity ), );
 
     const IndexType E = entity.getIndex();
-    const IndexType indexRow = i * mesh.template getEntitiesCount< typename MeshType::Face >() + E;
+    const IndexType indexRow = mdd.getDofIndex( i, E );
 
     typename Matrix::MatrixRow matrixRow = matrix.getRow( indexRow );
 
@@ -225,7 +225,7 @@ setMatrixElements( DofFunctionPointer & u,
 //    TNL_ASSERT( ! mesh.isBoundaryEntity( entity ), );
 
     const IndexType E = entity.getIndex();
-    const IndexType indexRow = i * mesh.template getEntitiesCount< typename MeshType::Face >() + E;
+    const IndexType indexRow = mdd.getDofIndex( i, E );
 
     typename Matrix::MatrixRow matrixRow = matrix.getRow( indexRow );
 
@@ -304,7 +304,7 @@ setMatrixElements( DofVectorPointer & u,
 //    TNL_ASSERT( ! mesh.isBoundaryEntity( entity ), );
 
     const IndexType E = entity.getIndex();
-    const IndexType indexRow = i * mesh.template getEntitiesCount< typename MeshType::Face >() + E;
+    const IndexType indexRow = mdd.getDofIndex( i, E );
 
     typename Matrix::MatrixRow matrixRow = matrix.getRow( indexRow );
 
@@ -415,7 +415,7 @@ setMatrixElements( DofVectorPointer & u,
 //    TNL_ASSERT( ! mesh.isBoundaryEntity( entity ), );
 
     const IndexType E = entity.getIndex();
-    const IndexType indexRow = i * mesh.template getEntitiesCount< typename MeshType::Face >() + E;
+    const IndexType indexRow = mdd.getDofIndex( i, E );
 
     typename Matrix::MatrixRow matrixRow = matrix.getRow( indexRow );
 

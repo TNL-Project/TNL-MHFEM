@@ -133,11 +133,12 @@ setMatrixElements( DofVectorPointer & u,
 {
     // dereference the smart pointer on device
     const auto & mesh = this->mesh.template getData< DeviceType >();
+    const auto & mdd = this->mdd.template getData< DeviceType >();
 
 //    TNL_ASSERT( mesh.isBoundaryEntity( entity ), );
 
     const IndexType E = entity.getIndex();
-    const IndexType indexRow = i * mesh.template getEntitiesCount< typename MeshType::Face >() + E;
+    const IndexType indexRow = mdd.getDofIndex( i, E );
 
     typename Matrix::MatrixRow matrixRow = matrix.getRow( indexRow );
 
@@ -162,9 +163,6 @@ setMatrixElements( DofVectorPointer & u,
         // prepare face indexes
         const auto faceIndexes = getFacesForCell( mesh, K );
         const int e = getLocalIndex( faceIndexes, E );
-
-        // dereference the smart pointer on device
-        const auto & mdd = this->mdd.template getData< DeviceType >();
 
         // set right hand side value
         RealType bValue = - static_cast<const ModelImplementation*>(this)->getNeumannValue( mesh, i, E, time ) * getEntityMeasure( mesh, entity );
