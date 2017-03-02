@@ -709,4 +709,141 @@ public:
     }
 };
 
+template< typename MeshConfig, typename Device >
+class MassMatrix< TNL::Meshes::MeshEntity< MeshConfig, Device, TNL::Meshes::MeshTetrahedronTopology >, MassLumping::disabled >
+{
+public:
+    using MeshEntity = TNL::Meshes::MeshEntity< MeshConfig, Device, TNL::Meshes::MeshTetrahedronTopology >;
+    using LocalIndex = typename MeshEntity::LocalIndexType;
+    static constexpr MassLumping lumping = MassLumping::disabled;
+
+    // number of independent values defining the matrix
+    static constexpr int size = 14;
+
+    template< typename Mesh, typename MeshDependentData >
+    __cuda_callable__
+    static inline void
+    update( const Mesh & mesh,
+            const MeshEntity & entity,
+            MeshDependentData & mdd,
+            const LocalIndex i,
+            const LocalIndex j )
+    {
+        static_assert( std::is_same< typename Mesh::Config, MeshConfig >::value, "wrong mesh" );
+
+        const auto& v0 = mesh.template getEntity< 0 >( entity.template getSubentityIndex< 0 >( 0 ) );
+        const auto& v1 = mesh.template getEntity< 0 >( entity.template getSubentityIndex< 0 >( 1 ) );
+        const auto& v2 = mesh.template getEntity< 0 >( entity.template getSubentityIndex< 0 >( 2 ) );
+        const auto& v3 = mesh.template getEntity< 0 >( entity.template getSubentityIndex< 0 >( 3 ) );
+
+        const auto P0 = v0.getPoint() - v3.getPoint();
+        const auto P1 = v1.getPoint() - v3.getPoint();
+        const auto P2 = v2.getPoint() - v3.getPoint();
+        // P3 = 0
+        
+        const auto P00 = P0 * P0;
+        const auto P11 = P1 * P1;
+        const auto P22 = P2 * P2;
+        const auto P01 = P0 * P1;
+        const auto P02 = P0 * P2;
+        const auto P12 = P1 * P2;
+
+        const auto K = entity.getIndex();
+        const auto denominator = 180 * getEntityMeasure( mesh, entity );
+
+        // LU decomposition is stable
+        // TODO: use Cholesky instead
+
+        StaticMatrix< 4, 4, typename Mesh::RealType > matrix;
+        TNL::Containers::StaticVector< 4, typename Mesh::RealType > v;
+
+        matrix.setElementFast( 0, 0,  ( 12 * P00 +  2 * P11 +  2 * P22 - 8 * P01 - 8 * P02 + 2 * P12 ) / denominator );
+        matrix.setElementFast( 1, 1,  (  2 * P00 + 12 * P11 +  2 * P22 - 8 * P01 + 2 * P02 - 8 * P12 ) / denominator );
+        matrix.setElementFast( 2, 2,  (  2 * P00 +  2 * P11 + 12 * P22 + 2 * P01 - 8 * P02 - 8 * P12 ) / denominator );
+        matrix.setElementFast( 3, 3,  2 * ( P00 + P11 + P22 + P01 + P02 + P12 ) / denominator );
+        matrix.setElementFast( 0, 1,  ( - 3 * P00 - 3 * P11 + 2 * P22 + 12 * P01 -  3 * P02 -  3 * P12 ) / denominator );
+        matrix.setElementFast( 0, 2,  ( - 3 * P00 + 2 * P11 - 3 * P22 -  3 * P01 + 12 * P02 -  3 * P12 ) / denominator );
+        matrix.setElementFast( 1, 2,  (   2 * P00 - 3 * P11 - 3 * P22 -  3 * P01 -  3 * P02 + 12 * P12 ) / denominator );
+        matrix.setElementFast( 0, 3,  ( - 3 * P00 + 2 * P11 + 2 * P22 - 3 * P01 - 3 * P02 + 2 * P12 ) / denominator );
+        matrix.setElementFast( 1, 3,  (   2 * P00 - 3 * P11 + 2 * P22 - 3 * P01 + 2 * P02 - 3 * P12 ) / denominator );
+        matrix.setElementFast( 2, 3,  (   2 * P00 + 2 * P11 - 3 * P22 + 2 * P01 - 3 * P02 - 3 * P12 ) / denominator );
+
+        matrix.setElementFast( 1, 0,  matrix.getElementFast( 0, 1 ) );
+        matrix.setElementFast( 2, 0,  matrix.getElementFast( 0, 2 ) );
+        matrix.setElementFast( 2, 1,  matrix.getElementFast( 1, 2 ) );
+        matrix.setElementFast( 3, 0,  matrix.getElementFast( 0, 3 ) );
+        matrix.setElementFast( 3, 1,  matrix.getElementFast( 1, 3 ) );
+        matrix.setElementFast( 3, 2,  matrix.getElementFast( 2, 3 ) );
+
+        LU_factorize( matrix );
+
+        // store the inverse in the packed format (upper triangle, column by column)
+        // see: http://www.netlib.org/lapack/lug/node123.html
+
+        v.setValue( 0.0 );
+        v[ 0 ] = 1.0;
+        LU_solve( matrix, v, v );
+        mdd.b_ijK_storage( i, j, K, 0 ) = v[ 0 ] * mdd.D_ijK( i, j, K );
+
+        v.setValue( 0.0 );
+        v[ 1 ] = 1.0;
+        LU_solve( matrix, v, v );
+        mdd.b_ijK_storage( i, j, K, 1 ) = v[ 0 ] * mdd.D_ijK( i, j, K );
+        mdd.b_ijK_storage( i, j, K, 2 ) = v[ 1 ] * mdd.D_ijK( i, j, K );
+
+        v.setValue( 0.0 );
+        v[ 2 ] = 1.0;
+        LU_solve( matrix, v, v );
+        mdd.b_ijK_storage( i, j, K, 3 ) = v[ 0 ] * mdd.D_ijK( i, j, K );
+        mdd.b_ijK_storage( i, j, K, 4 ) = v[ 1 ] * mdd.D_ijK( i, j, K );
+        mdd.b_ijK_storage( i, j, K, 5 ) = v[ 2 ] * mdd.D_ijK( i, j, K );
+
+        v.setValue( 0.0 );
+        v[ 3 ] = 1.0;
+        LU_solve( matrix, v, v );
+        mdd.b_ijK_storage( i, j, K, 6 ) = v[ 0 ] * mdd.D_ijK( i, j, K );
+        mdd.b_ijK_storage( i, j, K, 7 ) = v[ 1 ] * mdd.D_ijK( i, j, K );
+        mdd.b_ijK_storage( i, j, K, 8 ) = v[ 2 ] * mdd.D_ijK( i, j, K );
+        mdd.b_ijK_storage( i, j, K, 9 ) = v[ 3 ] * mdd.D_ijK( i, j, K );
+
+        // the last 4 values are the sums for the b_ijK coefficients
+        mdd.b_ijK_storage( i, j, K, 10 ) = mdd.b_ijK_storage( i, j, K, 0 ) + mdd.b_ijK_storage( i, j, K, 1 ) + mdd.b_ijK_storage( i, j, K, 3 ) + mdd.b_ijK_storage( i, j, K, 6 );
+        mdd.b_ijK_storage( i, j, K, 11 ) = mdd.b_ijK_storage( i, j, K, 1 ) + mdd.b_ijK_storage( i, j, K, 2 ) + mdd.b_ijK_storage( i, j, K, 4 ) + mdd.b_ijK_storage( i, j, K, 7 );
+        mdd.b_ijK_storage( i, j, K, 12 ) = mdd.b_ijK_storage( i, j, K, 3 ) + mdd.b_ijK_storage( i, j, K, 4 ) + mdd.b_ijK_storage( i, j, K, 5 ) + mdd.b_ijK_storage( i, j, K, 8 );
+        mdd.b_ijK_storage( i, j, K, 13 ) = mdd.b_ijK_storage( i, j, K, 6 ) + mdd.b_ijK_storage( i, j, K, 7 ) + mdd.b_ijK_storage( i, j, K, 8 ) + mdd.b_ijK_storage( i, j, K, 9 );
+    }
+
+    template< typename MeshDependentData >
+    __cuda_callable__
+    static inline typename MeshDependentData::RealType
+    b_ijKef( const MeshDependentData & mdd,
+             const LocalIndex i,
+             const LocalIndex j,
+             const typename MeshDependentData::IndexType & K,
+             LocalIndex e,
+             LocalIndex f )
+    {
+        TNL_ASSERT( e < FacesPerCell< MeshEntity >::value && f < FacesPerCell< MeshEntity >::value, );
+
+        if( e > f )
+            TNL::swap( e, f );
+
+        return mdd.b_ijK_storage( i, j, K, e + ( f * (f+1) ) / 2 );
+    }
+
+    template< typename MeshDependentData >
+    __cuda_callable__
+    static inline typename MeshDependentData::RealType
+    b_ijKe( const MeshDependentData & mdd,
+            const int & i,
+            const int & j,
+            const typename MeshDependentData::IndexType & K,
+            const int & e )
+    {
+        TNL_ASSERT( e < FacesPerCell< MeshEntity >::value, );
+
+        return mdd.b_ijK_storage( i, j, K, 6 + e );
+    }
+};
+
 } // namespace mhfem
