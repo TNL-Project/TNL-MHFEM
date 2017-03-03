@@ -751,6 +751,43 @@ public:
         const auto K = entity.getIndex();
         const auto denominator = 180 * getEntityMeasure( mesh, entity );
 
+//        // most stable version using armadillo/LAPACK
+//        arma::mat A( 4, 4 );
+//
+//        A( 0, 0 ) = ( 12 * P00 +  2 * P11 +  2 * P22 - 8 * P01 - 8 * P02 + 2 * P12 ) / denominator;
+//        A( 1, 1 ) = (  2 * P00 + 12 * P11 +  2 * P22 - 8 * P01 + 2 * P02 - 8 * P12 ) / denominator;
+//        A( 2, 2 ) = (  2 * P00 +  2 * P11 + 12 * P22 + 2 * P01 - 8 * P02 - 8 * P12 ) / denominator;
+//        A( 3, 3 ) = 2 * ( P00 + P11 + P22 + P01 + P02 + P12 ) / denominator;
+//        A( 0, 1 ) = ( - 3 * P00 - 3 * P11 + 2 * P22 + 12 * P01 -  3 * P02 -  3 * P12 ) / denominator;
+//        A( 0, 2 ) = ( - 3 * P00 + 2 * P11 - 3 * P22 -  3 * P01 + 12 * P02 -  3 * P12 ) / denominator;
+//        A( 1, 2 ) = (   2 * P00 - 3 * P11 - 3 * P22 -  3 * P01 -  3 * P02 + 12 * P12 ) / denominator;
+//        A( 0, 3 ) = ( - 3 * P00 + 2 * P11 + 2 * P22 - 3 * P01 - 3 * P02 + 2 * P12 ) / denominator;
+//        A( 1, 3 ) = (   2 * P00 - 3 * P11 + 2 * P22 - 3 * P01 + 2 * P02 - 3 * P12 ) / denominator;
+//        A( 2, 3 ) = (   2 * P00 + 2 * P11 - 3 * P22 + 2 * P01 - 3 * P02 - 3 * P12 ) / denominator;
+//
+//        A( 1, 0 ) = A( 0, 1 );
+//        A( 2, 0 ) = A( 0, 2 );
+//        A( 2, 1 ) = A( 1, 2 );
+//        A( 3, 0 ) = A( 0, 3 );
+//        A( 3, 1 ) = A( 1, 3 );
+//        A( 3, 2 ) = A( 2, 3 );
+//
+////        arma::mat a = arma::inv( A );
+//        arma::mat a = arma::inv_sympd( A );
+//
+//        // store the inverse in the packed format (upper triangle, column by column)
+//        // see: http://www.netlib.org/lapack/lug/node123.html
+//        mdd.b_ijK_storage( i, j, K, 0 ) = a( 0, 0 ) * mdd.D_ijK( i, j, K );
+//        mdd.b_ijK_storage( i, j, K, 1 ) = a( 0, 1 ) * mdd.D_ijK( i, j, K );
+//        mdd.b_ijK_storage( i, j, K, 2 ) = a( 1, 1 ) * mdd.D_ijK( i, j, K );
+//        mdd.b_ijK_storage( i, j, K, 3 ) = a( 0, 2 ) * mdd.D_ijK( i, j, K );
+//        mdd.b_ijK_storage( i, j, K, 4 ) = a( 1, 2 ) * mdd.D_ijK( i, j, K );
+//        mdd.b_ijK_storage( i, j, K, 5 ) = a( 2, 2 ) * mdd.D_ijK( i, j, K );
+//        mdd.b_ijK_storage( i, j, K, 6 ) = a( 0, 3 ) * mdd.D_ijK( i, j, K );
+//        mdd.b_ijK_storage( i, j, K, 7 ) = a( 1, 3 ) * mdd.D_ijK( i, j, K );
+//        mdd.b_ijK_storage( i, j, K, 8 ) = a( 2, 3 ) * mdd.D_ijK( i, j, K );
+//        mdd.b_ijK_storage( i, j, K, 9 ) = a( 3, 3 ) * mdd.D_ijK( i, j, K );
+
         // LU decomposition is stable
         // TODO: use Cholesky instead
 
