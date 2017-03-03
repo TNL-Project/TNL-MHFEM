@@ -842,7 +842,7 @@ public:
     {
         TNL_ASSERT( e < FacesPerCell< MeshEntity >::value, );
 
-        return mdd.b_ijK_storage( i, j, K, 6 + e );
+        return mdd.b_ijK_storage( i, j, K, 10 + e );
     }
 };
 
