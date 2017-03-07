@@ -35,15 +35,11 @@ public:
         this->dofVector.bind( dofVector );
     }
 
-    template< typename EntityType >
     __cuda_callable__
-    RealType operator()( const EntityType & entity,
+    RealType operator()( const typename MeshType::Cell & entity,
                          const RealType & time,
                          const int & i ) const
     {
-        static_assert( EntityType::getEntityDimension() == getEntitiesDimensions(),
-                       "This function is defined on cells." );
-
         // dereference the smart pointer on device
         const auto & mdd = this->mdd.template getData< DeviceType >();
         const auto & mesh = this->mesh.template getData< DeviceType >();

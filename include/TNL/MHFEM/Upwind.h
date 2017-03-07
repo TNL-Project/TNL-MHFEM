@@ -37,15 +37,11 @@ public:
         this->bc = bc;
     }
 
-    template< typename EntityType >
     __cuda_callable__
-    RealType operator()( const EntityType & entity,
+    RealType operator()( const typename MeshType::Face & entity,
                          const RealType & time,
                          const int & i ) const
     {
-        static_assert( EntityType::getEntityDimension() == getEntitiesDimensions(),
-                       "This function is defined on faces." );
-
         // dereference the smart pointer on device
         const auto & mdd = this->mdd.template getData< DeviceType >();
         const auto & mesh = this->mesh.template getData< DeviceType >();
@@ -124,16 +120,12 @@ public:
         this->Z_iF.bind( Z_iF );
     }
 
-    template< typename EntityType >
     __cuda_callable__
-    RealType operator()( const EntityType & entity,
+    RealType operator()( const typename MeshType::Face & entity,
                          const RealType & time,
                          // NOTE: xxx should vary between 0 and (MeshDependentData::NumberOfEquations)^2
                          const int & xxx ) const
     {
-        static_assert( EntityType::getEntityDimension() == getEntitiesDimensions(),
-                       "This function is defined on faces." );
-
         const int i = xxx / MeshDependentData::NumberOfEquations;
         const int j = xxx % MeshDependentData::NumberOfEquations;
 

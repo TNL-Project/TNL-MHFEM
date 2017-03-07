@@ -456,6 +456,7 @@ template< typename MeshConfig, typename Device >
 class MassMatrix< TNL::Meshes::MeshEntity< MeshConfig, Device, TNL::Meshes::MeshEdgeTopology >, MassLumping::disabled >
 {
 public:
+    using Mesh = TNL::Meshes::Mesh< MeshConfig, Device >;
     using MeshEntity = TNL::Meshes::MeshEntity< MeshConfig, Device, TNL::Meshes::MeshEdgeTopology >;
     using LocalIndex = typename MeshEntity::LocalIndexType;
     static constexpr MassLumping lumping = MassLumping::disabled;
@@ -463,7 +464,7 @@ public:
     // number of independent values defining the matrix
     static constexpr int size = 1;
 
-    template< typename Mesh, typename MeshDependentData >
+    template< typename MeshDependentData >
     __cuda_callable__
     static inline void
     update( const Mesh & mesh,
@@ -472,8 +473,6 @@ public:
             const LocalIndex i,
             const LocalIndex j )
     {
-        static_assert( std::is_same< typename Mesh::Config, MeshConfig >::value, "wrong mesh" );
-
         const auto K = entity.getIndex();
         const auto h_x = getEntityMeasure( mesh, entity );
         mdd.b_ijK_storage( i, j, K, 0 ) = 2 * mdd.D_ijK( i, j, K ) / h_x;
@@ -515,6 +514,7 @@ template< typename MeshConfig, typename Device >
 class MassMatrix< TNL::Meshes::MeshEntity< MeshConfig, Device, TNL::Meshes::MeshTriangleTopology >, MassLumping::disabled >
 {
 public:
+    using Mesh = TNL::Meshes::Mesh< MeshConfig, Device >;
     using MeshEntity = TNL::Meshes::MeshEntity< MeshConfig, Device, TNL::Meshes::MeshTriangleTopology >;
     using LocalIndex = typename MeshEntity::LocalIndexType;
     static constexpr MassLumping lumping = MassLumping::disabled;
@@ -522,7 +522,7 @@ public:
     // number of independent values defining the matrix
     static constexpr int size = 9;
 
-    template< typename Mesh, typename MeshDependentData >
+    template< typename MeshDependentData >
     __cuda_callable__
     static inline void
     update( const Mesh & mesh,
@@ -531,8 +531,6 @@ public:
             const LocalIndex i,
             const LocalIndex j )
     {
-        static_assert( std::is_same< typename Mesh::Config, MeshConfig >::value, "wrong mesh" );
-
         const auto& v0 = mesh.template getEntity< 0 >( entity.template getSubentityIndex< 0 >( 0 ) );
         const auto& v1 = mesh.template getEntity< 0 >( entity.template getSubentityIndex< 0 >( 1 ) );
         const auto& v2 = mesh.template getEntity< 0 >( entity.template getSubentityIndex< 0 >( 2 ) );
@@ -713,6 +711,7 @@ template< typename MeshConfig, typename Device >
 class MassMatrix< TNL::Meshes::MeshEntity< MeshConfig, Device, TNL::Meshes::MeshTetrahedronTopology >, MassLumping::disabled >
 {
 public:
+    using Mesh = TNL::Meshes::Mesh< MeshConfig, Device >;
     using MeshEntity = TNL::Meshes::MeshEntity< MeshConfig, Device, TNL::Meshes::MeshTetrahedronTopology >;
     using LocalIndex = typename MeshEntity::LocalIndexType;
     static constexpr MassLumping lumping = MassLumping::disabled;
@@ -720,7 +719,7 @@ public:
     // number of independent values defining the matrix
     static constexpr int size = 14;
 
-    template< typename Mesh, typename MeshDependentData >
+    template< typename MeshDependentData >
     __cuda_callable__
     static inline void
     update( const Mesh & mesh,
@@ -729,8 +728,6 @@ public:
             const LocalIndex i,
             const LocalIndex j )
     {
-        static_assert( std::is_same< typename Mesh::Config, MeshConfig >::value, "wrong mesh" );
-
         const auto& v0 = mesh.template getEntity< 0 >( entity.template getSubentityIndex< 0 >( 0 ) );
         const auto& v1 = mesh.template getEntity< 0 >( entity.template getSubentityIndex< 0 >( 1 ) );
         const auto& v2 = mesh.template getEntity< 0 >( entity.template getSubentityIndex< 0 >( 2 ) );
