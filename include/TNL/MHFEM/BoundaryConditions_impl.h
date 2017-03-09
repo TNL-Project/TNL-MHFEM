@@ -49,11 +49,22 @@ struct NeumannMatrixRowSetter
         for( LocalIndex j = 0; j < MeshDependentData::NumberOfEquations; j++ ) {
             for( LocalIndex g = 0; g < MeshDependentData::FacesPerCell; g++ ) {
                 const LocalIndex f = localFaceIndexes[ g ];
-                matrixRow.setElement( j * MeshDependentData::FacesPerCell + f,
+                matrixRow.setElement( j * MeshDependentData::FacesPerCell + g,
                                       mdd.getDofIndex( j, faceIndexes[ f ] ),
                                       coeff::A_ijKEF( mdd, i, j, K, E, e, faceIndexes[ f ], f ) );
             }
         }
+
+#ifndef NDEBUG
+    int errors = 0;
+    for( int c = 1; c < MeshDependentData::FacesPerCell * MeshDependentData::NumberOfEquations; c++ )
+        if( matrixRow.getElementColumn( c - 1 ) >= matrixRow.getElementColumn( c ) ) {
+            std::cerr << "error: E = " << E << ", c = " << c << ", row = " << matrixRow << std::endl;
+            errors += 1;
+        }
+    TNL_ASSERT( errors == 0,
+                std::cerr << "count of wrong rows: " << errors << std::endl; );
+#endif
     }
 };
 

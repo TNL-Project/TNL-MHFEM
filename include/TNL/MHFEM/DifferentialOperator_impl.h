@@ -170,6 +170,16 @@ setMatrixElements( DofFunctionPointer & u,
                 std::cerr << "rowElements = " << rowElements << ", expected = "
                           << ( 2 * MeshDependentDataType::FacesPerCell - 1 ) * MeshDependentDataType::NumberOfEquations
                           << std::endl; );
+#ifndef NDEBUG
+    int errors = 0;
+    for( int c = 1; c < rowElements; c++ )
+        if( matrixRow.getElementColumn( c - 1 ) >= matrixRow.getElementColumn( c ) ) {
+            std::cerr << "error: E = " << E << ", c = " << c << ", row = " << matrixRow << std::endl;
+            errors += 1;
+        }
+    TNL_ASSERT( errors == 0,
+                std::cerr << "count of wrong rows: " << errors << std::endl; );
+#endif
 }
 
 
