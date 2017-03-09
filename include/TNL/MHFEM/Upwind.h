@@ -72,7 +72,9 @@ public:
                 }
 
             if( inflow )
-                // TODO: check if the value is available (we need to know the density on \Gamma_c ... part of the boundary where the fluid flows in)
+                // The velocity might be negative even on faces with 0 Neumann condition (probably
+                // due to rounding errors), so the model must check if the value is available and
+                // otherwise return m_iK( i, K1 ).
                 return mdd.getBoundaryMobility( mesh, bc, i, entity, time );
             return mdd.m_iK( i, K1 );
         }
