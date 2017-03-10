@@ -31,11 +31,17 @@ public:
         this->mdd = mdd;
     }
 
+    // FIXME: template needed due to limitation of FunctionAdapter, otherwise we would use MeshType::Face
+    // (for grids it is different from MeshType::template EntityType< d >, because it has non-default Config parameter)
+    template< typename EntityType >
     __cuda_callable__
-    RealType operator()( const typename MeshType::Face & entity,
+    RealType operator()( const EntityType & entity,
                          const RealType & time,
                          const int & i ) const
     {
+        static_assert( EntityType::getEntityDimension() == getEntitiesDimensions(),
+                       "This function is defined on faces." );
+
         // dereference the smart pointer on device
         const auto & mesh = this->mesh.template getData< DeviceType >();
         const auto & mdd = this->mdd.template getData< DeviceType >();
