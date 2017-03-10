@@ -531,6 +531,7 @@ public:
             const LocalIndex i,
             const LocalIndex j )
     {
+        // TNL orders the subentities such that i-th subvertex is the opposite vertex of i-th subface
         const auto& v0 = mesh.template getEntity< 0 >( entity.template getSubentityIndex< 0 >( 0 ) );
         const auto& v1 = mesh.template getEntity< 0 >( entity.template getSubentityIndex< 0 >( 1 ) );
         const auto& v2 = mesh.template getEntity< 0 >( entity.template getSubentityIndex< 0 >( 2 ) );
@@ -728,6 +729,7 @@ public:
             const LocalIndex i,
             const LocalIndex j )
     {
+        // TNL orders the subentities such that i-th subvertex is the opposite vertex of i-th subface
         const auto& v0 = mesh.template getEntity< 0 >( entity.template getSubentityIndex< 0 >( 0 ) );
         const auto& v1 = mesh.template getEntity< 0 >( entity.template getSubentityIndex< 0 >( 1 ) );
         const auto& v2 = mesh.template getEntity< 0 >( entity.template getSubentityIndex< 0 >( 2 ) );
@@ -746,6 +748,7 @@ public:
         const auto P12 = P1 * P2;
 
         const auto K = entity.getIndex();
+        const auto D = mdd.D_ijK( i, j, K );
         const auto denominator = 180 * getEntityMeasure( mesh, entity );
 
 //        // most stable version using armadillo/LAPACK
@@ -774,16 +777,16 @@ public:
 //
 //        // store the inverse in the packed format (upper triangle, column by column)
 //        // see: http://www.netlib.org/lapack/lug/node123.html
-//        mdd.b_ijK_storage( i, j, K, 0 ) = a( 0, 0 ) * mdd.D_ijK( i, j, K );
-//        mdd.b_ijK_storage( i, j, K, 1 ) = a( 0, 1 ) * mdd.D_ijK( i, j, K );
-//        mdd.b_ijK_storage( i, j, K, 2 ) = a( 1, 1 ) * mdd.D_ijK( i, j, K );
-//        mdd.b_ijK_storage( i, j, K, 3 ) = a( 0, 2 ) * mdd.D_ijK( i, j, K );
-//        mdd.b_ijK_storage( i, j, K, 4 ) = a( 1, 2 ) * mdd.D_ijK( i, j, K );
-//        mdd.b_ijK_storage( i, j, K, 5 ) = a( 2, 2 ) * mdd.D_ijK( i, j, K );
-//        mdd.b_ijK_storage( i, j, K, 6 ) = a( 0, 3 ) * mdd.D_ijK( i, j, K );
-//        mdd.b_ijK_storage( i, j, K, 7 ) = a( 1, 3 ) * mdd.D_ijK( i, j, K );
-//        mdd.b_ijK_storage( i, j, K, 8 ) = a( 2, 3 ) * mdd.D_ijK( i, j, K );
-//        mdd.b_ijK_storage( i, j, K, 9 ) = a( 3, 3 ) * mdd.D_ijK( i, j, K );
+//        mdd.b_ijK_storage( i, j, K, 0 ) = a( 0, 0 ) * D;
+//        mdd.b_ijK_storage( i, j, K, 1 ) = a( 0, 1 ) * D;
+//        mdd.b_ijK_storage( i, j, K, 2 ) = a( 1, 1 ) * D;
+//        mdd.b_ijK_storage( i, j, K, 3 ) = a( 0, 2 ) * D;
+//        mdd.b_ijK_storage( i, j, K, 4 ) = a( 1, 2 ) * D;
+//        mdd.b_ijK_storage( i, j, K, 5 ) = a( 2, 2 ) * D;
+//        mdd.b_ijK_storage( i, j, K, 6 ) = a( 0, 3 ) * D;
+//        mdd.b_ijK_storage( i, j, K, 7 ) = a( 1, 3 ) * D;
+//        mdd.b_ijK_storage( i, j, K, 8 ) = a( 2, 3 ) * D;
+//        mdd.b_ijK_storage( i, j, K, 9 ) = a( 3, 3 ) * D;
 
         // LU decomposition is stable
         // TODO: use Cholesky instead
@@ -817,28 +820,28 @@ public:
         v.setValue( 0.0 );
         v[ 0 ] = 1.0;
         LU_solve( matrix, v, v );
-        mdd.b_ijK_storage( i, j, K, 0 ) = v[ 0 ] * mdd.D_ijK( i, j, K );
+        mdd.b_ijK_storage( i, j, K, 0 ) = v[ 0 ] * D;
 
         v.setValue( 0.0 );
         v[ 1 ] = 1.0;
         LU_solve( matrix, v, v );
-        mdd.b_ijK_storage( i, j, K, 1 ) = v[ 0 ] * mdd.D_ijK( i, j, K );
-        mdd.b_ijK_storage( i, j, K, 2 ) = v[ 1 ] * mdd.D_ijK( i, j, K );
+        mdd.b_ijK_storage( i, j, K, 1 ) = v[ 0 ] * D;
+        mdd.b_ijK_storage( i, j, K, 2 ) = v[ 1 ] * D;
 
         v.setValue( 0.0 );
         v[ 2 ] = 1.0;
         LU_solve( matrix, v, v );
-        mdd.b_ijK_storage( i, j, K, 3 ) = v[ 0 ] * mdd.D_ijK( i, j, K );
-        mdd.b_ijK_storage( i, j, K, 4 ) = v[ 1 ] * mdd.D_ijK( i, j, K );
-        mdd.b_ijK_storage( i, j, K, 5 ) = v[ 2 ] * mdd.D_ijK( i, j, K );
+        mdd.b_ijK_storage( i, j, K, 3 ) = v[ 0 ] * D;
+        mdd.b_ijK_storage( i, j, K, 4 ) = v[ 1 ] * D;
+        mdd.b_ijK_storage( i, j, K, 5 ) = v[ 2 ] * D;
 
         v.setValue( 0.0 );
         v[ 3 ] = 1.0;
         LU_solve( matrix, v, v );
-        mdd.b_ijK_storage( i, j, K, 6 ) = v[ 0 ] * mdd.D_ijK( i, j, K );
-        mdd.b_ijK_storage( i, j, K, 7 ) = v[ 1 ] * mdd.D_ijK( i, j, K );
-        mdd.b_ijK_storage( i, j, K, 8 ) = v[ 2 ] * mdd.D_ijK( i, j, K );
-        mdd.b_ijK_storage( i, j, K, 9 ) = v[ 3 ] * mdd.D_ijK( i, j, K );
+        mdd.b_ijK_storage( i, j, K, 6 ) = v[ 0 ] * D;
+        mdd.b_ijK_storage( i, j, K, 7 ) = v[ 1 ] * D;
+        mdd.b_ijK_storage( i, j, K, 8 ) = v[ 2 ] * D;
+        mdd.b_ijK_storage( i, j, K, 9 ) = v[ 3 ] * D;
 
         // the last 4 values are the sums for the b_ijK coefficients
         mdd.b_ijK_storage( i, j, K, 10 ) = mdd.b_ijK_storage( i, j, K, 0 ) + mdd.b_ijK_storage( i, j, K, 1 ) + mdd.b_ijK_storage( i, j, K, 3 ) + mdd.b_ijK_storage( i, j, K, 6 );
