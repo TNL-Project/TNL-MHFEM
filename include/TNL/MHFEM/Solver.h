@@ -56,7 +56,7 @@ public:
 
     TNL::Solvers::SolverMonitor* getSolverMonitor();
 
-    bool setup( const MeshPointer & meshPointer,
+    bool setup( MeshPointer & meshPointer,
                 const TNL::Config::ParameterContainer & parameters,
                 const TNL::String & prefix );
 

@@ -9,6 +9,7 @@
 
 #include "Solver.h"
 #include "LocalUpdaters.h"
+#include "MeshOrdering.h"
 
 namespace mhfem
 {
@@ -74,7 +75,7 @@ template< typename Mesh,
           typename Matrix >
 bool
 Solver< Mesh, MeshDependentData, DifferentialOperator, BoundaryConditions, RightHandSide, Matrix >::
-setup( const MeshPointer & meshPointer,
+setup( MeshPointer & meshPointer,
        const TNL::Config::ParameterContainer & parameters,
        const TNL::String & prefix )
 {
@@ -87,6 +88,11 @@ setup( const MeshPointer & meshPointer,
 #ifdef HAVE_CUDA
     cudaDeviceSetCacheConfig( cudaFuncCachePreferL1 );
 #endif
+
+    if( ! MeshOrdering< Mesh >::reorder( *meshPointer ) ) {
+        std::cerr << "Failed to reorder mesh entities." << std::endl;
+        return false;
+    }
 
     return true;
 }
