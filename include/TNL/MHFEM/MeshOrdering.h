@@ -4,6 +4,8 @@
 
 #include "../libs/spatial/src/idle_point_multimap.hpp"
 
+#include "../lib_general/mesh_helpers.h"
+
 namespace mhfem {
 
 template< typename MeshEntity, typename MeshConfig, typename PermutationVector >
@@ -59,10 +61,11 @@ getSpatialOrdering( const TNL::Meshes::Mesh< MeshConfig, TNL::Devices::Cuda >& m
     using MeshHost = TNL::Meshes::Mesh< MeshConfig, TNL::Devices::Host >;
     using MeshCuda = TNL::Meshes::Mesh< MeshConfig, TNL::Devices::Host >;
     using PermutationHost = typename PermutationVector::HostType;
+    using MeshHostEntity = typename MeshHost::template EntityType< MeshEntity::getEntityDimension() >;
 
     const MeshHost meshHost = mesh;
     PermutationHost permHost, ipermHost;
-    if( ! getSpatialOrdering( meshHost, permHost, ipermHost ) )
+    if( ! getSpatialOrdering< MeshHostEntity >( meshHost, permHost, ipermHost ) )
         return false;
     if( ! perm.setLike( permHost ) || ! iperm.setLike( ipermHost ) )
         return false;
