@@ -12,6 +12,7 @@
 
 #include "HybridizationExplicitFunction.h"
 #include "Upwind.h"
+#include "../lib_general/MeshOrdering.h"
 
 namespace mhfem
 {
@@ -162,6 +163,9 @@ protected:
     TNL::SharedPointer< UpwindZFunction, DeviceType > upwindZFunction;
     // evaluator
     TNL::Functions::MeshFunctionEvaluator< NDofFunction, UpwindZFunction > upwindZEvaluator;
+
+    // holder for mesh ordering permutations
+    MeshOrdering< Mesh > meshOrdering;
 };
 
 } // namespace mhfem

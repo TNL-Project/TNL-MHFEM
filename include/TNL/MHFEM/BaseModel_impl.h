@@ -59,4 +59,27 @@ allocate( const MeshType & mesh )
     return true;
 }
 
+template< typename Mesh,
+          typename Real,
+          typename Index,
+          int NumberOfEquations,
+          typename ModelImplementation,
+          typename MassMatrix >
+    template< typename MeshOrdering >
+bool
+BaseModel< Mesh, Real, Index, NumberOfEquations, ModelImplementation, MassMatrix >::
+reorderDofs( const MeshOrdering & meshOrdering, bool inverse )
+{
+    bool status = true;
+    DofVectorType Z;
+    for( int i = 0; i < NumberOfEquations; i++ ) {
+        // TODO: this depends on the specific layout of Z_iK, general reordering of NDArray is needed
+        Z.bind( Z_iK.getStorageArray().getData() + i * numberOfCells, numberOfCells );
+        status &= meshOrdering.reorder_cells( Z, inverse );
+    }
+    if( ! status )
+        std::cerr << "Failed to reorder the DOF vector." << std::endl;
+    return status;
+}
+
 } // namespace mhfem

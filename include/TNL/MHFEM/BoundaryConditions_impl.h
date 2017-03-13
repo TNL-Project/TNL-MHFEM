@@ -126,7 +126,7 @@ init( const TNL::Config::ParameterContainer & parameters,
         return false;
     }
 
-    if( ! this->dirichletTags.setSize( storage.dofSize ) ||
+    if( ! dirichletTags.setSize( storage.dofSize ) ||
         ! dirichletValues.setSize( storage.dofSize ) ||
         ! neumannValues.setSize( storage.dofSize ) )
     {
@@ -134,11 +134,36 @@ init( const TNL::Config::ParameterContainer & parameters,
         return false;
     }
 
-    this->dirichletTags = storage.dirichletTags;
+    dirichletTags = storage.dirichletTags;
     dirichletValues = storage.dirichletValues;
     neumannValues = storage.neumannValues;
 
     return true;
+}
+
+template< typename Mesh,
+          typename MeshDependentData,
+          typename ModelImplementation >
+    template< typename MeshOrdering >
+bool
+BoundaryConditions< Mesh, MeshDependentData, ModelImplementation >::
+reorderBoundaryConditions( const MeshOrdering & meshOrdering )
+{
+    bool status = true;
+    TagArrayType tags;
+    DofVectorType dir, neu;
+    const IndexType faces = dirichletTags.getSize() / MeshDependentData::NumberOfEquations;
+    for( int i = 0; i < MeshDependentData::NumberOfEquations; i++ ) {
+        tags.bind( dirichletTags.getData() + i * faces, faces );
+        dir.bind( dirichletValues.getData() + i * faces, faces );
+        neu.bind( neumannValues.getData() + i * faces, faces );
+        status &= meshOrdering.reorder_faces( tags );
+        status &= meshOrdering.reorder_faces( dir );
+        status &= meshOrdering.reorder_faces( neu );
+    }
+    if( ! status )
+        std::cerr << "Failed to reorder boundary conditions." << std::endl;
+    return status;
 }
 
 template< typename Mesh,

@@ -53,6 +53,9 @@ public:
     bool init( const TNL::Config::ParameterContainer & parameters,
                const MeshType & mesh );
 
+    template< typename MeshOrdering >
+    bool reorderBoundaryConditions( const MeshOrdering & meshOrdering );
+
     void bind( const TNL::SharedPointer< MeshType > & mesh,
                TNL::SharedPointer< MeshDependentDataType > & mdd );
 

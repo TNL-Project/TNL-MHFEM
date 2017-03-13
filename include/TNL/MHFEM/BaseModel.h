@@ -53,6 +53,9 @@ public:
 
     bool allocate( const MeshType & mesh );
 
+    template< typename MeshOrdering >
+    bool reorderDofs( const MeshOrdering & meshOrdering, bool inverse );
+
     // indexing functions
     __cuda_callable__
     IndexType getDofIndex( const int & i, const IndexType & indexFace ) const

@@ -9,7 +9,6 @@
 
 #include "Solver.h"
 #include "LocalUpdaters.h"
-#include "MeshOrdering.h"
 
 namespace mhfem
 {
@@ -89,7 +88,7 @@ setup( MeshPointer & meshPointer,
     cudaDeviceSetCacheConfig( cudaFuncCachePreferL1 );
 #endif
 
-    if( ! MeshOrdering< Mesh >::reorder( *meshPointer ) ) {
+    if( ! meshOrdering.reorder( *meshPointer ) ) {
         std::cerr << "Failed to reorder mesh entities." << std::endl;
         return false;
     }
@@ -177,6 +176,12 @@ setInitialCondition( const TNL::Config::ParameterContainer & parameters,
     if( ! mdd->init( parameters, meshPointer ) )
         return false;
 
+    if( ! boundaryConditionsPointer->reorderBoundaryConditions( meshOrdering ) ||
+        ! mdd->reorderDofs( meshOrdering, false ) )
+        return false;
+    meshOrdering.reset_vertices();
+    meshOrdering.reset_faces();
+
     mdd->v_iKe.setValue( 0.0 );
 
     timer_b.reset();
@@ -248,7 +253,9 @@ makeSnapshot( const RealType & time,
 
     std::cout << std::endl << "Writing output at time " << time << " step " << step << std::endl;
 
-    const IndexType cells = meshPointer->template getEntitiesCount< typename Mesh::Cell >();
+    // reorder DOFs back to original numbering before snapshot
+    if( ! mdd->reorderDofs( meshOrdering, true ) )
+        return false;
 
     if( ! mdd->makeSnapshot( time, step, *meshPointer, outputPrefix ) )
         return false;
