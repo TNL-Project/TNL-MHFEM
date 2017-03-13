@@ -28,6 +28,7 @@ public:
     using RealType = typename MeshDependentDataType::RealType;
     using IndexType = typename MeshDependentDataType::IndexType;
     using TagArrayType = TNL::Containers::Array< bool, DeviceType, IndexType >;
+    using DofVectorType = TNL::Containers::Vector< RealType, DeviceType, IndexType >;
 
     // NOTE: children of BoundaryConditions (i.e. ModelImplementation) must implement these methods
 //    bool
@@ -48,6 +49,9 @@ public:
 //                       const int & i,
 //                       const IndexType & E,
 //                       const RealType & time ) const;
+
+    bool init( const TNL::Config::ParameterContainer & parameters,
+               const MeshType & mesh );
 
     void bind( const TNL::SharedPointer< MeshType > & mesh,
                TNL::SharedPointer< MeshDependentDataType > & mdd );
@@ -81,6 +85,9 @@ protected:
     // vector holding tags to differentiate the boundary condition based on the face index
     // (true indicates Dirichlet boundary)
     TagArrayType dirichletTags;
+
+    // vectors holding the Dirichlet and Neumann values
+    DofVectorType dirichletValues, neumannValues;
 };
 
 } // namespace mhfem

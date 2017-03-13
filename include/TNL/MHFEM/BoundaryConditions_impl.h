@@ -3,6 +3,8 @@
 #include "BoundaryConditions.h"
 #include "../lib_general/mesh_helpers.h"
 #include "SecondaryCoefficients.h"
+// TODO: move this into the mhfem directory/namespace
+#include "../models/boundary/BoundaryConditionsStorage.h"
 
 namespace mhfem
 {
@@ -97,6 +99,47 @@ struct NeumannMatrixRowSetter< TNL::Meshes::Grid< Dimension, MeshReal, Device, M
     }
 };
 
+
+template< typename Mesh,
+          typename MeshDependentData,
+          typename ModelImplementation >
+bool
+BoundaryConditions< Mesh, MeshDependentData, ModelImplementation >::
+init( const TNL::Config::ParameterContainer & parameters,
+      const MeshType & mesh )
+{
+    const IndexType numberOfFaces = mesh.template getEntitiesCount< typename Mesh::Face >();
+
+    if( ! parameters.checkParameter( "boundary-conditions-file" ) ) {
+        std::cerr << "Missing parameter: --boundary-conditions-file" << std::endl;
+        return false;
+    }
+    const TNL::String fname = parameters.getParameter< TNL::String >( "boundary-conditions-file" );
+
+    models::boundary::BoundaryConditionsStorage< RealType, IndexType > storage;
+    if( ! storage.load( fname ) )
+        return false;
+
+    if( MeshDependentDataType::NumberOfEquations * numberOfFaces != storage.dofSize ) {
+        std::cerr << "Wrong dofSize in BoundaryConditionsStorage loaded from file " << fname << ". Expected " << numberOfFaces
+             << " elements, got " << storage.dofSize << "." << std::endl;
+        return false;
+    }
+
+    if( ! this->dirichletTags.setSize( storage.dofSize ) ||
+        ! dirichletValues.setSize( storage.dofSize ) ||
+        ! neumannValues.setSize( storage.dofSize ) )
+    {
+        std::cerr << "Failed to allocate memory for boundary conditions vectors." << std::endl;
+        return false;
+    }
+
+    this->dirichletTags = storage.dirichletTags;
+    dirichletValues = storage.dirichletValues;
+    neumannValues = storage.neumannValues;
+
+    return true;
+}
 
 template< typename Mesh,
           typename MeshDependentData,
