@@ -50,6 +50,7 @@ Solver< Mesh, MeshDependentData, DifferentialOperator, BoundaryConditions, Right
 writeProlog( TNL::Logger & logger, const TNL::Config::ParameterContainer & parameters ) const
 {
     logger.writeParameter< TNL::String >( "Output prefix:", parameters.getParameter< TNL::String >( "output-prefix" ) );
+    logger.writeParameter< bool >( "Mesh ordering enabled:", parameters.getParameter< bool >( "reorder-mesh" ) );
     // TODO: let models write their parameters
 }
 
@@ -80,6 +81,7 @@ setup( MeshPointer & meshPointer,
 {
     // prefix for snapshots
     outputPrefix = parameters.getParameter< TNL::String >( "output-prefix" ) + TNL::String("-");
+    doMeshOrdering = parameters.getParameter< bool >( "reorder-mesh" );
 
     // Our kernels for LocalUpdaters and DifferentialOperator have many local memory spills,
     // so this helps a lot. It does not affect TNL's reduction and multireduction algorithms,
@@ -88,7 +90,7 @@ setup( MeshPointer & meshPointer,
     cudaDeviceSetCacheConfig( cudaFuncCachePreferL1 );
 #endif
 
-    if( ! meshOrdering.reorder( *meshPointer ) ) {
+    if( doMeshOrdering && ! meshOrdering.reorder( *meshPointer ) ) {
         std::cerr << "Failed to reorder mesh entities." << std::endl;
         return false;
     }
@@ -176,11 +178,13 @@ setInitialCondition( const TNL::Config::ParameterContainer & parameters,
     if( ! mdd->init( parameters, meshPointer ) )
         return false;
 
-    if( ! boundaryConditionsPointer->reorderBoundaryConditions( meshOrdering ) ||
-        ! mdd->reorderDofs( meshOrdering, false ) )
-        return false;
-    meshOrdering.reset_vertices();
-    meshOrdering.reset_faces();
+    if( doMeshOrdering ) {
+        if( ! boundaryConditionsPointer->reorderBoundaryConditions( meshOrdering ) ||
+            ! mdd->reorderDofs( meshOrdering, false ) )
+            return false;
+        meshOrdering.reset_vertices();
+        meshOrdering.reset_faces();
+    }
 
     mdd->v_iKe.setValue( 0.0 );
 
@@ -254,7 +258,7 @@ makeSnapshot( const RealType & time,
     std::cout << std::endl << "Writing output at time " << time << " step " << step << std::endl;
 
     // reorder DOFs back to original numbering before snapshot
-    if( ! mdd->reorderDofs( meshOrdering, true ) )
+    if( doMeshOrdering && ! mdd->reorderDofs( meshOrdering, true ) )
         return false;
 
     if( ! mdd->makeSnapshot( time, step, *meshPointer, outputPrefix ) )

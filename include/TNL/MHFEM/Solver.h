@@ -111,6 +111,7 @@ public:
 protected:
     // prefix for snapshots
     TNL::String outputPrefix;
+    bool doMeshOrdering;
 
     // timers for profiling
     TNL::Timer timer_b, timer_R, timer_Q, timer_explicit, timer_nonlinear, timer_velocities, timer_upwind;
