@@ -264,6 +264,10 @@ makeSnapshot( const RealType & time,
     if( ! mdd->makeSnapshot( time, step, *meshPointer, outputPrefix ) )
         return false;
 
+    // reorder DOFs back to the special numbering after snapshot
+    if( doMeshOrdering && ! mdd->reorderDofs( meshOrdering, false ) )
+        return false;
+
     // FIXME: TwoPhaseModel::makeSnapshotOnFaces does not work in 2D
 //    if( ! mdd->makeSnapshotOnFaces( time, step, mesh, dofVector, outputPrefix ) )
 //        return false;
