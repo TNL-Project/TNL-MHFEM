@@ -61,7 +61,9 @@ struct NeumannMatrixRowSetter
     int errors = 0;
     for( int c = 1; c < MeshDependentData::FacesPerCell * MeshDependentData::NumberOfEquations; c++ )
         if( matrixRow.getElementColumn( c - 1 ) >= matrixRow.getElementColumn( c ) ) {
+#ifndef __CUDA_ARCH__
             std::cerr << "error: E = " << E << ", c = " << c << ", row = " << matrixRow << std::endl;
+#endif
             errors += 1;
         }
     TNL_ASSERT( errors == 0,
