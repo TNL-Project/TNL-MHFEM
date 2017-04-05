@@ -72,7 +72,7 @@ public:
             // FIXME: this assumes two-phase model, general system might be coupled differently or even decoupled
             bool inflow = false;
             for( int j = 0; j < MeshDependentDataType::NumberOfEquations; j++ )
-                if( mdd.v_iKe( j, K1, e ) < 0 ) {
+                if( bc.getNeumannValue( mesh, j, E, time ) < 0 ) {
                     inflow = true;
                     break;
                 }
