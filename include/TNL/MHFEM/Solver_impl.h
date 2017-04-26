@@ -6,6 +6,7 @@
 
 #include "../lib_general/mesh_helpers.h"
 #include "../lib_general/GenericEnumerator.h"
+#include "../lib_general/FaceAverageFunction.h"
 
 #include "Solver.h"
 #include "LocalUpdaters.h"
@@ -185,6 +186,19 @@ setInitialCondition( const TNL::Config::ParameterContainer & parameters,
         meshOrdering.reset_vertices();
         meshOrdering.reset_faces();
     }
+
+    // initialize dofVector as an average of mdd.Z on neighbouring cells
+    // (this is not strictly necessary, we just provide an initial guess for
+    // the iterative linear solver)
+        // bind input
+        using FaceAverageFunction = FaceAverageFunctionWithBoundary< MeshType, MeshDependentDataType, BoundaryConditions >;
+        TNL::SharedPointer< FaceAverageFunction, DeviceType > faceAverageFunction;
+        faceAverageFunction->bind( meshPointer, mdd, boundaryConditionsPointer );
+        // evaluator
+        TNL::Functions::MeshFunctionEvaluator< DofFunction, FaceAverageFunction > faceAverageEvaluator;
+        faceAverageEvaluator.evaluate(
+                dofFunctionPointer,     // out
+                faceAverageFunction );  // in
 
     mdd->v_iKe.setValue( 0.0 );
 
