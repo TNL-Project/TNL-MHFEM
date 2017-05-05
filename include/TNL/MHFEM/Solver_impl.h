@@ -191,9 +191,9 @@ setInitialCondition( const TNL::Config::ParameterContainer & parameters,
     // (this is not strictly necessary, we just provide an initial guess for
     // the iterative linear solver)
         // bind input
-        using FaceAverageFunction = FaceAverageFunctionWithBoundary< MeshType, MeshDependentDataType, BoundaryConditions >;
+        using FaceAverageFunction = FaceAverageFunction< MeshType, MeshDependentDataType >;
         TNL::SharedPointer< FaceAverageFunction, DeviceType > faceAverageFunction;
-        faceAverageFunction->bind( meshPointer, mdd, boundaryConditionsPointer );
+        faceAverageFunction->bind( meshPointer, mdd );
         // evaluator
         TNL::Functions::MeshFunctionEvaluator< DofFunction, FaceAverageFunction > faceAverageEvaluator;
         faceAverageEvaluator.evaluate(
