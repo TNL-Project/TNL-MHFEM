@@ -127,12 +127,10 @@ public:
  
     void bind( const TNL::SharedPointer< MeshType > & mesh,
                TNL::SharedPointer< MeshDependentDataType > mdd,
-               TNL::SharedPointer< BoundaryConditions > & bc,
                DofVectorType & Z_iF )
     {
         this->mesh = mesh;
         this->mdd = mdd;
-        this->bc = bc;
         this->Z_iF.bind( Z_iF );
     }
 
@@ -188,7 +186,6 @@ public:
 protected:
     TNL::SharedPointer< MeshType > mesh;
     TNL::SharedPointer< MeshDependentDataType > mdd;
-    TNL::SharedPointer< BoundaryConditions > bc;
     DofVectorType Z_iF;
 };
 

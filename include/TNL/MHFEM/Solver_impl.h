@@ -362,7 +362,7 @@ preIterate( const RealType & time,
         // bind output
         upwindZMeshFunction->bind( meshPointer, mdd->Z_ijE_upw.getStorageArray() );
         // bind inputs
-        upwindZFunction->bind( meshPointer, mdd, boundaryConditionsPointer, *dofVectorPointer );
+        upwindZFunction->bind( meshPointer, mdd, *dofVectorPointer );
         // evaluate
         upwindZEvaluator.evaluate(
                 upwindZMeshFunction,     // out
