@@ -72,7 +72,9 @@ public:
             // FIXME: this assumes two-phase model, general system might be coupled differently or even decoupled
             bool inflow = false;
             for( int j = 0; j < MeshDependentDataType::NumberOfEquations; j++ )
-                if( bc.getNeumannValue( mesh, j, E, time ) < 0 ) {
+                // Taking the boundary value increases the error, for example in the mcwh3d problem
+                // on cubes, so we need to use mdd.v_iKe instead of bc.getNeumannValue
+                if( mdd.v_iKe( j, K1, e ) < 0 ) {
                     inflow = true;
                     break;
                 }
@@ -84,12 +86,18 @@ public:
                 return mdd.getBoundaryMobility( mesh, bc, i, entity, time );
             return mdd.m_iK( i, K1 );
         }
-        else if( mdd.v_iKe( i, K1, e ) >= 0 ) {
-            return mdd.m_iK( i, K1 );
-        }
         else {
             const IndexType & K2 = cellIndexes[ 1 ];
-            return mdd.m_iK( i, K2 );
+            // Theoretically, v_iKE is conservative so one might expect that `vel = mdd.v_iKe( i, K1, e )`
+            // is enough, but there might be numerical errors. Perhaps more importantly, the main equation
+            // might not be based on balancing v_iKE, but some other quantity. We also use a dummy equation
+            // if Q_K is singular, so this has significant effect on the error.
+            const RealType vel = mdd.v_iKe( i, K1, e ) - mdd.v_iKe( i, K2, e );
+
+            if( vel >= 0.0 )
+                return mdd.m_iK( i, K1 );
+            else
+                return mdd.m_iK( i, K2 );
         }
     }
 
