@@ -224,15 +224,15 @@ Solver< Mesh, MeshDependentData, DifferentialOperator, BoundaryConditions, Right
 setupLinearSystem( const MeshPointer & meshPointer,
                    MatrixPointer & matrixPointer )
 {
-    using CompressedRowsLengthsVectorType = typename MatrixType::CompressedRowsLengthsVector;
+    using CompressedRowLengthsVectorType = typename MatrixType::CompressedRowLengthsVector;
 
     const IndexType dofs = this->getDofs( meshPointer );
-    TNL::SharedPointer< CompressedRowsLengthsVectorType > rowLengthsPointer;
+    TNL::SharedPointer< CompressedRowLengthsVectorType > rowLengthsPointer;
     if( ! rowLengthsPointer->setSize( dofs ) )
         return false;
 
-    TNL::Matrices::MatrixSetter< MeshType, DifferentialOperator, BoundaryConditions, CompressedRowsLengthsVectorType > matrixSetter;
-    matrixSetter.template getCompressedRowsLengths< typename Mesh::Face >(
+    TNL::Matrices::MatrixSetter< MeshType, DifferentialOperator, BoundaryConditions, CompressedRowLengthsVectorType > matrixSetter;
+    matrixSetter.template getCompressedRowLengths< typename Mesh::Face >(
             meshPointer,
             differentialOperatorPointer,
             boundaryConditionsPointer,
@@ -247,7 +247,7 @@ setupLinearSystem( const MeshPointer & meshPointer,
 
     if( ! matrixPointer->setDimensions( dofs, dofs ) )
         return false;
-    if( ! matrixPointer->setCompressedRowsLengths( *rowLengthsPointer ) )
+    if( ! matrixPointer->setCompressedRowLengths( *rowLengthsPointer ) )
         return false;
     return true;
 }
