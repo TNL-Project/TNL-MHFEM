@@ -414,14 +414,16 @@ assemblyLinearSystem( const RealType & time,
     bindDofs( meshPointer, dofVectorPointer );
     bindMeshDependentData( meshPointer, mdd );
 
+    // TODO: move to setup
+    systemAssembler.setDifferentialOperator( this->differentialOperatorPointer );
+    systemAssembler.setBoundaryConditions( this->boundaryConditionsPointer );
+    systemAssembler.setRightHandSide( this->rightHandSidePointer );
+
     // initialize system assembler for stationary problem
     systemAssembler.template assembly< typename MeshType::Face >(
             time,
             tau,
             meshPointer,
-            this->differentialOperatorPointer,
-            this->boundaryConditionsPointer,
-            this->rightHandSidePointer,
             dofFunctionPointer,
             matrixPointer,
             bPointer );
