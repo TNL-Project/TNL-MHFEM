@@ -12,51 +12,33 @@ template< typename Mesh,
           int NumberOfEquations,
           typename ModelImplementation,
           typename MassMatrix >
-bool
+void
 BaseModel< Mesh, Real, Index, NumberOfEquations, ModelImplementation, MassMatrix >::
 allocate( const MeshType & mesh )
 {
     numberOfCells = mesh.template getEntitiesCount< typename Mesh::Cell >();
     numberOfFaces = mesh.template getEntitiesCount< typename Mesh::Face >();
 
-    if( ! Z_iK.setSizes( 0, numberOfCells ) )
-        return false;
+    Z_iK.setSizes( 0, numberOfCells );
 
-    if( ! N_ijK.setSizes( 0, 0, numberOfCells ) )
-        return false;
-    if( ! u_ijKe.setSizes( 0, 0, numberOfCells, 0 ) )
-        return false;
-    if( ! m_iK.setSizes( 0, numberOfCells ) )
-        return false;
+    N_ijK.setSizes( 0, 0, numberOfCells );
+    u_ijKe.setSizes( 0, 0, numberOfCells, 0 );
+    m_iK.setSizes( 0, numberOfCells );
     // NOTE: only for D isotropic (represented by scalar value)
-//    if( ! D.setSize( n * d * n * d * cells ) )
-//        return false;
-    if( ! D_ijK.setSizes( 0, 0, numberOfCells ) )
-        return false;
-    if( ! w_iKe.setSizes( 0, numberOfCells, 0 ) )
-        return false;
-    if( ! a_ijKe.setSizes( 0, 0, numberOfCells, 0 ) )
-        return false;
-    if( ! r_ijK.setSizes( 0, 0, numberOfCells ) )
-        return false;
-    if( ! f_iK.setSizes( 0, numberOfCells ) )
-        return false;
+//    D.setSize( n * d * n * d * cells );
+    D_ijK.setSizes( 0, 0, numberOfCells );
+    w_iKe.setSizes( 0, numberOfCells, 0 );
+    a_ijKe.setSizes( 0, 0, numberOfCells, 0 );
+    r_ijK.setSizes( 0, 0, numberOfCells );
+    f_iK.setSizes( 0, numberOfCells );
 
-    if( ! v_iKe.setSizes( 0, numberOfCells, 0 ) )
-        return false;
-    if( ! m_iE_upw.setSizes( 0, numberOfFaces ) )
-        return false;
-    if( ! Z_ijE_upw.setSizes( 0, 0, numberOfFaces ) )
-        return false;
+    v_iKe.setSizes( 0, numberOfCells, 0 );
+    m_iE_upw.setSizes( 0, numberOfFaces );
+    Z_ijE_upw.setSizes( 0, 0, numberOfFaces );
 
-    if( ! b_ijK_storage.setSizes( 0, 0, numberOfCells, 0 ) )
-        return false;
-    if( ! R_ijKe.setSizes( 0, 0, numberOfCells, 0 ) )
-        return false;
-    if( ! R_iK.setSizes( 0, numberOfCells ) )
-        return false;
-
-    return true;
+    b_ijK_storage.setSizes( 0, 0, numberOfCells, 0 );
+    R_ijKe.setSizes( 0, 0, numberOfCells, 0 );
+    R_iK.setSizes( 0, numberOfCells );
 }
 
 template< typename Mesh,
@@ -66,20 +48,16 @@ template< typename Mesh,
           typename ModelImplementation,
           typename MassMatrix >
     template< typename MeshOrdering >
-bool
+void
 BaseModel< Mesh, Real, Index, NumberOfEquations, ModelImplementation, MassMatrix >::
 reorderDofs( const MeshOrdering & meshOrdering, bool inverse )
 {
-    bool status = true;
     DofVectorType Z;
     for( int i = 0; i < NumberOfEquations; i++ ) {
         // TODO: this depends on the specific layout of Z_iK, general reordering of NDArray is needed
         Z.bind( Z_iK.getStorageArray().getData() + i * numberOfCells, numberOfCells );
-        status &= meshOrdering.reorder_cells( Z, inverse );
+        meshOrdering.reorder_cells( Z, inverse );
     }
-    if( ! status )
-        std::cerr << "Failed to reorder the DOF vector." << std::endl;
-    return status;
 }
 
 } // namespace mhfem

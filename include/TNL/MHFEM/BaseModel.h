@@ -51,10 +51,10 @@ public:
 //                       const IndexType & step,
 //                       const MeshType & mesh ) const;
 
-    bool allocate( const MeshType & mesh );
+    void allocate( const MeshType & mesh );
 
     template< typename MeshOrdering >
-    bool reorderDofs( const MeshOrdering & meshOrdering, bool inverse );
+    void reorderDofs( const MeshOrdering & meshOrdering, bool inverse );
 
     // indexing functions
     __cuda_callable__

@@ -91,10 +91,8 @@ setup( MeshPointer & meshPointer,
     cudaDeviceSetCacheConfig( cudaFuncCachePreferL1 );
 #endif
 
-    if( doMeshOrdering && ! meshOrdering.reorder( *meshPointer ) ) {
-        std::cerr << "Failed to reorder mesh entities." << std::endl;
-        return false;
-    }
+    if( doMeshOrdering )
+        meshOrdering.reorder( *meshPointer );
 
     return true;
 }
@@ -137,7 +135,8 @@ Solver< Mesh, MeshDependentData, DifferentialOperator, BoundaryConditions, Right
 setMeshDependentData( const MeshPointer & meshPointer,
                       MeshDependentDataPointer & mdd )
 {
-    return mdd->allocate( *meshPointer );
+    mdd->allocate( *meshPointer );
+    return true;
 }
 
 template< typename Mesh,
@@ -180,9 +179,8 @@ setInitialCondition( const TNL::Config::ParameterContainer & parameters,
         return false;
 
     if( doMeshOrdering ) {
-        if( ! boundaryConditionsPointer->reorderBoundaryConditions( meshOrdering ) ||
-            ! mdd->reorderDofs( meshOrdering, false ) )
-            return false;
+        boundaryConditionsPointer->reorderBoundaryConditions( meshOrdering );
+        mdd->reorderDofs( meshOrdering, false );
         meshOrdering.reset_vertices();
         meshOrdering.reset_faces();
     }
@@ -228,8 +226,7 @@ setupLinearSystem( const MeshPointer & meshPointer,
 
     const IndexType dofs = this->getDofs( meshPointer );
     TNL::SharedPointer< CompressedRowLengthsVectorType > rowLengthsPointer;
-    if( ! rowLengthsPointer->setSize( dofs ) )
-        return false;
+    rowLengthsPointer->setSize( dofs );
 
     TNL::Matrices::MatrixSetter< MeshType, DifferentialOperator, BoundaryConditions, CompressedRowLengthsVectorType > matrixSetter;
     matrixSetter.template getCompressedRowLengths< typename Mesh::Face >(
@@ -245,10 +242,8 @@ setupLinearSystem( const MeshPointer & meshPointer,
         return false;
     }
 
-    if( ! matrixPointer->setDimensions( dofs, dofs ) )
-        return false;
-    if( ! matrixPointer->setCompressedRowLengths( *rowLengthsPointer ) )
-        return false;
+    matrixPointer->setDimensions( dofs, dofs );
+    matrixPointer->setCompressedRowLengths( *rowLengthsPointer );
     return true;
 }
 
@@ -272,15 +267,15 @@ makeSnapshot( const RealType & time,
     std::cout << std::endl << "Writing output at time " << time << " step " << step << std::endl;
 
     // reorder DOFs back to original numbering before snapshot
-    if( doMeshOrdering && ! mdd->reorderDofs( meshOrdering, true ) )
-        return false;
+    if( doMeshOrdering )
+        mdd->reorderDofs( meshOrdering, true );
 
     if( ! mdd->makeSnapshot( time, step, *meshPointer, outputPrefix ) )
         return false;
 
     // reorder DOFs back to the special numbering after snapshot
-    if( doMeshOrdering && ! mdd->reorderDofs( meshOrdering, false ) )
-        return false;
+    if( doMeshOrdering )
+        mdd->reorderDofs( meshOrdering, false );
 
     // FIXME: TwoPhaseModel::makeSnapshotOnFaces does not work in 2D
 //    if( ! mdd->makeSnapshotOnFaces( time, step, mesh, dofVector, outputPrefix ) )

@@ -54,7 +54,7 @@ public:
                const MeshType & mesh );
 
     template< typename MeshOrdering >
-    bool reorderBoundaryConditions( const MeshOrdering & meshOrdering );
+    void reorderBoundaryConditions( const MeshOrdering & meshOrdering );
 
     void bind( const TNL::SharedPointer< MeshType > & mesh,
                TNL::SharedPointer< MeshDependentDataType > & mdd );
