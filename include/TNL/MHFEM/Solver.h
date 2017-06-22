@@ -132,7 +132,6 @@ protected:
                                     BoundaryConditions,
                                     RightHandSide,
                                     TNL::Solvers::PDE::NoTimeDiscretisation,
-                                    MatrixType,
                                     DofVectorType >;
     LinearSystemAssembler systemAssembler;
 
