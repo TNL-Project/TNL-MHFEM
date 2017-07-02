@@ -56,7 +56,7 @@ reorderDofs( const MeshOrdering & meshOrdering, bool inverse )
     for( int i = 0; i < NumberOfEquations; i++ ) {
         // TODO: this depends on the specific layout of Z_iK, general reordering of NDArray is needed
         Z.bind( Z_iK.getStorageArray().getData() + i * numberOfCells, numberOfCells );
-        meshOrdering.reorder_cells( Z, inverse );
+        meshOrdering.template reorderVector< Mesh::getMeshDimension() >( Z, inverse );
     }
 }
 

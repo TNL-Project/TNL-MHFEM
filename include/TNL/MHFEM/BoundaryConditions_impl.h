@@ -151,12 +151,13 @@ reorderBoundaryConditions( const MeshOrdering & meshOrdering )
     DofVectorType dir, neu;
     const IndexType faces = dirichletTags.getSize() / MeshDependentData::NumberOfEquations;
     for( int i = 0; i < MeshDependentData::NumberOfEquations; i++ ) {
+        // TODO: this depends on the specific layout of dofs, general reordering of NDArray is needed
         tags.bind( dirichletTags.getData() + i * faces, faces );
         dir.bind( dirichletValues.getData() + i * faces, faces );
         neu.bind( neumannValues.getData() + i * faces, faces );
-        meshOrdering.reorder_faces( tags );
-        meshOrdering.reorder_faces( dir );
-        meshOrdering.reorder_faces( neu );
+        meshOrdering.template reorderVector< Mesh::getMeshDimension() - 1 >( tags );
+        meshOrdering.template reorderVector< Mesh::getMeshDimension() - 1 >( dir );
+        meshOrdering.template reorderVector< Mesh::getMeshDimension() - 1 >( neu );
     }
 }
 
