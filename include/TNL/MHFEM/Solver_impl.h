@@ -446,6 +446,24 @@ template< typename Mesh,
           typename BoundaryConditions,
           typename RightHandSide,
           typename Matrix >
+void
+Solver< Mesh, MeshDependentData, DifferentialOperator, BoundaryConditions, RightHandSide, Matrix >::
+saveFailedLinearSystem( const Matrix & matrix,
+                        const DofVectorType & dofs,
+                        const DofVectorType & rhs ) const
+{
+    matrix.save( outputPrefix + "matrix.tnl" );
+    dofs.save( outputPrefix + "dof.vec.tnl" );
+    rhs.save( outputPrefix + "rhs.vec.tnl" );
+    std::cerr << "The linear system has been saved to " << outputPrefix << "{matrix,dof.vec,rhs.vec}.tnl" << std::endl;
+}
+
+template< typename Mesh,
+          typename MeshDependentData,
+          typename DifferentialOperator,
+          typename BoundaryConditions,
+          typename RightHandSide,
+          typename Matrix >
 bool
 Solver< Mesh, MeshDependentData, DifferentialOperator, BoundaryConditions, RightHandSide, Matrix >::
 postIterate( const RealType & time,

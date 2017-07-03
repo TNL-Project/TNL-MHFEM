@@ -100,6 +100,10 @@ public:
                                DofVectorPointer & rightHandSidePointer,
                                MeshDependentDataPointer & mdd );
 
+    void saveFailedLinearSystem( const Matrix & matrix,
+                                 const DofVectorType & dofs,
+                                 const DofVectorType & rhs ) const;
+
     bool postIterate( const RealType & time,
                       const RealType & tau,
                       const MeshPointer & meshPointer,
