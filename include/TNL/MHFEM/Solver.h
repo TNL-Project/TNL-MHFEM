@@ -50,10 +50,10 @@ public:
 
     static TNL::String getTypeStatic();
 
-    TNL::String getPrologHeader() const;
+    static TNL::String getPrologHeader();
 
-    void writeProlog( TNL::Logger & logger,
-                      const TNL::Config::ParameterContainer & parameters ) const;
+    static void writeProlog( TNL::Logger & logger,
+                             const TNL::Config::ParameterContainer & parameters );
 
     TNL::Solvers::SolverMonitor* getSolverMonitor();
 

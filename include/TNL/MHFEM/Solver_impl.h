@@ -35,7 +35,7 @@ template< typename Mesh,
           typename Matrix >
 TNL::String
 Solver< Mesh, MeshDependentData, DifferentialOperator, BoundaryConditions, RightHandSide, Matrix >::
-getPrologHeader() const
+getPrologHeader()
 {
     return TNL::String( "NumDwarf solver" );
 }
@@ -48,11 +48,12 @@ template< typename Mesh,
           typename Matrix >
 void
 Solver< Mesh, MeshDependentData, DifferentialOperator, BoundaryConditions, RightHandSide, Matrix >::
-writeProlog( TNL::Logger & logger, const TNL::Config::ParameterContainer & parameters ) const
+writeProlog( TNL::Logger & logger, const TNL::Config::ParameterContainer & parameters )
 {
     logger.writeParameter< TNL::String >( "Output prefix:", parameters.getParameter< TNL::String >( "output-prefix" ) );
     logger.writeParameter< bool >( "Mesh ordering enabled:", parameters.getParameter< bool >( "reorder-mesh" ) );
-    // TODO: let models write their parameters
+    logger.writeSeparator();
+    MeshDependentDataType::writeProlog( logger, parameters );
 }
 
 template< typename Mesh,
