@@ -410,7 +410,8 @@ assemblyLinearSystem( const RealType & time,
     bindDofs( meshPointer, dofVectorPointer );
     bindMeshDependentData( meshPointer, mdd );
 
-    // TODO: move to setup
+    // Setting this here instead of some setup method ensures that
+    // the systemAssembler always has the correct operator etc.
     systemAssembler.setDifferentialOperator( this->differentialOperatorPointer );
     systemAssembler.setBoundaryConditions( this->boundaryConditionsPointer );
     systemAssembler.setRightHandSide( this->rightHandSidePointer );
