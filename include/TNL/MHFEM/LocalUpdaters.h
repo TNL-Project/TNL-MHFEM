@@ -155,7 +155,7 @@ public:
             const auto faceIndexes = getFacesForCell( mesh, K );
 
             for( int e = 0; e < MeshDependentDataType::FacesPerCell; e++ )
-                mdd.v_iKe( i, K, e ) = coeff::v_iKE( mdd, mdd.Z_iF, faceIndexes, i, K, faceIndexes[ e ], e );
+                mdd.v_iKe( i, K, e ) = coeff::v_iKE( mdd, faceIndexes, i, K, faceIndexes[ e ], e );
         }
     };
 };

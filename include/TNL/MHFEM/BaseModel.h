@@ -56,21 +56,20 @@ public:
     template< typename MeshOrdering >
     void reorderDofs( const MeshOrdering & meshOrdering, bool inverse );
 
-    // indexing functions
+    // indexing wrapper method
     __cuda_callable__
     IndexType getDofIndex( const int & i, const IndexType & indexFace ) const
     {
-//        return n * indexFace + i;
-        return i * numberOfFaces + indexFace;
+        return Z_iF.getStorageIndex( i, indexFace );
     }
 
-    // needed in makeSnapshot
-    __cuda_callable__
-    IndexType getCellDofIndex( const int & i, const IndexType & indexCell ) const
-    {
-//        return n * indexCell + i;
-        return i * numberOfCells + indexCell;
-    }
+    // main dofs (allocated as ND array, the TNL's DofVector is bound to the underlying 1D array)
+    sndarray::NDArray< RealType,
+                       sndarray::SizesHolder< IndexType, NumberOfEquations, 0 >,  // i, F
+                       std::index_sequence< 0, 1 >,  // i, F  (host)
+                       std::index_sequence< 0, 1 >,  // i, F  (cuda)
+                       DeviceType >
+                Z_iF;
 
     // accessor for auxiliary dofs
     sndarray::NDArray< RealType,
@@ -193,9 +192,6 @@ public:
     RealType current_tau;
     // FIXME: nasty hack to pass time to CompositionalModel::r_X
     RealType current_time;
-
-    // FIXME: needed only to pass dofs to LocalUpdaters::update_v
-    DofVectorType Z_iF;
 
 protected:
     // number of entities of the mesh for which the vectors are allocated

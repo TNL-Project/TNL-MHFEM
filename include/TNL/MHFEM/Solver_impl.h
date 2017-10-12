@@ -108,6 +108,7 @@ typename Solver< Mesh, MeshDependentData, DifferentialOperator, BoundaryConditio
 Solver< Mesh, MeshDependentData, DifferentialOperator, BoundaryConditions, RightHandSide, Matrix >::
 getDofs( const MeshPointer & meshPointer ) const
 {
+    // TODO: avoid the re-allocation on re-binding
     return MeshDependentDataType::NumberOfEquations * meshPointer->template getEntitiesCount< typename MeshType::Face >();
 }
 
@@ -170,6 +171,12 @@ setInitialCondition( const TNL::Config::ParameterContainer & parameters,
                      DofVectorPointer & dofVectorPointer,
                      MeshDependentDataPointer & mdd )
 {
+    // HACK: we allocate DOFs as an NDArray (mdd->Z_iF) and bind the TNL's
+    // DofVector to the underlying 1D array
+    // (not related to setting initial condition, but this is the first place
+    // where we have both dofVector and mdd together)
+    dofVectorPointer->bind( mdd->Z_iF.getStorageArray() );
+
     bindDofs( meshPointer, dofVectorPointer );
     bindMeshDependentData( meshPointer, mdd );
 
@@ -195,6 +202,7 @@ setInitialCondition( const TNL::Config::ParameterContainer & parameters,
         faceAverageFunction->bind( meshPointer, mdd );
         // evaluator
         TNL::Functions::MeshFunctionEvaluator< DofFunction, FaceAverageFunction > faceAverageEvaluator;
+        // TODO: correctness of the evaluator depends on the specific layout of Z_iF
         faceAverageEvaluator.evaluate(
                 dofFunctionPointer,     // out
                 faceAverageFunction );  // in
@@ -282,7 +290,7 @@ makeSnapshot( const RealType & time,
 //    if( ! mdd->makeSnapshotOnFaces( time, step, mesh, dofVector, outputPrefix ) )
 //        return false;
 
-//    std::cout << "solution (Z_iE): " << std::endl << dofVector << std::endl;
+//    std::cout << "solution (Z_iE): " << std::endl << mdd->Z_iF.getStorageArray() << std::endl;
 //    std::cout << "solution (Z_iK): " << std::endl << mdd->Z_iK.getStorageArray() << std::endl;
 //    std::cout << "mobility (m_iK): " << std::endl << mdd->m << std::endl;
 
@@ -307,7 +315,6 @@ preIterate( const RealType & time,
     bindMeshDependentData( meshPointer, mdd );
 
     // FIXME
-    mdd->Z_iF.bind( *dofVectorPointer );
     mdd->current_time = time;
 
     // FIXME: nasty hack to pass tau to LocalUpdaters
@@ -481,7 +488,7 @@ postIterate( const RealType & time,
     // bind output
     meshFunctionZK->bind( meshPointer, mdd->Z_iK.getStorageArray() );
     // bind inputs
-    functionZK->bind( meshPointer, mdd, *dofVectorPointer );
+    functionZK->bind( meshPointer, mdd );
     // evaluate
     evaluatorZK.evaluate( meshFunctionZK, functionZK );
     timer_explicit.stop();

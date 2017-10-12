@@ -22,17 +22,14 @@ public:
     using DeviceType = typename MeshType::DeviceType;
     using RealType = typename MeshDependentDataType::RealType;
     using IndexType = typename MeshDependentDataType::IndexType;
-    using DofVectorType = TNL::Containers::Vector< RealType, DeviceType, IndexType>;
 
     static constexpr int getEntitiesDimensions() { return Mesh::getMeshDimension(); }
  
     void bind( const TNL::SharedPointer< MeshType > & mesh,
-               TNL::SharedPointer< MeshDependentDataType > & mdd,
-               DofVectorType & dofVector )
+               TNL::SharedPointer< MeshDependentDataType > & mdd )
     {
         this->mesh = mesh;
         this->mdd = mdd;
-        this->dofVector.bind( dofVector );
     }
 
     // FIXME: template needed due to limitation of FunctionAdapter, otherwise we would use MeshType::Cell
@@ -58,7 +55,7 @@ public:
         for( int f = 0; f < MeshDependentDataType::FacesPerCell; f++ ) {
             const IndexType F = faceIndexes[ f ];
             for( int j = 0; j < MeshDependentDataType::NumberOfEquations; j++ ) {
-                result += mdd.R_ijKe( i, j, K, f ) * dofVector[ mdd.getDofIndex( j, F ) ];
+                result += mdd.R_ijKe( i, j, K, f ) * mdd.Z_iF( j, F );
             }
         }
 
@@ -70,7 +67,6 @@ public:
 protected:
     TNL::SharedPointer< MeshType > mesh;
     TNL::SharedPointer< MeshDependentDataType > mdd;
-    DofVectorType dofVector;
 };
 
 } // namespace mhfem

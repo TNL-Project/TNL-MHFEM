@@ -19,6 +19,7 @@ allocate( const MeshType & mesh )
     numberOfCells = mesh.template getEntitiesCount< typename Mesh::Cell >();
     numberOfFaces = mesh.template getEntitiesCount< typename Mesh::Face >();
 
+    Z_iF.setSizes( 0, numberOfFaces );
     Z_iK.setSizes( 0, numberOfCells );
 
     N_ijK.setSizes( 0, 0, numberOfCells );
