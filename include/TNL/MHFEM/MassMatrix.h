@@ -453,11 +453,11 @@ public:
 
 
 template< typename MeshConfig, typename Device >
-class MassMatrix< TNL::Meshes::MeshEntity< MeshConfig, Device, TNL::Meshes::MeshEdgeTopology >, MassLumping::disabled >
+class MassMatrix< TNL::Meshes::MeshEntity< MeshConfig, Device, TNL::Meshes::Topologies::Edge >, MassLumping::disabled >
 {
 public:
     using Mesh = TNL::Meshes::Mesh< MeshConfig, Device >;
-    using MeshEntity = TNL::Meshes::MeshEntity< MeshConfig, Device, TNL::Meshes::MeshEdgeTopology >;
+    using MeshEntity = TNL::Meshes::MeshEntity< MeshConfig, Device, TNL::Meshes::Topologies::Edge >;
     using LocalIndex = typename MeshEntity::LocalIndexType;
     static constexpr MassLumping lumping = MassLumping::disabled;
 
@@ -511,11 +511,11 @@ public:
 };
 
 template< typename MeshConfig, typename Device >
-class MassMatrix< TNL::Meshes::MeshEntity< MeshConfig, Device, TNL::Meshes::MeshTriangleTopology >, MassLumping::disabled >
+class MassMatrix< TNL::Meshes::MeshEntity< MeshConfig, Device, TNL::Meshes::Topologies::Triangle >, MassLumping::disabled >
 {
 public:
     using Mesh = TNL::Meshes::Mesh< MeshConfig, Device >;
-    using MeshEntity = TNL::Meshes::MeshEntity< MeshConfig, Device, TNL::Meshes::MeshTriangleTopology >;
+    using MeshEntity = TNL::Meshes::MeshEntity< MeshConfig, Device, TNL::Meshes::Topologies::Triangle >;
     using LocalIndex = typename MeshEntity::LocalIndexType;
     static constexpr MassLumping lumping = MassLumping::disabled;
 
@@ -709,11 +709,11 @@ public:
 };
 
 template< typename MeshConfig, typename Device >
-class MassMatrix< TNL::Meshes::MeshEntity< MeshConfig, Device, TNL::Meshes::MeshTetrahedronTopology >, MassLumping::disabled >
+class MassMatrix< TNL::Meshes::MeshEntity< MeshConfig, Device, TNL::Meshes::Topologies::Tetrahedron >, MassLumping::disabled >
 {
 public:
     using Mesh = TNL::Meshes::Mesh< MeshConfig, Device >;
-    using MeshEntity = TNL::Meshes::MeshEntity< MeshConfig, Device, TNL::Meshes::MeshTetrahedronTopology >;
+    using MeshEntity = TNL::Meshes::MeshEntity< MeshConfig, Device, TNL::Meshes::Topologies::Tetrahedron >;
     using LocalIndex = typename MeshEntity::LocalIndexType;
     static constexpr MassLumping lumping = MassLumping::disabled;
 

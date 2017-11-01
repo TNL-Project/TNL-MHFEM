@@ -3,10 +3,10 @@
 #include <TNL/Meshes/Grid.h>
 #include <TNL/Meshes/Mesh.h>
 #include <TNL/Meshes/MeshEntity.h>
-#include <TNL/Meshes/Topologies/MeshVertexTopology.h>
-#include <TNL/Meshes/Topologies/MeshEdgeTopology.h>
-#include <TNL/Meshes/Topologies/MeshTriangleTopology.h>
-#include <TNL/Meshes/Topologies/MeshTetrahedronTopology.h>
+#include <TNL/Meshes/Topologies/Vertex.h>
+#include <TNL/Meshes/Topologies/Edge.h>
+#include <TNL/Meshes/Topologies/Triangle.h>
+#include <TNL/Meshes/Topologies/Tetrahedron.h>
 
 #include "../lib_general/FacesPerCell.h"
 #include "../lib_general/mesh_helpers.h"
@@ -20,9 +20,9 @@ struct RTN0 {};
 template< typename MeshConfig, typename Device, typename CellTopology >
 struct RTN0< TNL::Meshes::MeshEntity< MeshConfig, Device, CellTopology > >
 {
-    static_assert( std::is_same< CellTopology, TNL::Meshes::MeshEdgeTopology >::value ||
-                   std::is_same< CellTopology, TNL::Meshes::MeshTriangleTopology >::value ||
-                   std::is_same< CellTopology, TNL::Meshes::MeshTetrahedronTopology >::value,
+    static_assert( std::is_same< CellTopology, TNL::Meshes::Topologies::Edge >::value ||
+                   std::is_same< CellTopology, TNL::Meshes::Topologies::Triangle >::value ||
+                   std::is_same< CellTopology, TNL::Meshes::Topologies::Tetrahedron >::value,
                    "The RTN0 space is not implemented for the requested entity topology yet." );
 
     using MeshType = TNL::Meshes::Mesh< MeshConfig, Device >;
