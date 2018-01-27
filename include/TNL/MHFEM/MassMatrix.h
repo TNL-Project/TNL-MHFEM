@@ -4,7 +4,7 @@
 #include <TNL/Meshes/MeshEntity.h>
 
 #include "../lib_general/mesh_helpers.h"
-#include "../lib_general/StaticMatrix.h"
+#include "../lib_general/ndarray.h"
 #include "../lib_general/LU.h"
 
 //#include <armadillo>
@@ -585,7 +585,7 @@ public:
 
 //        // FIXME: our implementation of GE is not numerically stable - maybe we need pivoting
 //
-//        StaticMatrix< 3, 6, typename Mesh::RealType > matrix;
+//        TNL::Containers::StaticMatrix< typename Mesh::RealType, 3, 6 > matrix;
 //
 //        matrix( 0, 0 ) = ( 3 * P00 + P11 - 3 * P01 ) / denominator;
 //        matrix( 1, 1 ) = ( P00 + 3 * P11 - 3 * P01 ) / denominator;
@@ -632,7 +632,7 @@ public:
         // LU decomposition is stable
         // TODO: use Cholesky instead
 
-        StaticMatrix< 3, 3, typename Mesh::RealType > matrix;
+        TNL::Containers::StaticMatrix< typename Mesh::RealType, 3, 3 > matrix;
         TNL::Containers::StaticVector< 3, typename Mesh::RealType > v;
 
         matrix( 0, 0 ) = ( 3 * P00 + P11 - 3 * P01 ) / denominator;
@@ -791,7 +791,7 @@ public:
         // LU decomposition is stable
         // TODO: use Cholesky instead
 
-        StaticMatrix< 4, 4, typename Mesh::RealType > matrix;
+        TNL::Containers::StaticMatrix< typename Mesh::RealType, 4, 4 > matrix;
         TNL::Containers::StaticVector< 4, typename Mesh::RealType > v;
 
         matrix( 0, 0 ) = ( 12 * P00 +  2 * P11 +  2 * P22 - 8 * P01 - 8 * P02 + 2 * P12 ) / denominator;

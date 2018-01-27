@@ -3,7 +3,7 @@
 #include "SecondaryCoefficients.h"
 #include "../lib_general/mesh_helpers.h"
 #include "../lib_general/LU.h"
-#include "../lib_general/StaticMatrix.h"
+#include "../lib_general/ndarray.h"
 #include "../lib_general/StaticSharedArray.h"
 
 // TODO: bind with mesh-dependent data, e.g. as a subclass or local type
@@ -75,7 +75,7 @@ public:
             // get face indexes
             const auto faceIndexes = getFacesForCell( mesh, K );
 
-            using LocalMatrixType = StaticMatrix< MeshDependentDataType::NumberOfEquations, MeshDependentDataType::NumberOfEquations, RealType >;
+            using LocalMatrixType = TNL::Containers::StaticMatrix< RealType, MeshDependentDataType::NumberOfEquations, MeshDependentDataType::NumberOfEquations >;
 #ifndef __CUDA_ARCH__
             LocalMatrixType Q;
 //            RealType rhs[ MeshDependentDataType::NumberOfEquations ];
