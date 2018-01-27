@@ -587,24 +587,24 @@ public:
 //
 //        StaticMatrix< 3, 6, typename Mesh::RealType > matrix;
 //
-//        matrix.setElementFast( 0, 0,  ( 3 * P00 + P11 - 3 * P01 ) / denominator );
-//        matrix.setElementFast( 1, 1,  ( P00 + 3 * P11 - 3 * P01 ) / denominator );
-//        matrix.setElementFast( 2, 2,  ( P00 + P11 + P01 ) / denominator );
-//        matrix.setElementFast( 0, 1,  ( 3 * P01 - P00 - P11 ) / denominator );
-//        matrix.setElementFast( 0, 2,  ( P11 - P00 - P01 ) / denominator );
-//        matrix.setElementFast( 1, 2,  ( P00 - P11 - P01 ) / denominator );
+//        matrix( 0, 0 ) = ( 3 * P00 + P11 - 3 * P01 ) / denominator;
+//        matrix( 1, 1 ) = ( P00 + 3 * P11 - 3 * P01 ) / denominator;
+//        matrix( 2, 2 ) = ( P00 + P11 + P01 ) / denominator;
+//        matrix( 0, 1 ) = ( 3 * P01 - P00 - P11 ) / denominator;
+//        matrix( 0, 2 ) = ( P11 - P00 - P01 ) / denominator;
+//        matrix( 1, 2 ) = ( P00 - P11 - P01 ) / denominator;
 //
-//        matrix.setElementFast( 1, 0,  matrix.getElementFast( 0, 1 ) );
-//        matrix.setElementFast( 2, 0,  matrix.getElementFast( 0, 2 ) );
-//        matrix.setElementFast( 2, 1,  matrix.getElementFast( 1, 2 ) );
+//        matrix( 1, 0 ) = matrix( 0, 1 );
+//        matrix( 2, 0 ) = matrix( 0, 2 );
+//        matrix( 2, 1 ) = matrix( 1, 2 );
 //
 //        // set identity in the right half
 //        for( LocalIndex i = 0; i < 3; i++ )
 //            for( LocalIndex j = 0; j < 3; j++ )
 //                if( i == j )
-//                    matrix.setElementFast( i, j + 3, 1.0 );
+//                    matrix( i, j + 3 ) = 1.0;
 //                else
-//                    matrix.setElementFast( i, j + 3, 0.0 );
+//                    matrix( i, j + 3 ) = 0.0;
 //
 ////        if( K == 300 )
 ////            std::cout << "matrix before inversion:\n" << matrix;
@@ -615,17 +615,17 @@ public:
 //
 //        // store the inverse in the packed format (upper triangle, column by column)
 //        // see: http://www.netlib.org/lapack/lug/node123.html
-//        mdd.b_ijK_storage( i, j, K, 0 ) = matrix.getElementFast( 0, 0 ) * mdd.D_ijK( i, j, K );
-//        mdd.b_ijK_storage( i, j, K, 1 ) = matrix.getElementFast( 0, 1 ) * mdd.D_ijK( i, j, K );
-//        mdd.b_ijK_storage( i, j, K, 2 ) = matrix.getElementFast( 1, 1 ) * mdd.D_ijK( i, j, K );
-//        mdd.b_ijK_storage( i, j, K, 3 ) = matrix.getElementFast( 0, 2 ) * mdd.D_ijK( i, j, K );
-//        mdd.b_ijK_storage( i, j, K, 4 ) = matrix.getElementFast( 1, 2 ) * mdd.D_ijK( i, j, K );
-//        mdd.b_ijK_storage( i, j, K, 5 ) = matrix.getElementFast( 2, 2 ) * mdd.D_ijK( i, j, K );
+//        mdd.b_ijK_storage( i, j, K, 0 ) = matrix( 0, 0 ) * mdd.D_ijK( i, j, K );
+//        mdd.b_ijK_storage( i, j, K, 1 ) = matrix( 0, 1 ) * mdd.D_ijK( i, j, K );
+//        mdd.b_ijK_storage( i, j, K, 2 ) = matrix( 1, 1 ) * mdd.D_ijK( i, j, K );
+//        mdd.b_ijK_storage( i, j, K, 3 ) = matrix( 0, 2 ) * mdd.D_ijK( i, j, K );
+//        mdd.b_ijK_storage( i, j, K, 4 ) = matrix( 1, 2 ) * mdd.D_ijK( i, j, K );
+//        mdd.b_ijK_storage( i, j, K, 5 ) = matrix( 2, 2 ) * mdd.D_ijK( i, j, K );
 //
 //        // the last 3 values are the sums for the b_ijK coefficients
-//        mdd.b_ijK_storage( i, j, K, 6 ) = ( matrix.getElementFast( 0, 0 ) + matrix.getElementFast( 0, 1 ) + matrix.getElementFast( 0, 2 ) ) * mdd.D_ijK( i, j, K );
-//        mdd.b_ijK_storage( i, j, K, 7 ) = ( matrix.getElementFast( 0, 1 ) + matrix.getElementFast( 1, 1 ) + matrix.getElementFast( 1, 2 ) ) * mdd.D_ijK( i, j, K );
-//        mdd.b_ijK_storage( i, j, K, 8 ) = ( matrix.getElementFast( 0, 2 ) + matrix.getElementFast( 1, 2 ) + matrix.getElementFast( 2, 2 ) ) * mdd.D_ijK( i, j, K );
+//        mdd.b_ijK_storage( i, j, K, 6 ) = ( matrix( 0, 0 ) + matrix( 0, 1 ) + matrix( 0, 2 ) ) * mdd.D_ijK( i, j, K );
+//        mdd.b_ijK_storage( i, j, K, 7 ) = ( matrix( 0, 1 ) + matrix( 1, 1 ) + matrix( 1, 2 ) ) * mdd.D_ijK( i, j, K );
+//        mdd.b_ijK_storage( i, j, K, 8 ) = ( matrix( 0, 2 ) + matrix( 1, 2 ) + matrix( 2, 2 ) ) * mdd.D_ijK( i, j, K );
 
 
 
@@ -635,16 +635,16 @@ public:
         StaticMatrix< 3, 3, typename Mesh::RealType > matrix;
         TNL::Containers::StaticVector< 3, typename Mesh::RealType > v;
 
-        matrix.setElementFast( 0, 0,  ( 3 * P00 + P11 - 3 * P01 ) / denominator );
-        matrix.setElementFast( 1, 1,  ( P00 + 3 * P11 - 3 * P01 ) / denominator );
-        matrix.setElementFast( 2, 2,  ( P00 + P11 + P01 ) / denominator );
-        matrix.setElementFast( 0, 1,  ( 3 * P01 - P00 - P11 ) / denominator );
-        matrix.setElementFast( 0, 2,  ( P11 - P00 - P01 ) / denominator );
-        matrix.setElementFast( 1, 2,  ( P00 - P11 - P01 ) / denominator );
+        matrix( 0, 0 ) = ( 3 * P00 + P11 - 3 * P01 ) / denominator;
+        matrix( 1, 1 ) = ( P00 + 3 * P11 - 3 * P01 ) / denominator;
+        matrix( 2, 2 ) = ( P00 + P11 + P01 ) / denominator;
+        matrix( 0, 1 ) = ( 3 * P01 - P00 - P11 ) / denominator;
+        matrix( 0, 2 ) = ( P11 - P00 - P01 ) / denominator;
+        matrix( 1, 2 ) = ( P00 - P11 - P01 ) / denominator;
 
-        matrix.setElementFast( 1, 0,  matrix.getElementFast( 0, 1 ) );
-        matrix.setElementFast( 2, 0,  matrix.getElementFast( 0, 2 ) );
-        matrix.setElementFast( 2, 1,  matrix.getElementFast( 1, 2 ) );
+        matrix( 1, 0 ) = matrix( 0, 1 );
+        matrix( 2, 0 ) = matrix( 0, 2 );
+        matrix( 2, 1 ) = matrix( 1, 2 );
 
         LU_factorize( matrix );
 
@@ -794,23 +794,23 @@ public:
         StaticMatrix< 4, 4, typename Mesh::RealType > matrix;
         TNL::Containers::StaticVector< 4, typename Mesh::RealType > v;
 
-        matrix.setElementFast( 0, 0,  ( 12 * P00 +  2 * P11 +  2 * P22 - 8 * P01 - 8 * P02 + 2 * P12 ) / denominator );
-        matrix.setElementFast( 1, 1,  (  2 * P00 + 12 * P11 +  2 * P22 - 8 * P01 + 2 * P02 - 8 * P12 ) / denominator );
-        matrix.setElementFast( 2, 2,  (  2 * P00 +  2 * P11 + 12 * P22 + 2 * P01 - 8 * P02 - 8 * P12 ) / denominator );
-        matrix.setElementFast( 3, 3,  2 * ( P00 + P11 + P22 + P01 + P02 + P12 ) / denominator );
-        matrix.setElementFast( 0, 1,  ( - 3 * P00 - 3 * P11 + 2 * P22 + 12 * P01 -  3 * P02 -  3 * P12 ) / denominator );
-        matrix.setElementFast( 0, 2,  ( - 3 * P00 + 2 * P11 - 3 * P22 -  3 * P01 + 12 * P02 -  3 * P12 ) / denominator );
-        matrix.setElementFast( 1, 2,  (   2 * P00 - 3 * P11 - 3 * P22 -  3 * P01 -  3 * P02 + 12 * P12 ) / denominator );
-        matrix.setElementFast( 0, 3,  ( - 3 * P00 + 2 * P11 + 2 * P22 - 3 * P01 - 3 * P02 + 2 * P12 ) / denominator );
-        matrix.setElementFast( 1, 3,  (   2 * P00 - 3 * P11 + 2 * P22 - 3 * P01 + 2 * P02 - 3 * P12 ) / denominator );
-        matrix.setElementFast( 2, 3,  (   2 * P00 + 2 * P11 - 3 * P22 + 2 * P01 - 3 * P02 - 3 * P12 ) / denominator );
+        matrix( 0, 0 ) = ( 12 * P00 +  2 * P11 +  2 * P22 - 8 * P01 - 8 * P02 + 2 * P12 ) / denominator;
+        matrix( 1, 1 ) = (  2 * P00 + 12 * P11 +  2 * P22 - 8 * P01 + 2 * P02 - 8 * P12 ) / denominator;
+        matrix( 2, 2 ) = (  2 * P00 +  2 * P11 + 12 * P22 + 2 * P01 - 8 * P02 - 8 * P12 ) / denominator;
+        matrix( 3, 3 ) = 2 * ( P00 + P11 + P22 + P01 + P02 + P12 ) / denominator;
+        matrix( 0, 1 ) = ( - 3 * P00 - 3 * P11 + 2 * P22 + 12 * P01 -  3 * P02 -  3 * P12 ) / denominator;
+        matrix( 0, 2 ) = ( - 3 * P00 + 2 * P11 - 3 * P22 -  3 * P01 + 12 * P02 -  3 * P12 ) / denominator;
+        matrix( 1, 2 ) = (   2 * P00 - 3 * P11 - 3 * P22 -  3 * P01 -  3 * P02 + 12 * P12 ) / denominator;
+        matrix( 0, 3 ) = ( - 3 * P00 + 2 * P11 + 2 * P22 - 3 * P01 - 3 * P02 + 2 * P12 ) / denominator;
+        matrix( 1, 3 ) = (   2 * P00 - 3 * P11 + 2 * P22 - 3 * P01 + 2 * P02 - 3 * P12 ) / denominator;
+        matrix( 2, 3 ) = (   2 * P00 + 2 * P11 - 3 * P22 + 2 * P01 - 3 * P02 - 3 * P12 ) / denominator;
 
-        matrix.setElementFast( 1, 0,  matrix.getElementFast( 0, 1 ) );
-        matrix.setElementFast( 2, 0,  matrix.getElementFast( 0, 2 ) );
-        matrix.setElementFast( 2, 1,  matrix.getElementFast( 1, 2 ) );
-        matrix.setElementFast( 3, 0,  matrix.getElementFast( 0, 3 ) );
-        matrix.setElementFast( 3, 1,  matrix.getElementFast( 1, 3 ) );
-        matrix.setElementFast( 3, 2,  matrix.getElementFast( 2, 3 ) );
+        matrix( 1, 0 ) = matrix( 0, 1 );
+        matrix( 2, 0 ) = matrix( 0, 2 );
+        matrix( 2, 1 ) = matrix( 1, 2 );
+        matrix( 3, 0 ) = matrix( 0, 3 );
+        matrix( 3, 1 ) = matrix( 1, 3 );
+        matrix( 3, 2 ) = matrix( 2, 3 );
 
         LU_factorize( matrix );
 

@@ -99,7 +99,7 @@ public:
 
                 for( int j = 0; j < mdd.NumberOfEquations; j++ ) {
                     const RealType value = coeff::Q_ijK( mdd, mesh, entity, faceIndexes, i, j, K );
-                    Q.setElementFast( i, j, value );
+                    Q( i, j ) = value;
 
                     // update singularity state
                     if( value != 0.0 )
@@ -108,7 +108,7 @@ public:
 
                 // check for singularity
                 if( singular ) {
-                    Q.setElementFast( i, i, 1.0 );
+                    Q( i, i ) = 1.0;
                     mdd.R_iK( i, K ) += mdd.Z_iK( i, K );
                 }
             }
