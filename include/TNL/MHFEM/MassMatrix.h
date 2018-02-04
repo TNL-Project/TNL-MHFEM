@@ -7,8 +7,6 @@
 #include "../lib_general/ndarray.h"
 #include "../lib_general/LU.h"
 
-//#include <armadillo>
-
 // TODO: implement SlicedNDArray, write accessor classes for slices and use them in the update methods below
 
 namespace mhfem {
@@ -547,88 +545,6 @@ public:
         const auto K = entity.getIndex();
         const auto denominator = 24 * getEntityMeasure( mesh, entity );
 
-
-        // most stable version using armadillo/LAPACK
-//        arma::mat A( 3, 3 );
-//
-//        A( 0, 0 ) = ( 3 * P00 + P11 - 3 * P01 ) / denominator;
-//        A( 1, 1 ) = ( P00 + 3 * P11 - 3 * P01 ) / denominator;
-//        A( 2, 2 ) = ( P00 + P11 + P01 ) / denominator;
-//        A( 0, 1 ) = ( 3 * P01 - P00 - P11 ) / denominator;
-//        A( 0, 2 ) = ( P11 - P00 - P01 ) / denominator;
-//        A( 1, 2 ) = ( P00 - P11 - P01 ) / denominator;
-//
-//        A( 1, 0 ) = A( 0, 1 );
-//        A( 2, 0 ) = A( 0, 2 );
-//        A( 2, 1 ) = A( 1, 2 );
-//
-////        arma::mat a = arma::inv( A );
-//        arma::mat a = arma::inv_sympd( A );
-//
-////        std::cerr << "K = " << K << ": cond(A) = " << arma::cond(A) << ", cond(a) = " << arma::cond(a) << ", cond(Aa) = " << cond(A*a) << std::endl;
-//
-//        // store the inverse in the packed format (upper triangle, column by column)
-//        // see: http://www.netlib.org/lapack/lug/node123.html
-//        mdd.b_ijK_storage( i, j, K, 0 ) = a( 0, 0 ) * mdd.D_ijK( i, j, K );
-//        mdd.b_ijK_storage( i, j, K, 1 ) = a( 0, 1 ) * mdd.D_ijK( i, j, K );
-//        mdd.b_ijK_storage( i, j, K, 2 ) = a( 1, 1 ) * mdd.D_ijK( i, j, K );
-//        mdd.b_ijK_storage( i, j, K, 3 ) = a( 0, 2 ) * mdd.D_ijK( i, j, K );
-//        mdd.b_ijK_storage( i, j, K, 4 ) = a( 1, 2 ) * mdd.D_ijK( i, j, K );
-//        mdd.b_ijK_storage( i, j, K, 5 ) = a( 2, 2 ) * mdd.D_ijK( i, j, K );
-//
-//        // the last 3 values are the sums for the b_ijK coefficients
-//        mdd.b_ijK_storage( i, j, K, 6 ) = ( a( 0, 0 ) + a( 0, 1 ) + a( 0, 2 ) ) * mdd.D_ijK( i, j, K );
-//        mdd.b_ijK_storage( i, j, K, 7 ) = ( a( 0, 1 ) + a( 1, 1 ) + a( 1, 2 ) ) * mdd.D_ijK( i, j, K );
-//        mdd.b_ijK_storage( i, j, K, 8 ) = ( a( 0, 2 ) + a( 1, 2 ) + a( 2, 2 ) ) * mdd.D_ijK( i, j, K );
-
-
-
-//        // FIXME: our implementation of GE is not numerically stable - maybe we need pivoting
-//
-//        TNL::Containers::StaticMatrix< typename Mesh::RealType, 3, 6 > matrix;
-//
-//        matrix( 0, 0 ) = ( 3 * P00 + P11 - 3 * P01 ) / denominator;
-//        matrix( 1, 1 ) = ( P00 + 3 * P11 - 3 * P01 ) / denominator;
-//        matrix( 2, 2 ) = ( P00 + P11 + P01 ) / denominator;
-//        matrix( 0, 1 ) = ( 3 * P01 - P00 - P11 ) / denominator;
-//        matrix( 0, 2 ) = ( P11 - P00 - P01 ) / denominator;
-//        matrix( 1, 2 ) = ( P00 - P11 - P01 ) / denominator;
-//
-//        matrix( 1, 0 ) = matrix( 0, 1 );
-//        matrix( 2, 0 ) = matrix( 0, 2 );
-//        matrix( 2, 1 ) = matrix( 1, 2 );
-//
-//        // set identity in the right half
-//        for( LocalIndex i = 0; i < 3; i++ )
-//            for( LocalIndex j = 0; j < 3; j++ )
-//                if( i == j )
-//                    matrix( i, j + 3 ) = 1.0;
-//                else
-//                    matrix( i, j + 3 ) = 0.0;
-//
-////        if( K == 300 )
-////            std::cout << "matrix before inversion:\n" << matrix;
-//        // invert
-//        GE( matrix );
-////        if( K == 300 )
-////            std::cout << "matrix after inversion:\n" << matrix;
-//
-//        // store the inverse in the packed format (upper triangle, column by column)
-//        // see: http://www.netlib.org/lapack/lug/node123.html
-//        mdd.b_ijK_storage( i, j, K, 0 ) = matrix( 0, 0 ) * mdd.D_ijK( i, j, K );
-//        mdd.b_ijK_storage( i, j, K, 1 ) = matrix( 0, 1 ) * mdd.D_ijK( i, j, K );
-//        mdd.b_ijK_storage( i, j, K, 2 ) = matrix( 1, 1 ) * mdd.D_ijK( i, j, K );
-//        mdd.b_ijK_storage( i, j, K, 3 ) = matrix( 0, 2 ) * mdd.D_ijK( i, j, K );
-//        mdd.b_ijK_storage( i, j, K, 4 ) = matrix( 1, 2 ) * mdd.D_ijK( i, j, K );
-//        mdd.b_ijK_storage( i, j, K, 5 ) = matrix( 2, 2 ) * mdd.D_ijK( i, j, K );
-//
-//        // the last 3 values are the sums for the b_ijK coefficients
-//        mdd.b_ijK_storage( i, j, K, 6 ) = ( matrix( 0, 0 ) + matrix( 0, 1 ) + matrix( 0, 2 ) ) * mdd.D_ijK( i, j, K );
-//        mdd.b_ijK_storage( i, j, K, 7 ) = ( matrix( 0, 1 ) + matrix( 1, 1 ) + matrix( 1, 2 ) ) * mdd.D_ijK( i, j, K );
-//        mdd.b_ijK_storage( i, j, K, 8 ) = ( matrix( 0, 2 ) + matrix( 1, 2 ) + matrix( 2, 2 ) ) * mdd.D_ijK( i, j, K );
-
-
-
         // LU decomposition is stable
         // TODO: use Cholesky instead
 
@@ -750,43 +666,6 @@ public:
         const auto K = entity.getIndex();
         const auto D = mdd.D_ijK( i, j, K );
         const auto denominator = 180 * getEntityMeasure( mesh, entity );
-
-//        // most stable version using armadillo/LAPACK
-//        arma::mat A( 4, 4 );
-//
-//        A( 0, 0 ) = ( 12 * P00 +  2 * P11 +  2 * P22 - 8 * P01 - 8 * P02 + 2 * P12 ) / denominator;
-//        A( 1, 1 ) = (  2 * P00 + 12 * P11 +  2 * P22 - 8 * P01 + 2 * P02 - 8 * P12 ) / denominator;
-//        A( 2, 2 ) = (  2 * P00 +  2 * P11 + 12 * P22 + 2 * P01 - 8 * P02 - 8 * P12 ) / denominator;
-//        A( 3, 3 ) = 2 * ( P00 + P11 + P22 + P01 + P02 + P12 ) / denominator;
-//        A( 0, 1 ) = ( - 3 * P00 - 3 * P11 + 2 * P22 + 12 * P01 -  3 * P02 -  3 * P12 ) / denominator;
-//        A( 0, 2 ) = ( - 3 * P00 + 2 * P11 - 3 * P22 -  3 * P01 + 12 * P02 -  3 * P12 ) / denominator;
-//        A( 1, 2 ) = (   2 * P00 - 3 * P11 - 3 * P22 -  3 * P01 -  3 * P02 + 12 * P12 ) / denominator;
-//        A( 0, 3 ) = ( - 3 * P00 + 2 * P11 + 2 * P22 - 3 * P01 - 3 * P02 + 2 * P12 ) / denominator;
-//        A( 1, 3 ) = (   2 * P00 - 3 * P11 + 2 * P22 - 3 * P01 + 2 * P02 - 3 * P12 ) / denominator;
-//        A( 2, 3 ) = (   2 * P00 + 2 * P11 - 3 * P22 + 2 * P01 - 3 * P02 - 3 * P12 ) / denominator;
-//
-//        A( 1, 0 ) = A( 0, 1 );
-//        A( 2, 0 ) = A( 0, 2 );
-//        A( 2, 1 ) = A( 1, 2 );
-//        A( 3, 0 ) = A( 0, 3 );
-//        A( 3, 1 ) = A( 1, 3 );
-//        A( 3, 2 ) = A( 2, 3 );
-//
-////        arma::mat a = arma::inv( A );
-//        arma::mat a = arma::inv_sympd( A );
-//
-//        // store the inverse in the packed format (upper triangle, column by column)
-//        // see: http://www.netlib.org/lapack/lug/node123.html
-//        mdd.b_ijK_storage( i, j, K, 0 ) = a( 0, 0 ) * D;
-//        mdd.b_ijK_storage( i, j, K, 1 ) = a( 0, 1 ) * D;
-//        mdd.b_ijK_storage( i, j, K, 2 ) = a( 1, 1 ) * D;
-//        mdd.b_ijK_storage( i, j, K, 3 ) = a( 0, 2 ) * D;
-//        mdd.b_ijK_storage( i, j, K, 4 ) = a( 1, 2 ) * D;
-//        mdd.b_ijK_storage( i, j, K, 5 ) = a( 2, 2 ) * D;
-//        mdd.b_ijK_storage( i, j, K, 6 ) = a( 0, 3 ) * D;
-//        mdd.b_ijK_storage( i, j, K, 7 ) = a( 1, 3 ) * D;
-//        mdd.b_ijK_storage( i, j, K, 8 ) = a( 2, 3 ) * D;
-//        mdd.b_ijK_storage( i, j, K, 9 ) = a( 3, 3 ) * D;
 
         // LU decomposition is stable
         // TODO: use Cholesky instead
