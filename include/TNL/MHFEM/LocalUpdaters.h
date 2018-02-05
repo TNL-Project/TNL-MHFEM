@@ -4,7 +4,6 @@
 #include "../lib_general/mesh_helpers.h"
 #include "../lib_general/LU.h"
 #include "../lib_general/ndarray.h"
-#include "../lib_general/StaticSharedArray.h"
 
 // TODO: bind with mesh-dependent data, e.g. as a subclass or local type
 
@@ -114,15 +113,6 @@ public:
             }
 
             LU_factorize( Q );
-
-//            using SharedVectorType = StaticSharedArray< MeshDependentDataType::NumberOfEquations, RealType >;
-//            SharedVectorType rk( &mdd.R_iK( 0, K ) );
-//            LU_solve( Q, rk, rk );
-//            for( int j = 0; j < mdd.NumberOfEquations; j++ )
-//                for( int e = 0; e < mdd.FacesPerCell; e++ ) {
-//                    SharedVectorType rke( &mdd.R_ijKe( 0, j, K, e ) );
-//                    LU_solve( Q, rke, rke );
-//                }
 
             RealType rhs[ MeshDependentDataType::NumberOfEquations ];
 
