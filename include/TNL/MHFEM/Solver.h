@@ -10,6 +10,8 @@
 #include <TNL/Functions/MeshFunction.h>
 #include <TNL/Timer.h>
 
+#include "DifferentialOperator.h"
+#include "RightHandSide.h"
 #include "HybridizationExplicitFunction.h"
 #include "Upwind.h"
 #include "../lib_general/MeshOrdering.h"
@@ -19,9 +21,7 @@ namespace mhfem
 
 template< typename Mesh,
           typename MeshDependentData,
-          typename DifferentialOperator,
           typename BoundaryConditions,
-          typename RightHandSide,
           typename Matrix >
 class Solver :
     public TNL::Problems::PDEProblem< Mesh,
@@ -42,8 +42,10 @@ public:
     using DofVectorPointer = TNL::SharedPointer< DofVectorType >;
     using DofFunction = TNL::Functions::MeshFunction< Mesh, Mesh::getMeshDimension() - 1, RealType, MeshDependentDataType::NumberOfEquations >;
     using DofFunctionPointer = TNL::SharedPointer< DofFunction >;
+    using DifferentialOperator = mhfem::DifferentialOperator< MeshType, MeshDependentDataType >;
     using DifferentialOperatorPointer = TNL::SharedPointer< DifferentialOperator >;
     using BoundaryConditionsPointer = TNL::SharedPointer< BoundaryConditions >;
+    using RightHandSide = mhfem::RightHandSide< MeshType, MeshDependentDataType >;
     using RightHandSidePointer = TNL::SharedPointer< RightHandSide, DeviceType >;
     using MatrixType = Matrix;
     using MatrixPointer = TNL::SharedPointer< MatrixType >;

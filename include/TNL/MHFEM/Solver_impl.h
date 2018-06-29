@@ -16,12 +16,10 @@ namespace mhfem
 
 template< typename Mesh,
           typename MeshDependentData,
-          typename DifferentialOperator,
           typename BoundaryConditions,
-          typename RightHandSide,
           typename Matrix >
 TNL::String
-Solver< Mesh, MeshDependentData, DifferentialOperator, BoundaryConditions, RightHandSide, Matrix >::
+Solver< Mesh, MeshDependentData, BoundaryConditions, Matrix >::
 getTypeStatic()
 {
     return TNL::String( "Solver< " ) + Mesh :: getTypeStatic() + " >";
@@ -29,12 +27,10 @@ getTypeStatic()
 
 template< typename Mesh,
           typename MeshDependentData,
-          typename DifferentialOperator,
           typename BoundaryConditions,
-          typename RightHandSide,
           typename Matrix >
 TNL::String
-Solver< Mesh, MeshDependentData, DifferentialOperator, BoundaryConditions, RightHandSide, Matrix >::
+Solver< Mesh, MeshDependentData, BoundaryConditions, Matrix >::
 getPrologHeader()
 {
     return TNL::String( "NumDwarf solver" );
@@ -42,12 +38,10 @@ getPrologHeader()
 
 template< typename Mesh,
           typename MeshDependentData,
-          typename DifferentialOperator,
           typename BoundaryConditions,
-          typename RightHandSide,
           typename Matrix >
 void
-Solver< Mesh, MeshDependentData, DifferentialOperator, BoundaryConditions, RightHandSide, Matrix >::
+Solver< Mesh, MeshDependentData, BoundaryConditions, Matrix >::
 writeProlog( TNL::Logger & logger, const TNL::Config::ParameterContainer & parameters )
 {
     logger.writeParameter< TNL::String >( "Output prefix:", parameters.getParameter< TNL::String >( "output-prefix" ) );
@@ -58,12 +52,10 @@ writeProlog( TNL::Logger & logger, const TNL::Config::ParameterContainer & param
 
 template< typename Mesh,
           typename MeshDependentData,
-          typename DifferentialOperator,
           typename BoundaryConditions,
-          typename RightHandSide,
           typename Matrix >
 TNL::Solvers::SolverMonitor*
-Solver< Mesh, MeshDependentData, DifferentialOperator, BoundaryConditions, RightHandSide, Matrix >::
+Solver< Mesh, MeshDependentData, BoundaryConditions, Matrix >::
 getSolverMonitor()
 {
     return 0;
@@ -71,12 +63,10 @@ getSolverMonitor()
 
 template< typename Mesh,
           typename MeshDependentData,
-          typename DifferentialOperator,
           typename BoundaryConditions,
-          typename RightHandSide,
           typename Matrix >
 bool
-Solver< Mesh, MeshDependentData, DifferentialOperator, BoundaryConditions, RightHandSide, Matrix >::
+Solver< Mesh, MeshDependentData, BoundaryConditions, Matrix >::
 setup( MeshPointer & meshPointer,
        const TNL::Config::ParameterContainer & parameters,
        const TNL::String & prefix )
@@ -100,12 +90,10 @@ setup( MeshPointer & meshPointer,
 
 template< typename Mesh,
           typename MeshDependentData,
-          typename DifferentialOperator,
           typename BoundaryConditions,
-          typename RightHandSide,
           typename Matrix >
-typename Solver< Mesh, MeshDependentData, DifferentialOperator, BoundaryConditions, RightHandSide, Matrix >::IndexType
-Solver< Mesh, MeshDependentData, DifferentialOperator, BoundaryConditions, RightHandSide, Matrix >::
+typename Solver< Mesh, MeshDependentData, BoundaryConditions, Matrix >::IndexType
+Solver< Mesh, MeshDependentData, BoundaryConditions, Matrix >::
 getDofs( const MeshPointer & meshPointer ) const
 {
     // TODO: avoid the re-allocation on re-binding
@@ -114,12 +102,10 @@ getDofs( const MeshPointer & meshPointer ) const
 
 template< typename Mesh,
           typename MeshDependentData,
-          typename DifferentialOperator,
           typename BoundaryConditions,
-          typename RightHandSide,
           typename Matrix >
 void
-Solver< Mesh, MeshDependentData, DifferentialOperator, BoundaryConditions, RightHandSide, Matrix >::
+Solver< Mesh, MeshDependentData, BoundaryConditions, Matrix >::
 bindDofs( const MeshPointer & meshPointer,
           DofVectorPointer & dofVectorPointer )
 {
@@ -128,12 +114,10 @@ bindDofs( const MeshPointer & meshPointer,
 
 template< typename Mesh,
           typename MeshDependentData,
-          typename DifferentialOperator,
           typename BoundaryConditions,
-          typename RightHandSide,
           typename Matrix >
 bool
-Solver< Mesh, MeshDependentData, DifferentialOperator, BoundaryConditions, RightHandSide, Matrix >::
+Solver< Mesh, MeshDependentData, BoundaryConditions, Matrix >::
 setMeshDependentData( const MeshPointer & meshPointer,
                       MeshDependentDataPointer & mdd )
 {
@@ -143,12 +127,10 @@ setMeshDependentData( const MeshPointer & meshPointer,
 
 template< typename Mesh,
           typename MeshDependentData,
-          typename DifferentialOperator,
           typename BoundaryConditions,
-          typename RightHandSide,
           typename Matrix >
 void
-Solver< Mesh, MeshDependentData, DifferentialOperator, BoundaryConditions, RightHandSide, Matrix >::
+Solver< Mesh, MeshDependentData, BoundaryConditions, Matrix >::
 bindMeshDependentData( const MeshPointer & meshPointer,
                        MeshDependentDataPointer & mdd )
 {
@@ -160,12 +142,10 @@ bindMeshDependentData( const MeshPointer & meshPointer,
 
 template< typename Mesh,
           typename MeshDependentData,
-          typename DifferentialOperator,
           typename BoundaryConditions,
-          typename RightHandSide,
           typename Matrix >
 bool
-Solver< Mesh, MeshDependentData, DifferentialOperator, BoundaryConditions, RightHandSide, Matrix >::
+Solver< Mesh, MeshDependentData, BoundaryConditions, Matrix >::
 setInitialCondition( const TNL::Config::ParameterContainer & parameters,
                      const MeshPointer & meshPointer,
                      DofVectorPointer & dofVectorPointer,
@@ -222,12 +202,10 @@ setInitialCondition( const TNL::Config::ParameterContainer & parameters,
 
 template< typename Mesh,
           typename MeshDependentData,
-          typename DifferentialOperator,
           typename BoundaryConditions,
-          typename RightHandSide,
           typename Matrix >
 bool
-Solver< Mesh, MeshDependentData, DifferentialOperator, BoundaryConditions, RightHandSide, Matrix >::
+Solver< Mesh, MeshDependentData, BoundaryConditions, Matrix >::
 setupLinearSystem( const MeshPointer & meshPointer,
                    MatrixPointer & matrixPointer )
 {
@@ -258,12 +236,10 @@ setupLinearSystem( const MeshPointer & meshPointer,
 
 template< typename Mesh,
           typename MeshDependentData,
-          typename DifferentialOperator,
           typename BoundaryConditions,
-          typename RightHandSide,
           typename Matrix >
 bool
-Solver< Mesh, MeshDependentData, DifferentialOperator, BoundaryConditions, RightHandSide, Matrix >::
+Solver< Mesh, MeshDependentData, BoundaryConditions, Matrix >::
 makeSnapshot( const RealType & time,
               const IndexType & step,
               const MeshPointer & meshPointer,
@@ -299,12 +275,10 @@ makeSnapshot( const RealType & time,
 
 template< typename Mesh,
           typename MeshDependentData,
-          typename DifferentialOperator,
           typename BoundaryConditions,
-          typename RightHandSide,
           typename Matrix >
 bool
-Solver< Mesh, MeshDependentData, DifferentialOperator, BoundaryConditions, RightHandSide, Matrix >::
+Solver< Mesh, MeshDependentData, BoundaryConditions, Matrix >::
 preIterate( const RealType & time,
             const RealType & tau,
             const MeshPointer & meshPointer,
@@ -400,12 +374,10 @@ preIterate( const RealType & time,
 
 template< typename Mesh,
           typename MeshDependentData,
-          typename DifferentialOperator,
           typename BoundaryConditions,
-          typename RightHandSide,
           typename Matrix >
 void
-Solver< Mesh, MeshDependentData,  DifferentialOperator, BoundaryConditions, RightHandSide, Matrix >::
+Solver< Mesh, MeshDependentData, BoundaryConditions, Matrix >::
 assemblyLinearSystem( const RealType & time,
                       const RealType & tau,
                       const MeshPointer & meshPointer,
@@ -451,12 +423,10 @@ assemblyLinearSystem( const RealType & time,
 
 template< typename Mesh,
           typename MeshDependentData,
-          typename DifferentialOperator,
           typename BoundaryConditions,
-          typename RightHandSide,
           typename Matrix >
 void
-Solver< Mesh, MeshDependentData, DifferentialOperator, BoundaryConditions, RightHandSide, Matrix >::
+Solver< Mesh, MeshDependentData, BoundaryConditions, Matrix >::
 saveFailedLinearSystem( const Matrix & matrix,
                         const DofVectorType & dofs,
                         const DofVectorType & rhs ) const
@@ -469,12 +439,10 @@ saveFailedLinearSystem( const Matrix & matrix,
 
 template< typename Mesh,
           typename MeshDependentData,
-          typename DifferentialOperator,
           typename BoundaryConditions,
-          typename RightHandSide,
           typename Matrix >
 bool
-Solver< Mesh, MeshDependentData, DifferentialOperator, BoundaryConditions, RightHandSide, Matrix >::
+Solver< Mesh, MeshDependentData, BoundaryConditions, Matrix >::
 postIterate( const RealType & time,
              const RealType & tau,
              const MeshPointer & meshPointer,
@@ -511,12 +479,10 @@ postIterate( const RealType & time,
 
 template< typename Mesh,
           typename MeshDependentData,
-          typename DifferentialOperator,
           typename BoundaryConditions,
-          typename RightHandSide,
           typename Matrix >
 bool
-Solver< Mesh, MeshDependentData, DifferentialOperator, BoundaryConditions, RightHandSide, Matrix >::
+Solver< Mesh, MeshDependentData, BoundaryConditions, Matrix >::
 writeEpilog( TNL::Logger & logger )
 {
     logger.writeParameter< double >( "nonlinear update time:", timer_nonlinear.getRealTime() );
