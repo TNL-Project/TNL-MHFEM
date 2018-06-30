@@ -16,6 +16,18 @@ enum class MassLumping {
     disabled
 };
 
+// tags used in the TypeResolver
+struct MassLumpingEnabledTag
+{
+    static constexpr MassLumping lumping = MassLumping::enabled;
+};
+
+struct MassLumpingDisabledTag
+{
+    static constexpr MassLumping lumping = MassLumping::disabled;
+};
+
+
 template< typename MeshEntity, MassLumping >
 class MassMatrix
 {};

@@ -17,8 +17,7 @@ template< typename Mesh,
           int NumberOfEquations,
           typename ModelImplementation,
           // this is not a non-typename parameter due to deficiency in TypeResolver
-//          MassLumping lumping = MassLumping::enabled >
-          typename MassMatrix_ = mhfem::MassMatrix< typename Mesh::Cell, MassLumping::enabled > >
+          typename MassLumpingTag = MassLumpingEnabledTag >
 class BaseModel :
     public TNL::Object
 {
@@ -31,8 +30,7 @@ public:
     using IndexType = Index;
     using DofVectorType = TNL::Containers::Vector< RealType, DeviceType, IndexType >;
 
-//    using MassMatrix = mhfem::MassMatrix< MeshType, lumping >;
-    using MassMatrix = MassMatrix_;
+    using MassMatrix = mhfem::MassMatrix< typename MeshType::Cell, MassLumpingTag::lumping >;
 
     using FPC = ::FacesPerCell< typename MeshType::Cell >;
     static constexpr int FacesPerCell = FPC::value;
