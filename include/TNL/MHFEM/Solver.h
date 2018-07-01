@@ -50,8 +50,6 @@ public:
     using MatrixType = Matrix;
     using MatrixPointer = TNL::SharedPointer< MatrixType >;
 
-    static TNL::String getTypeStatic();
-
     static TNL::String getPrologHeader();
 
     static void writeProlog( TNL::Logger & logger,

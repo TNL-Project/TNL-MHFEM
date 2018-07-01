@@ -20,17 +20,6 @@ template< typename Mesh,
           typename Matrix >
 TNL::String
 Solver< Mesh, MeshDependentData, BoundaryConditions, Matrix >::
-getTypeStatic()
-{
-    return TNL::String( "Solver< " ) + Mesh :: getTypeStatic() + " >";
-}
-
-template< typename Mesh,
-          typename MeshDependentData,
-          typename BoundaryConditions,
-          typename Matrix >
-TNL::String
-Solver< Mesh, MeshDependentData, BoundaryConditions, Matrix >::
 getPrologHeader()
 {
     return TNL::String( "NumDwarf solver" );
