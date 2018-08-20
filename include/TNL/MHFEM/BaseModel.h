@@ -47,7 +47,8 @@ public:
 //
 //    bool makeSnapshot( const RealType & time,
 //                       const IndexType & step,
-//                       const MeshType & mesh ) const;
+//                       const MeshType & mesh,
+//                       const TNL::String & outputPrefix ) const
 
     void allocate( const MeshType & mesh );
 

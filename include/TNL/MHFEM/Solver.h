@@ -57,48 +57,33 @@ public:
 
     TNL::Solvers::SolverMonitor* getSolverMonitor();
 
-    bool setup( MeshPointer & meshPointer,
-                const TNL::Config::ParameterContainer & parameters,
+    void setMesh( MeshPointer & meshPointer );
+
+    bool setup( const TNL::Config::ParameterContainer & parameters,
                 const TNL::String & prefix );
 
     bool setInitialCondition( const TNL::Config::ParameterContainer & parameters,
-                              const MeshPointer & meshPointer,
-                              DofVectorPointer & dofsPointer,
-                              MeshDependentDataPointer & mdd );
+                              DofVectorPointer & dofsPointer );
 
-    bool setupLinearSystem( const MeshPointer & meshPointer,
-                            MatrixPointer & matrixPointer );
+    bool setupLinearSystem( MatrixPointer & matrixPointer );
 
     bool makeSnapshot( const RealType & time,
                        const IndexType & step,
-                       const MeshPointer & meshPointer,
-                       DofVectorPointer & dofsPointer,
-                       MeshDependentDataPointer & mdd );
+                       DofVectorPointer & dofsPointer );
 
-    IndexType getDofs( const MeshPointer & mesh ) const;
+    IndexType getDofs() const;
 
-    void bindDofs( const MeshPointer & meshPointer,
-                   DofVectorPointer & dofs );
-
-    bool setMeshDependentData( const MeshPointer & meshPointer,
-                               MeshDependentDataPointer & mdd );
-
-    void bindMeshDependentData( const MeshPointer & meshPointer,
-                                MeshDependentDataPointer & mdd );
+    void bindDofs( DofVectorPointer & dofs );
 
     bool preIterate( const RealType & time,
                      const RealType & tau,
-                     const MeshPointer & meshPointer,
-                     DofVectorPointer & dofsPointer,
-                     MeshDependentDataPointer & mdd );
+                     DofVectorPointer & dofsPointer );
 
     void assemblyLinearSystem( const RealType & time,
                                const RealType & tau,
-                               const MeshPointer & meshPointer,
                                DofVectorPointer & dofsPointer,
                                MatrixPointer & matrixPointer,
-                               DofVectorPointer & rightHandSidePointer,
-                               MeshDependentDataPointer & mdd );
+                               DofVectorPointer & rightHandSidePointer );
 
     void saveFailedLinearSystem( const Matrix & matrix,
                                  const DofVectorType & dofs,
@@ -106,9 +91,7 @@ public:
 
     bool postIterate( const RealType & time,
                       const RealType & tau,
-                      const MeshPointer & meshPointer,
-                      DofVectorPointer & dofsPointer,
-                      MeshDependentDataPointer & mdd );
+                      DofVectorPointer & dofsPointer );
 
     bool writeEpilog( TNL::Logger & logger );
 
@@ -120,12 +103,14 @@ protected:
     // timers for profiling
     TNL::Timer timer_b, timer_R, timer_Q, timer_explicit, timer_nonlinear, timer_velocities, timer_upwind;
 
+    MeshPointer meshPointer;
+    // holder for mesh ordering permutations
+    MeshOrdering< Mesh > meshOrdering;
+    MeshDependentDataPointer mdd;
+
     DofFunctionPointer dofFunctionPointer;
-
     DifferentialOperatorPointer differentialOperatorPointer;
-
     BoundaryConditionsPointer boundaryConditionsPointer;
-
     RightHandSidePointer rightHandSidePointer;
 
     // cached instance for assemblyLinearSystem
@@ -167,9 +152,6 @@ protected:
     TNL::SharedPointer< UpwindZFunction, DeviceType > upwindZFunction;
     // evaluator
     TNL::Functions::MeshFunctionEvaluator< NDofFunction, UpwindZFunction > upwindZEvaluator;
-
-    // holder for mesh ordering permutations
-    MeshOrdering< Mesh > meshOrdering;
 };
 
 } // namespace mhfem

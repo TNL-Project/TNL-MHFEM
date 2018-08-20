@@ -54,10 +54,24 @@ template< typename Mesh,
           typename MeshDependentData,
           typename BoundaryConditions,
           typename Matrix >
+void
+Solver< Mesh, MeshDependentData, BoundaryConditions, Matrix >::
+setMesh( MeshPointer & meshPointer )
+{
+    this->meshPointer = meshPointer;
+    mdd->allocate( *meshPointer );
+    differentialOperatorPointer->bind( meshPointer, mdd );
+    boundaryConditionsPointer->bind( meshPointer, mdd );
+    rightHandSidePointer->bind( meshPointer, mdd );
+}
+
+template< typename Mesh,
+          typename MeshDependentData,
+          typename BoundaryConditions,
+          typename Matrix >
 bool
 Solver< Mesh, MeshDependentData, BoundaryConditions, Matrix >::
-setup( MeshPointer & meshPointer,
-       const TNL::Config::ParameterContainer & parameters,
+setup( const TNL::Config::ParameterContainer & parameters,
        const TNL::String & prefix )
 {
     // prefix for snapshots
@@ -83,7 +97,7 @@ template< typename Mesh,
           typename Matrix >
 typename Solver< Mesh, MeshDependentData, BoundaryConditions, Matrix >::IndexType
 Solver< Mesh, MeshDependentData, BoundaryConditions, Matrix >::
-getDofs( const MeshPointer & meshPointer ) const
+getDofs() const
 {
     // TODO: avoid the re-allocation on re-binding
     return MeshDependentDataType::NumberOfEquations * meshPointer->template getEntitiesCount< typename MeshType::Face >();
@@ -95,37 +109,9 @@ template< typename Mesh,
           typename Matrix >
 void
 Solver< Mesh, MeshDependentData, BoundaryConditions, Matrix >::
-bindDofs( const MeshPointer & meshPointer,
-          DofVectorPointer & dofVectorPointer )
+bindDofs( DofVectorPointer & dofVectorPointer )
 {
     dofFunctionPointer->bind( meshPointer, dofVectorPointer );
-}
-
-template< typename Mesh,
-          typename MeshDependentData,
-          typename BoundaryConditions,
-          typename Matrix >
-bool
-Solver< Mesh, MeshDependentData, BoundaryConditions, Matrix >::
-setMeshDependentData( const MeshPointer & meshPointer,
-                      MeshDependentDataPointer & mdd )
-{
-    mdd->allocate( *meshPointer );
-    return true;
-}
-
-template< typename Mesh,
-          typename MeshDependentData,
-          typename BoundaryConditions,
-          typename Matrix >
-void
-Solver< Mesh, MeshDependentData, BoundaryConditions, Matrix >::
-bindMeshDependentData( const MeshPointer & meshPointer,
-                       MeshDependentDataPointer & mdd )
-{
-    this->differentialOperatorPointer->bind( meshPointer, mdd );
-    this->boundaryConditionsPointer->bind( meshPointer, mdd );
-    this->rightHandSidePointer->bind( meshPointer, mdd );
 }
 
 
@@ -136,9 +122,7 @@ template< typename Mesh,
 bool
 Solver< Mesh, MeshDependentData, BoundaryConditions, Matrix >::
 setInitialCondition( const TNL::Config::ParameterContainer & parameters,
-                     const MeshPointer & meshPointer,
-                     DofVectorPointer & dofVectorPointer,
-                     MeshDependentDataPointer & mdd )
+                     DofVectorPointer & dofVectorPointer )
 {
     // HACK: we allocate DOFs as an NDArray (mdd->Z_iF) and bind the TNL's
     // DofVector to the underlying 1D array
@@ -146,8 +130,7 @@ setInitialCondition( const TNL::Config::ParameterContainer & parameters,
     // where we have both dofVector and mdd together)
     dofVectorPointer->bind( mdd->Z_iF.getStorageArray() );
 
-    bindDofs( meshPointer, dofVectorPointer );
-    bindMeshDependentData( meshPointer, mdd );
+    bindDofs( dofVectorPointer );
 
     if( ! boundaryConditionsPointer->init( parameters, *meshPointer ) )
         return false;
@@ -195,12 +178,11 @@ template< typename Mesh,
           typename Matrix >
 bool
 Solver< Mesh, MeshDependentData, BoundaryConditions, Matrix >::
-setupLinearSystem( const MeshPointer & meshPointer,
-                   MatrixPointer & matrixPointer )
+setupLinearSystem( MatrixPointer & matrixPointer )
 {
     using CompressedRowLengthsVectorType = typename MatrixType::CompressedRowLengthsVector;
 
-    const IndexType dofs = this->getDofs( meshPointer );
+    const IndexType dofs = this->getDofs();
     TNL::SharedPointer< CompressedRowLengthsVectorType > rowLengthsPointer;
     rowLengthsPointer->setSize( dofs );
 
@@ -231,12 +213,9 @@ bool
 Solver< Mesh, MeshDependentData, BoundaryConditions, Matrix >::
 makeSnapshot( const RealType & time,
               const IndexType & step,
-              const MeshPointer & meshPointer,
-              DofVectorPointer & dofVectorPointer,
-              MeshDependentDataPointer & mdd )
+              DofVectorPointer & dofVectorPointer )
 {
-    bindDofs( meshPointer, dofVectorPointer );
-    bindMeshDependentData( meshPointer, mdd );
+    bindDofs( dofVectorPointer );
 
     std::cout << std::endl << "Writing output at time " << time << " step " << step << std::endl;
 
@@ -270,12 +249,9 @@ bool
 Solver< Mesh, MeshDependentData, BoundaryConditions, Matrix >::
 preIterate( const RealType & time,
             const RealType & tau,
-            const MeshPointer & meshPointer,
-            DofVectorPointer & dofVectorPointer,
-            MeshDependentDataPointer & mdd )
+            DofVectorPointer & dofVectorPointer )
 {
-    bindDofs( meshPointer, dofVectorPointer );
-    bindMeshDependentData( meshPointer, mdd );
+    bindDofs( dofVectorPointer );
 
     // FIXME
     mdd->current_time = time;
@@ -369,14 +345,11 @@ void
 Solver< Mesh, MeshDependentData, BoundaryConditions, Matrix >::
 assemblyLinearSystem( const RealType & time,
                       const RealType & tau,
-                      const MeshPointer & meshPointer,
                       DofVectorPointer & dofVectorPointer,
                       MatrixPointer & matrixPointer,
-                      DofVectorPointer & bPointer,
-                      MeshDependentDataPointer & mdd )
+                      DofVectorPointer & bPointer )
 {
-    bindDofs( meshPointer, dofVectorPointer );
-    bindMeshDependentData( meshPointer, mdd );
+    bindDofs( dofVectorPointer );
 
     // Setting this here instead of some setup method ensures that
     // the systemAssembler always has the correct operator etc.
@@ -434,12 +407,9 @@ bool
 Solver< Mesh, MeshDependentData, BoundaryConditions, Matrix >::
 postIterate( const RealType & time,
              const RealType & tau,
-             const MeshPointer & meshPointer,
-             DofVectorPointer & dofVectorPointer,
-             MeshDependentDataPointer & mdd )
+             DofVectorPointer & dofVectorPointer )
 {
-    bindDofs( meshPointer, dofVectorPointer );
-    bindMeshDependentData( meshPointer, mdd );
+    bindDofs( dofVectorPointer );
 
     timer_explicit.start();
     // bind output
