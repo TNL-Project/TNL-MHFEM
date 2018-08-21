@@ -215,8 +215,6 @@ makeSnapshot( const RealType & time,
               const IndexType & step,
               DofVectorPointer & dofVectorPointer )
 {
-    bindDofs( dofVectorPointer );
-
     std::cout << std::endl << "Writing output at time " << time << " step " << step << std::endl;
 
     // reorder DOFs back to original numbering before snapshot
@@ -251,8 +249,6 @@ preIterate( const RealType & time,
             const RealType & tau,
             DofVectorPointer & dofVectorPointer )
 {
-    bindDofs( dofVectorPointer );
-
     // FIXME
     mdd->current_time = time;
 
@@ -349,8 +345,6 @@ assemblyLinearSystem( const RealType & time,
                       MatrixPointer & matrixPointer,
                       DofVectorPointer & bPointer )
 {
-    bindDofs( dofVectorPointer );
-
     // Setting this here instead of some setup method ensures that
     // the systemAssembler always has the correct operator etc.
     systemAssembler.setDifferentialOperator( this->differentialOperatorPointer );
@@ -409,8 +403,6 @@ postIterate( const RealType & time,
              const RealType & tau,
              DofVectorPointer & dofVectorPointer )
 {
-    bindDofs( dofVectorPointer );
-
     timer_explicit.start();
     // bind output
     meshFunctionZK->bind( meshPointer, mdd->Z_iK.getStorageArray() );
