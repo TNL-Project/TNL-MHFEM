@@ -9,6 +9,7 @@
 #include <TNL/Problems/PDEProblem.h>
 #include <TNL/Functions/MeshFunction.h>
 #include <TNL/Timer.h>
+#include <TNL/Communicators/NoDistrCommunicator.h>
 
 #include "DifferentialOperator.h"
 #include "RightHandSide.h"
@@ -25,6 +26,7 @@ template< typename Mesh,
           typename Matrix >
 class Solver :
     public TNL::Problems::PDEProblem< Mesh,
+                                      TNL::Communicators::NoDistrCommunicator,
                                       typename MeshDependentData::RealType,
                                       typename MeshDependentData::DeviceType,
                                       typename MeshDependentData::IndexType >
