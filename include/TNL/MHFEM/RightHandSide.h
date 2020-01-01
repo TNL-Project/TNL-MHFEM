@@ -1,6 +1,6 @@
 #pragma once
 
-#include <TNL/SharedPointer.h>
+#include <TNL/Pointers/SharedPointer.h>
 #include <TNL/Functions/Domain.h>
 #include <TNL/Functions/Range.h>
 
@@ -24,8 +24,8 @@ public:
 
     static constexpr int getEntitiesDimensions() { return Mesh::getMeshDimension() - 1; }
  
-    void bind( const TNL::SharedPointer< MeshType > & mesh,
-               TNL::SharedPointer< MeshDependentDataType > & mdd )
+    void bind( const TNL::Pointers::SharedPointer< MeshType > & mesh,
+               TNL::Pointers::SharedPointer< MeshDependentDataType > & mdd )
     {
         this->mesh = mesh;
         this->mdd = mdd;
@@ -72,8 +72,8 @@ public:
     }
 
 protected:
-    TNL::SharedPointer< MeshType > mesh;
-    TNL::SharedPointer< MeshDependentDataType > mdd;
+    TNL::Pointers::SharedPointer< MeshType > mesh;
+    TNL::Pointers::SharedPointer< MeshDependentDataType > mdd;
 };
 
 } // namespace mhfem

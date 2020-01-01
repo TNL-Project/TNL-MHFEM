@@ -24,7 +24,7 @@ struct NeumannMatrixRowSetter
     {
         using coeff = SecondaryCoefficients< MeshDependentData >;
         using LocalIndex = typename Mesh::LocalIndexType;
-        using LocalIndexPermutation = TNL::Containers::StaticArray< FaceIndexes::size, LocalIndex >;
+        using LocalIndexPermutation = TNL::Containers::StaticArray< FaceIndexes::getSize(), LocalIndex >;
 
         // For unstructured meshes the face indexes might be unsorted.
         // Therefore we build another permutation array with the correct order.
@@ -36,13 +36,13 @@ struct NeumannMatrixRowSetter
         __shared__ LocalIndexPermutation __permutations[ 256 ];
         LocalIndexPermutation& localFaceIndexes = __permutations[ ( ( threadIdx.z * blockDim.y ) + threadIdx.y ) * blockDim.x + threadIdx.x ];
 #endif
-        for( LocalIndex j = 0; j < FaceIndexes::size; j++ )
+        for( LocalIndex j = 0; j < FaceIndexes::getSize(); j++ )
             localFaceIndexes[ j ] = j;
         auto comparator = [&]( LocalIndex a, LocalIndex b ) {
             return faceIndexes[ a ] < faceIndexes[ b ];
         };
         // We assume that the array size is small, so we sort it with bubble sort.
-        for( LocalIndex k1 = FaceIndexes::size - 1; k1 > 0; k1-- )
+        for( LocalIndex k1 = FaceIndexes::getSize() - 1; k1 > 0; k1-- )
             for( LocalIndex k2 = 0; k2 < k1; k2++ )
                 if( ! comparator( localFaceIndexes[ k2 ], localFaceIndexes[ k2+1 ] ) )
                     TNL::swap( localFaceIndexes[ k2 ], localFaceIndexes[ k2+1 ] );
@@ -166,8 +166,8 @@ template< typename Mesh,
           typename ModelImplementation >
 void
 BoundaryConditions< Mesh, MeshDependentData, ModelImplementation >::
-bind( const TNL::SharedPointer< MeshType > & mesh,
-      TNL::SharedPointer< MeshDependentDataType > & mdd )
+bind( const TNL::Pointers::SharedPointer< MeshType > & mesh,
+      TNL::Pointers::SharedPointer< MeshDependentDataType > & mdd )
 {
     this->mesh = mesh;
     this->mdd = mdd;

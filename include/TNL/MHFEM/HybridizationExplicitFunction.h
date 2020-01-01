@@ -2,7 +2,7 @@
 
 #include <TNL/Functions/Domain.h>
 #include <TNL/Functions/Range.h>
-#include <TNL/SharedPointer.h>
+#include <TNL/Pointers/SharedPointer.h>
 #include <TNL/Containers/StaticVector.h>
 
 #include "../lib_general/mesh_helpers.h"
@@ -25,8 +25,8 @@ public:
 
     static constexpr int getEntitiesDimensions() { return Mesh::getMeshDimension(); }
  
-    void bind( const TNL::SharedPointer< MeshType > & mesh,
-               TNL::SharedPointer< MeshDependentDataType > & mdd )
+    void bind( const TNL::Pointers::SharedPointer< MeshType > & mesh,
+               TNL::Pointers::SharedPointer< MeshDependentDataType > & mdd )
     {
         this->mesh = mesh;
         this->mdd = mdd;
@@ -65,8 +65,8 @@ public:
     }
 
 protected:
-    TNL::SharedPointer< MeshType > mesh;
-    TNL::SharedPointer< MeshDependentDataType > mdd;
+    TNL::Pointers::SharedPointer< MeshType > mesh;
+    TNL::Pointers::SharedPointer< MeshDependentDataType > mdd;
 };
 
 } // namespace mhfem

@@ -150,7 +150,7 @@ setInitialCondition( const TNL::Config::ParameterContainer & parameters,
     // the iterative linear solver)
         // bind input
         using FaceAverageFunction = FaceAverageFunction< MeshType, MeshDependentDataType >;
-        TNL::SharedPointer< FaceAverageFunction, DeviceType > faceAverageFunction;
+        TNL::Pointers::SharedPointer< FaceAverageFunction, DeviceType > faceAverageFunction;
         faceAverageFunction->bind( meshPointer, mdd );
         // evaluator
         TNL::Functions::MeshFunctionEvaluator< DofFunction, FaceAverageFunction > faceAverageEvaluator;
@@ -183,7 +183,7 @@ setupLinearSystem( MatrixPointer & matrixPointer )
     using CompressedRowLengthsVectorType = typename MatrixType::CompressedRowLengthsVector;
 
     const IndexType dofs = this->getDofs();
-    TNL::SharedPointer< CompressedRowLengthsVectorType > rowLengthsPointer;
+    TNL::Pointers::SharedPointer< CompressedRowLengthsVectorType > rowLengthsPointer;
     rowLengthsPointer->setSize( dofs );
 
     TNL::Matrices::MatrixSetter< MeshType, DifferentialOperator, BoundaryConditions, CompressedRowLengthsVectorType > matrixSetter;
@@ -195,7 +195,7 @@ setupLinearSystem( MatrixPointer & matrixPointer )
 
     // sanity check (doesn't happen if the traverser works, but this is pretty
     // hard to debug and the check does not cost us much in initialization)
-    if( rowLengthsPointer->min() <= 0 ) {
+    if( TNL::min( *rowLengthsPointer ) <= 0 ) {
         std::cerr << "Attempted to set invalid rowsLengths vector:" << std::endl << *rowLengthsPointer << std::endl;
         return false;
     }
@@ -257,7 +257,7 @@ preIterate( const RealType & time,
 
     // not necessary for correctness, but for correct timings
     #ifdef HAVE_CUDA
-    TNL::Devices::Cuda::synchronizeDevice();
+    TNL::Pointers::synchronizeSmartPointersOnDevice< DeviceType >();
     #endif
 
     // update non-linear terms

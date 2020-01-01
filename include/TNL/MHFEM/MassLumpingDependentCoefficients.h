@@ -26,7 +26,7 @@ struct MassLumpingDependentCoefficients< MeshDependentData, MassLumping::enabled
             const IndexType & K,
             const int & e )
     {
-        static_assert( FaceVectorType::size == MeshDependentData::FacesPerCell, "" );
+        static_assert( FaceVectorType::getSize() == MeshDependentData::FacesPerCell, "" );
 
         const IndexType & E = faceIndexes[ e ];
         return mdd.m_iE_upw( i, E ) * MassMatrix::b_ijKe( mdd, i, j, K, e ) * mdd.current_tau;
@@ -71,7 +71,7 @@ struct MassLumpingDependentCoefficients< MeshDependentData, MassLumping::disable
             const IndexType & K,
             const int & e )
     {
-        static_assert( FaceVectorType::size == MeshDependentData::FacesPerCell, "" );
+        static_assert( FaceVectorType::getSize() == MeshDependentData::FacesPerCell, "" );
 
         RealType R = 0.0;
         for( int f = 0; f < mdd.FacesPerCell; f++ ) {

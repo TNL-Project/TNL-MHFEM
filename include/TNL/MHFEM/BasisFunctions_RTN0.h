@@ -38,7 +38,7 @@ struct RTN0< TNL::Meshes::MeshEntity< MeshConfig, Device, CellTopology > >
               const CoordinatesType & coordinates )
     {
         PointType point( 0.0 );
-        static constexpr int d = PointType::size;
+        static constexpr int d = PointType::getSize();
         const auto cellSize = getEntityMeasure( mesh, entity );
         for( typename MeshConfig::LocalIndexType e = 0; e < FacesPerCell< CellType >::value; e++ ) {
             const auto& v_e = mesh.template getEntity< 0 >( entity.template getSubentityIndex< 0 >( e ) );

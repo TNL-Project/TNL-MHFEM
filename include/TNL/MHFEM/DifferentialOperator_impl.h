@@ -11,8 +11,8 @@ template< typename Mesh,
           typename MeshDependentData >
 void
 DifferentialOperator< Mesh, MeshDependentData >::
-bind( const TNL::SharedPointer< MeshType > & mesh,
-      TNL::SharedPointer< MeshDependentDataType > & mdd )
+bind( const TNL::Pointers::SharedPointer< MeshType > & mesh,
+      TNL::Pointers::SharedPointer< MeshDependentDataType > & mdd )
 {
     this->mesh = mesh;
     this->mdd = mdd;
@@ -191,8 +191,8 @@ template< typename MeshReal,
           typename MeshDependentData >
 void
 DifferentialOperator< TNL::Meshes::Grid< 1, MeshReal, Device, MeshIndex >, MeshDependentData >::
-bind( const TNL::SharedPointer< MeshType > & mesh,
-      TNL::SharedPointer< MeshDependentDataType > & mdd )
+bind( const TNL::Pointers::SharedPointer< MeshType > & mesh,
+      TNL::Pointers::SharedPointer< MeshDependentDataType > & mdd )
 {
     this->mesh = mesh;
     this->mdd = mdd;
@@ -270,8 +270,8 @@ template< typename MeshReal,
           typename MeshDependentData >
 void
 DifferentialOperator< TNL::Meshes::Grid< 2, MeshReal, Device, MeshIndex >, MeshDependentData >::
-bind( const TNL::SharedPointer< MeshType > & mesh,
-      TNL::SharedPointer< MeshDependentDataType > & mdd )
+bind( const TNL::Pointers::SharedPointer< MeshType > & mesh,
+      TNL::Pointers::SharedPointer< MeshDependentDataType > & mdd )
 {
     this->mesh = mesh;
     this->mdd = mdd;
@@ -381,8 +381,8 @@ template< typename MeshReal,
           typename MeshDependentData >
 void
 DifferentialOperator< TNL::Meshes::Grid< 3, MeshReal, Device, MeshIndex >, MeshDependentData >::
-bind( const TNL::SharedPointer< MeshType > & mesh,
-      TNL::SharedPointer< MeshDependentDataType > & mdd )
+bind( const TNL::Pointers::SharedPointer< MeshType > & mesh,
+      TNL::Pointers::SharedPointer< MeshDependentDataType > & mdd )
 {
     this->mesh = mesh;
     this->mdd = mdd;

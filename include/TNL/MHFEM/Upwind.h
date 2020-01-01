@@ -2,7 +2,7 @@
 
 #include <TNL/Functions/Domain.h>
 #include <TNL/Functions/Range.h>
-#include <TNL/SharedPointer.h>
+#include <TNL/Pointers/SharedPointer.h>
 
 #include "../lib_general/mesh_helpers.h"
 
@@ -28,9 +28,9 @@ public:
 
     static constexpr int getEntitiesDimensions() { return Mesh::getMeshDimension() - 1; }
  
-    void bind( const TNL::SharedPointer< MeshType > & mesh,
-               TNL::SharedPointer< MeshDependentDataType > mdd,
-               TNL::SharedPointer< BoundaryConditions > & bc )
+    void bind( const TNL::Pointers::SharedPointer< MeshType > & mesh,
+               TNL::Pointers::SharedPointer< MeshDependentDataType > mdd,
+               TNL::Pointers::SharedPointer< BoundaryConditions > & bc )
     {
         this->mesh = mesh;
         this->mdd = mdd;
@@ -102,9 +102,9 @@ public:
     }
 
 protected:
-    TNL::SharedPointer< MeshType > mesh;
-    TNL::SharedPointer< MeshDependentDataType > mdd;
-    TNL::SharedPointer< BoundaryConditions > bc;
+    TNL::Pointers::SharedPointer< MeshType > mesh;
+    TNL::Pointers::SharedPointer< MeshDependentDataType > mdd;
+    TNL::Pointers::SharedPointer< BoundaryConditions > bc;
 };
 
 
@@ -125,8 +125,8 @@ public:
 
     static constexpr int getEntitiesDimensions() { return Mesh::getMeshDimension() - 1; }
  
-    void bind( const TNL::SharedPointer< MeshType > & mesh,
-               TNL::SharedPointer< MeshDependentDataType > mdd,
+    void bind( const TNL::Pointers::SharedPointer< MeshType > & mesh,
+               TNL::Pointers::SharedPointer< MeshDependentDataType > mdd,
                DofVectorType & Z_iF )
     {
         this->mesh = mesh;
@@ -184,8 +184,8 @@ public:
     }
 
 protected:
-    TNL::SharedPointer< MeshType > mesh;
-    TNL::SharedPointer< MeshDependentDataType > mdd;
+    TNL::Pointers::SharedPointer< MeshType > mesh;
+    TNL::Pointers::SharedPointer< MeshDependentDataType > mdd;
     DofVectorType Z_iF;
 };
 

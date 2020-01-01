@@ -3,7 +3,7 @@
 #include <TNL/Solvers/SolverMonitor.h>
 #include <TNL/Logger.h>
 #include <TNL/Containers/Vector.h>
-#include <TNL/SharedPointer.h>
+#include <TNL/Pointers/SharedPointer.h>
 #include <TNL/Solvers/PDE/LinearSystemAssembler.h>
 #include <TNL/Solvers/PDE/NoTimeDiscretisation.h>
 #include <TNL/Problems/PDEProblem.h>
@@ -37,20 +37,20 @@ public:
     using IndexType = typename MeshDependentData::IndexType;
 
     using MeshType = Mesh;
-    using MeshPointer = TNL::SharedPointer< MeshType, DeviceType >;
+    using MeshPointer = TNL::Pointers::SharedPointer< MeshType, DeviceType >;
     using MeshDependentDataType = MeshDependentData;
-    using MeshDependentDataPointer = TNL::SharedPointer< MeshDependentDataType, DeviceType >;
+    using MeshDependentDataPointer = TNL::Pointers::SharedPointer< MeshDependentDataType, DeviceType >;
     using DofVectorType = TNL::Containers::Vector< RealType, DeviceType, IndexType >;
-    using DofVectorPointer = TNL::SharedPointer< DofVectorType >;
+    using DofVectorPointer = TNL::Pointers::SharedPointer< DofVectorType >;
     using DofFunction = TNL::Functions::MeshFunction< Mesh, Mesh::getMeshDimension() - 1, RealType, MeshDependentDataType::NumberOfEquations >;
-    using DofFunctionPointer = TNL::SharedPointer< DofFunction >;
+    using DofFunctionPointer = TNL::Pointers::SharedPointer< DofFunction >;
     using DifferentialOperator = mhfem::DifferentialOperator< MeshType, MeshDependentDataType >;
-    using DifferentialOperatorPointer = TNL::SharedPointer< DifferentialOperator >;
-    using BoundaryConditionsPointer = TNL::SharedPointer< BoundaryConditions >;
+    using DifferentialOperatorPointer = TNL::Pointers::SharedPointer< DifferentialOperator >;
+    using BoundaryConditionsPointer = TNL::Pointers::SharedPointer< BoundaryConditions >;
     using RightHandSide = mhfem::RightHandSide< MeshType, MeshDependentDataType >;
-    using RightHandSidePointer = TNL::SharedPointer< RightHandSide, DeviceType >;
+    using RightHandSidePointer = TNL::Pointers::SharedPointer< RightHandSide, DeviceType >;
     using MatrixType = Matrix;
-    using MatrixPointer = TNL::SharedPointer< MatrixType >;
+    using MatrixPointer = TNL::Pointers::SharedPointer< MatrixType >;
 
     static TNL::String getPrologHeader();
 
@@ -131,27 +131,27 @@ protected:
 
     // output
     using ZkMeshFunction = TNL::Functions::MeshFunction< MeshType, MeshType::getMeshDimension(), RealType, MeshDependentDataType::NumberOfEquations >;
-    TNL::SharedPointer< ZkMeshFunction, DeviceType > meshFunctionZK;
+    TNL::Pointers::SharedPointer< ZkMeshFunction, DeviceType > meshFunctionZK;
     // input
     using HybridizationFunction = HybridizationExplicitFunction< MeshType, MeshDependentDataType >;
-    TNL::SharedPointer< HybridizationFunction, DeviceType > functionZK;
+    TNL::Pointers::SharedPointer< HybridizationFunction, DeviceType > functionZK;
     // evaluator
     TNL::Functions::MeshFunctionEvaluator< ZkMeshFunction, HybridizationFunction > evaluatorZK;
 
     // output
-    TNL::SharedPointer< DofFunction, DeviceType > upwindMeshFunction;
+    TNL::Pointers::SharedPointer< DofFunction, DeviceType > upwindMeshFunction;
     // input
     using UpwindFunction = Upwind< MeshType, MeshDependentDataType, BoundaryConditions >;
-    TNL::SharedPointer< UpwindFunction, DeviceType > upwindFunction;
+    TNL::Pointers::SharedPointer< UpwindFunction, DeviceType > upwindFunction;
     // evaluator
     TNL::Functions::MeshFunctionEvaluator< DofFunction, UpwindFunction > upwindEvaluator;
 
     // output
     using NDofFunction = TNL::Functions::MeshFunction< Mesh, Mesh::getMeshDimension() - 1, RealType, MeshDependentDataType::NumberOfEquations * MeshDependentDataType::NumberOfEquations >;
-    TNL::SharedPointer< NDofFunction, DeviceType > upwindZMeshFunction;
+    TNL::Pointers::SharedPointer< NDofFunction, DeviceType > upwindZMeshFunction;
     // input
     using UpwindZFunction = UpwindZ< MeshType, MeshDependentDataType, BoundaryConditions >;
-    TNL::SharedPointer< UpwindZFunction, DeviceType > upwindZFunction;
+    TNL::Pointers::SharedPointer< UpwindZFunction, DeviceType > upwindZFunction;
     // evaluator
     TNL::Functions::MeshFunctionEvaluator< NDofFunction, UpwindZFunction > upwindZEvaluator;
 };

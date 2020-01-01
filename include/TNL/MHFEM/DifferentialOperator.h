@@ -1,6 +1,6 @@
 #pragma once
 
-#include <TNL/SharedPointer.h>
+#include <TNL/Pointers/SharedPointer.h>
 #include <TNL/Meshes/Grid.h>
 #include <TNL/Operators/Operator.h>
 
@@ -29,8 +29,8 @@ public:
     using IndexType = typename MeshDependentDataType::IndexType;
     using LocalIndex = typename Mesh::LocalIndexType;
 
-    void bind( const TNL::SharedPointer< MeshType > & mesh,
-               TNL::SharedPointer< MeshDependentDataType > & mdd );
+    void bind( const TNL::Pointers::SharedPointer< MeshType > & mesh,
+               TNL::Pointers::SharedPointer< MeshDependentDataType > & mdd );
 
     __cuda_callable__
     IndexType getLinearSystemRowLength( const MeshType & mesh,
@@ -49,8 +49,8 @@ public:
                             Vector & b ) const;
 
 protected:
-    TNL::SharedPointer< MeshType > mesh;
-    TNL::SharedPointer< MeshDependentDataType > mdd;
+    TNL::Pointers::SharedPointer< MeshType > mesh;
+    TNL::Pointers::SharedPointer< MeshDependentDataType > mdd;
     using coeff = SecondaryCoefficients< MeshDependentDataType >;
 };
 
@@ -75,8 +75,8 @@ public:
     using RealType = typename MeshDependentDataType::RealType;
     using IndexType = typename MeshDependentDataType::IndexType;
 
-    void bind( const TNL::SharedPointer< MeshType > & mesh,
-               TNL::SharedPointer< MeshDependentDataType > & mdd );
+    void bind( const TNL::Pointers::SharedPointer< MeshType > & mesh,
+               TNL::Pointers::SharedPointer< MeshDependentDataType > & mdd );
 
     __cuda_callable__
     IndexType getLinearSystemRowLength( const MeshType & mesh,
@@ -95,8 +95,8 @@ public:
                             Vector & b ) const;
 
 protected:
-    TNL::SharedPointer< MeshType > mesh;
-    TNL::SharedPointer< MeshDependentDataType > mdd;
+    TNL::Pointers::SharedPointer< MeshType > mesh;
+    TNL::Pointers::SharedPointer< MeshDependentDataType > mdd;
     using coeff = SecondaryCoefficients< MeshDependentDataType >;
 };
 
@@ -121,8 +121,8 @@ public:
     using RealType = typename MeshDependentDataType::RealType;
     using IndexType = typename MeshDependentDataType::IndexType;
 
-    void bind( const TNL::SharedPointer< MeshType > & mesh,
-               TNL::SharedPointer< MeshDependentDataType > & mdd );
+    void bind( const TNL::Pointers::SharedPointer< MeshType > & mesh,
+               TNL::Pointers::SharedPointer< MeshDependentDataType > & mdd );
 
     __cuda_callable__
     IndexType getLinearSystemRowLength( const MeshType & mesh,
@@ -141,8 +141,8 @@ public:
                             Vector & b ) const;
 
 protected:
-    TNL::SharedPointer< MeshType > mesh;
-    TNL::SharedPointer< MeshDependentDataType > mdd;
+    TNL::Pointers::SharedPointer< MeshType > mesh;
+    TNL::Pointers::SharedPointer< MeshDependentDataType > mdd;
     using coeff = SecondaryCoefficients< MeshDependentDataType >;
 };
 
@@ -167,8 +167,8 @@ public:
     using RealType = typename MeshDependentDataType::RealType;
     using IndexType = typename MeshDependentDataType::IndexType;
 
-    void bind( const TNL::SharedPointer< MeshType > & mesh,
-               TNL::SharedPointer< MeshDependentDataType > & mdd );
+    void bind( const TNL::Pointers::SharedPointer< MeshType > & mesh,
+               TNL::Pointers::SharedPointer< MeshDependentDataType > & mdd );
 
     __cuda_callable__
     IndexType getLinearSystemRowLength( const MeshType & mesh,
@@ -187,8 +187,8 @@ public:
                             Vector & b ) const;
 
 protected:
-    TNL::SharedPointer< MeshType > mesh;
-    TNL::SharedPointer< MeshDependentDataType > mdd;
+    TNL::Pointers::SharedPointer< MeshType > mesh;
+    TNL::Pointers::SharedPointer< MeshDependentDataType > mdd;
     using coeff = SecondaryCoefficients< MeshDependentDataType >;
 };
 
