@@ -119,8 +119,7 @@ init( const TNL::Config::ParameterContainer & parameters,
     const TNL::String fname = parameters.getParameter< TNL::String >( "boundary-conditions-file" );
 
     models::boundary::BoundaryConditionsStorage< RealType, IndexType > storage;
-    if( ! storage.load( fname ) )
-        return false;
+    storage.load( fname );
 
     if( MeshDependentDataType::NumberOfEquations * numberOfFaces != storage.dofSize ) {
         std::cerr << "Wrong dofSize in BoundaryConditionsStorage loaded from file " << fname << ". Expected " << numberOfFaces
