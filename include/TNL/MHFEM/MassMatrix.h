@@ -545,10 +545,10 @@ public:
         const auto P0 = v0.getPoint() - v2.getPoint();
         const auto P1 = v1.getPoint() - v2.getPoint();
         // P2 = 0
-        
-        const auto P00 = P0 * P0;
-        const auto P01 = P0 * P1;
-        const auto P11 = P1 * P1;
+
+        const typename Mesh::RealType P00 = (P0, P0);
+        const typename Mesh::RealType P01 = (P0, P1);
+        const typename Mesh::RealType P11 = (P1, P1);
 
         const auto denominator = 24 * getEntityMeasure( mesh, entity );
 
@@ -664,13 +664,13 @@ public:
         const auto P1 = v1.getPoint() - v3.getPoint();
         const auto P2 = v2.getPoint() - v3.getPoint();
         // P3 = 0
-        
-        const auto P00 = P0 * P0;
-        const auto P11 = P1 * P1;
-        const auto P22 = P2 * P2;
-        const auto P01 = P0 * P1;
-        const auto P02 = P0 * P2;
-        const auto P12 = P1 * P2;
+
+        const typename Mesh::RealType P00 = (P0, P0);
+        const typename Mesh::RealType P11 = (P1, P1);
+        const typename Mesh::RealType P22 = (P2, P2);
+        const typename Mesh::RealType P01 = (P0, P1);
+        const typename Mesh::RealType P02 = (P0, P2);
+        const typename Mesh::RealType P12 = (P1, P2);
 
         const auto D = mdd.D_ijK( i, j, K );
         const auto denominator = 180 * getEntityMeasure( mesh, entity );
