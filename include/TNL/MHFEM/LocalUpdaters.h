@@ -23,25 +23,25 @@ public:
     {
         __cuda_callable__
         static void processEntity( const MeshType & mesh,
-                                   MeshDependentDataType & mdd,
+                                   MeshDependentDataType* mdd,
                                    const typename MeshType::Cell & entity,
                                    const int & i )
         {
             using MassMatrix = typename MeshDependentDataType::MassMatrix;
+            const auto K = entity.getIndex();
 
             // update coefficients b_ijKEF
-            for( int j = 0; j < mdd.NumberOfEquations; j++ ) {
-                MassMatrix::update( mesh, entity, mdd, i, j );
+            for( int j = 0; j < MeshDependentDataType::NumberOfEquations; j++ ) {
+                MassMatrix::update( mesh, *mdd, K, i, j );
             }
         }
     };
 
-    // TODO: split into update_RKF, update_RK for better parallelism?
     struct update_R
     {
         __cuda_callable__
         static void processEntity( const MeshType & mesh,
-                                   MeshDependentDataType & mdd,
+                                   MeshDependentDataType* mdd,
                                    const typename MeshType::Cell & entity,
                                    const int & i )
         {
@@ -51,12 +51,12 @@ public:
             const auto faceIndexes = getFacesForCell( mesh, K );
 
             // update coefficients R_ijKE
-            for( int j = 0; j < mdd.NumberOfEquations; j++ )
-                for( int e = 0; e < mdd.FacesPerCell; e++ )
-                    mdd.R_ijKe( i, j, K, e ) = coeff::R_ijKe( mdd, faceIndexes, i, j, K, e );
+            for( int j = 0; j < MeshDependentDataType::NumberOfEquations; j++ )
+                for( int e = 0; e < MeshDependentDataType::FacesPerCell; e++ )
+                    mdd->R_ijKe( i, j, K, e ) = coeff::R_ijKe( *mdd, faceIndexes, i, j, K, e );
 
             // update coefficient R_iK
-            mdd.R_iK( i, K ) = coeff::R_iK( mdd, mesh, entity, faceIndexes, i, K );
+            mdd->R_iK( i, K ) = coeff::R_iK( *mdd, mesh, entity, faceIndexes, i, K );
         }
     };
 
@@ -64,7 +64,7 @@ public:
     {
         __cuda_callable__
         static void processEntity( const MeshType & mesh,
-                                   MeshDependentDataType & mdd,
+                                   MeshDependentDataType* mdd,
                                    const typename MeshType::Cell & entity,
                                    const int & _component )
         {
@@ -91,12 +91,12 @@ public:
 //                                    ) ];
 #endif
 
-            for( int i = 0; i < mdd.NumberOfEquations; i++ ) {
+            for( int i = 0; i < MeshDependentDataType::NumberOfEquations; i++ ) {
                 // Q is singular if it has a row with all elements equal to zero
                 bool singular = true;
 
-                for( int j = 0; j < mdd.NumberOfEquations; j++ ) {
-                    const RealType value = coeff::Q_ijK( mdd, mesh, entity, faceIndexes, i, j, K );
+                for( int j = 0; j < MeshDependentDataType::NumberOfEquations; j++ ) {
+                    const RealType value = coeff::Q_ijK( *mdd, mesh, entity, faceIndexes, i, j, K );
                     Q( i, j ) = value;
 
                     // update singularity state
@@ -107,7 +107,7 @@ public:
                 // check for singularity
                 if( singular ) {
                     Q( i, i ) = 1.0;
-                    mdd.R_iK( i, K ) += mdd.Z_iK( i, K );
+                    mdd->R_iK( i, K ) += mdd->Z_iK( i, K );
                 }
             }
 
@@ -116,18 +116,18 @@ public:
             RealType rhs[ MeshDependentDataType::NumberOfEquations ];
 
             for( int i = 0; i < MeshDependentDataType::NumberOfEquations; i++ )
-                rhs[ i ] = mdd.R_iK( i, K );
+                rhs[ i ] = mdd->R_iK( i, K );
             LU_solve_inplace( Q, rhs );
             for( int i = 0; i < MeshDependentDataType::NumberOfEquations; i++ )
-                mdd.R_iK( i, K ) = rhs[ i ];
+                mdd->R_iK( i, K ) = rhs[ i ];
 
-            for( int j = 0; j < mdd.NumberOfEquations; j++ )
-                for( int e = 0; e < mdd.FacesPerCell; e++ ) {
+            for( int j = 0; j < MeshDependentDataType::NumberOfEquations; j++ )
+                for( int e = 0; e < MeshDependentDataType::FacesPerCell; e++ ) {
                     for( int i = 0; i < MeshDependentDataType::NumberOfEquations; i++ )
-                        rhs[ i ] = mdd.R_ijKe( i, j, K, e );
+                        rhs[ i ] = mdd->R_ijKe( i, j, K, e );
                     LU_solve_inplace( Q, rhs );
                     for( int i = 0; i < MeshDependentDataType::NumberOfEquations; i++ )
-                        mdd.R_ijKe( i, j, K, e ) = rhs[ i ];
+                        mdd->R_ijKe( i, j, K, e ) = rhs[ i ];
                 }
         }
     };
@@ -136,7 +136,7 @@ public:
     {
         __cuda_callable__
         static void processEntity( const MeshType & mesh,
-                                   MeshDependentDataType & mdd,
+                                   MeshDependentDataType* mdd,
                                    const typename MeshType::Cell & entity,
                                    const int & i )
         {
@@ -144,7 +144,7 @@ public:
             const auto faceIndexes = getFacesForCell( mesh, K );
 
             for( int e = 0; e < MeshDependentDataType::FacesPerCell; e++ )
-                mdd.v_iKe( i, K, e ) = coeff::v_iKE( mdd, faceIndexes, i, K, faceIndexes[ e ], e );
+                mdd->v_iKe( i, K, e ) = coeff::v_iKE( *mdd, faceIndexes, i, K, faceIndexes[ e ], e );
         }
     };
 };

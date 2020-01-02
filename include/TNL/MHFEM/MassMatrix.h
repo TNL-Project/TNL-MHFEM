@@ -49,12 +49,11 @@ public:
     __cuda_callable__
     static inline void
     update( const Grid & mesh,
-            const MeshEntity & entity,
             MeshDependentData & mdd,
+            const typename MeshDependentData::IndexType & K,
             const int & i,
             const int & j )
     {
-        const auto K = entity.getIndex();
         mdd.b_ijK_storage( i, j, K, 0 ) = 2 * mdd.D_ijK( i, j, K ) * mesh.template getSpaceStepsProducts< -1 >();  // h_x^-1
     }
 
@@ -105,12 +104,11 @@ public:
     __cuda_callable__
     static inline void
     update( const Grid & mesh,
-            const MeshEntity & entity,
             MeshDependentData & mdd,
+            const typename MeshDependentData::IndexType & K,
             const int & i,
             const int & j )
     {
-        const auto K = entity.getIndex();
         mdd.b_ijK_storage( i, j, K, 0 ) = 2 * mdd.D_ijK( i, j, K ) * mesh.template getSpaceStepsProducts< -1 >();  // h_x^-1
     }
 
@@ -162,12 +160,11 @@ public:
     __cuda_callable__
     static inline void
     update( const Grid & mesh,
-            const MeshEntity & entity,
             MeshDependentData & mdd,
+            const typename MeshDependentData::IndexType & K,
             const int & i,
             const int & j )
     {
-        const auto K = entity.getIndex();
         // value for vertical faces (e=0, e=1)
         mdd.b_ijK_storage( i, j, K, 0 ) = 2 * mdd.D_ijK( i, j, K ) * mesh.template getSpaceStepsProducts< -1, 1 >();  // h_y / h_x
         // value for horizontal faces (e=2, e=3)
@@ -230,12 +227,11 @@ public:
     __cuda_callable__
     static inline void
     update( const Grid & mesh,
-            const MeshEntity & entity,
             MeshDependentData & mdd,
+            const typename MeshDependentData::IndexType & K,
             const int & i,
             const int & j )
     {
-        const auto K = entity.getIndex();
         // value for vertical faces (e=0, e=1)
         mdd.b_ijK_storage( i, j, K, 0 ) = 2 * mdd.D_ijK( i, j, K ) * mesh.template getSpaceStepsProducts< -1, 1 >();  // h_y / h_x
         // value for horizontal faces (e=2, e=3)
@@ -309,12 +305,11 @@ public:
     __cuda_callable__
     static inline void
     update( const Grid & mesh,
-            const MeshEntity & entity,
             MeshDependentData & mdd,
+            const typename MeshDependentData::IndexType & K,
             const int & i,
             const int & j )
     {
-        const auto K = entity.getIndex();
         // value for n_x faces (e=0, e=1)
         mdd.b_ijK_storage( i, j, K, 0 ) = 2 * mdd.D_ijK( i, j, K ) * mesh.template getSpaceStepsProducts< -1, 1, 1 >();  // h_y * h_z / h_x
         // value for n_y faces (e=2, e=3)
@@ -385,12 +380,11 @@ public:
     __cuda_callable__
     static inline void
     update( const Grid & mesh,
-            const MeshEntity & entity,
             MeshDependentData & mdd,
+            const typename MeshDependentData::IndexType & K,
             const int & i,
             const int & j )
     {
-        const auto K = entity.getIndex();
         // value for n_x faces (e=0, e=1)
         mdd.b_ijK_storage( i, j, K, 0 ) = 2 * mdd.D_ijK( i, j, K ) * mesh.template getSpaceStepsProducts< -1, 1, 1 >();  // h_y * h_z / h_x
         // value for n_y faces (e=2, e=3)
@@ -478,12 +472,12 @@ public:
     __cuda_callable__
     static inline void
     update( const Mesh & mesh,
-            const MeshEntity & entity,
             MeshDependentData & mdd,
+            const typename MeshDependentData::IndexType & K,
             const LocalIndex i,
             const LocalIndex j )
     {
-        const auto K = entity.getIndex();
+        const auto& entity = mesh.template getEntity< typename Mesh::Cell >( K );
         const auto h_x = getEntityMeasure( mesh, entity );
         mdd.b_ijK_storage( i, j, K, 0 ) = 2 * mdd.D_ijK( i, j, K ) / h_x;
     }
@@ -536,11 +530,13 @@ public:
     __cuda_callable__
     static inline void
     update( const Mesh & mesh,
-            const MeshEntity & entity,
             MeshDependentData & mdd,
+            const typename MeshDependentData::IndexType & K,
             const LocalIndex i,
             const LocalIndex j )
     {
+        const auto& entity = mesh.template getEntity< typename Mesh::Cell >( K );
+
         // TNL orders the subentities such that i-th subvertex is the opposite vertex of i-th subface
         const auto& v0 = mesh.template getEntity< 0 >( entity.template getSubentityIndex< 0 >( 0 ) );
         const auto& v1 = mesh.template getEntity< 0 >( entity.template getSubentityIndex< 0 >( 1 ) );
@@ -554,7 +550,6 @@ public:
         const auto P01 = P0 * P1;
         const auto P11 = P1 * P1;
 
-        const auto K = entity.getIndex();
         const auto denominator = 24 * getEntityMeasure( mesh, entity );
 
         // LU decomposition is stable
@@ -652,11 +647,13 @@ public:
     __cuda_callable__
     static inline void
     update( const Mesh & mesh,
-            const MeshEntity & entity,
             MeshDependentData & mdd,
+            const typename MeshDependentData::IndexType & K,
             const LocalIndex i,
             const LocalIndex j )
     {
+        const auto& entity = mesh.template getEntity< typename Mesh::Cell >( K );
+
         // TNL orders the subentities such that i-th subvertex is the opposite vertex of i-th subface
         const auto& v0 = mesh.template getEntity< 0 >( entity.template getSubentityIndex< 0 >( 0 ) );
         const auto& v1 = mesh.template getEntity< 0 >( entity.template getSubentityIndex< 0 >( 1 ) );
@@ -675,7 +672,6 @@ public:
         const auto P02 = P0 * P2;
         const auto P12 = P1 * P2;
 
-        const auto K = entity.getIndex();
         const auto D = mdd.D_ijK( i, j, K );
         const auto denominator = 180 * getEntityMeasure( mesh, entity );
 

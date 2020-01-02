@@ -260,16 +260,18 @@ preIterate( const RealType & time,
     TNL::Pointers::synchronizeSmartPointersOnDevice< DeviceType >();
     #endif
 
+    auto* mdd_device = &mdd.template modifyData< DeviceType >();
+
     // update non-linear terms
     timer_nonlinear.start();
     GenericEnumerator< MeshType, MeshDependentDataType >::
-        template enumerate< &MeshDependentDataType::updateNonLinearTerms, typename MeshType::Cell >( meshPointer, mdd );
+        template enumerate< &MeshDependentDataType::updateNonLinearTerms, typename MeshType::Cell >( meshPointer, mdd_device );
     timer_nonlinear.stop();
 
     // update coefficients b_ijKEF
     TNL::Meshes::Traverser< MeshType, typename MeshType::Cell, MeshDependentDataType::NumberOfEquations > traverser_Ki;
     timer_b.start();
-    traverser_Ki.template processAllEntities< MeshDependentDataType, typename LocalUpdaters< MeshType, MeshDependentDataType >::update_b >( meshPointer, mdd );
+    traverser_Ki.template processAllEntities< typename LocalUpdaters< MeshType, MeshDependentDataType >::update_b >( meshPointer, mdd_device );
     timer_b.stop();
 
     // update vector coefficients (u, w, a), whose projection into the RTN_0(K) space
@@ -278,7 +280,7 @@ preIterate( const RealType & time,
     GenericEnumerator< MeshType, MeshDependentDataType >::
         template enumerate< &MeshDependentDataType::updateVectorCoefficients,
                             typename MeshType::Cell,
-                            MeshDependentDataType::NumberOfEquations >( meshPointer, mdd );
+                            MeshDependentDataType::NumberOfEquations >( meshPointer, mdd_device );
     timer_nonlinear.stop();
 
     // update upwinded mobility values
@@ -308,12 +310,12 @@ preIterate( const RealType & time,
     timer_upwind.stop();
 
     timer_R.start();
-    traverser_Ki.template processAllEntities< MeshDependentDataType, typename LocalUpdaters< MeshType, MeshDependentDataType >::update_R >( meshPointer, mdd );
+    traverser_Ki.template processAllEntities< typename LocalUpdaters< MeshType, MeshDependentDataType >::update_R >( meshPointer, mdd_device );
     timer_R.stop();
 
     TNL::Meshes::Traverser< MeshType, typename MeshType::Cell > traverser_K;
     timer_Q.start();
-    traverser_K.template processAllEntities< MeshDependentDataType, typename LocalUpdaters< MeshType, MeshDependentDataType >::update_Q >( meshPointer, mdd );
+    traverser_K.template processAllEntities< typename LocalUpdaters< MeshType, MeshDependentDataType >::update_Q >( meshPointer, mdd_device );
     timer_Q.stop();
 
 //    std::cout << "N = " << mdd->N << std::endl;
@@ -418,7 +420,8 @@ postIterate( const RealType & time,
     //       velocity calculated this way is conservative, which is very important for upwinding.
     timer_velocities.start();
     TNL::Meshes::Traverser< MeshType, typename MeshType::Cell, MeshDependentDataType::NumberOfEquations > traverser_Ki;
-    traverser_Ki.template processAllEntities< MeshDependentDataType, typename LocalUpdaters< MeshType, MeshDependentDataType >::update_v >( meshPointer, mdd );
+    auto* mdd_device = &mdd.template modifyData< DeviceType >();
+    traverser_Ki.template processAllEntities< typename LocalUpdaters< MeshType, MeshDependentDataType >::update_v >( meshPointer, mdd_device );
     timer_velocities.stop();
 
 //    std::cout << "solution (Z_iE): " << std::endl << *dofVectorPointer << std::endl;
