@@ -1,10 +1,10 @@
 #pragma once
 
 #include <TNL/Object.h>
+#include <TNL/Containers/NDArray.h>
 
 #include "MassMatrix.h"
 #include "../lib_general/FacesPerCell.h"
-#include "../lib_general/ndarray.h"
 
 namespace mhfem
 {
@@ -62,143 +62,105 @@ public:
         return Z_iF.getStorageIndex( i, indexFace );
     }
 
+    template< typename SizesHolder,
+              typename HostPermutation,
+              typename CudaPermutation >
+    using NDArray = TNL::Containers::NDArray< RealType,
+                                              SizesHolder,
+                                              std::conditional_t< std::is_same< DeviceType, TNL::Devices::Cuda >::value,
+                                                                  CudaPermutation,
+                                                                  HostPermutation >,
+                                              DeviceType >;
+
     // main dofs (allocated as ND array, the TNL's DofVector is bound to the underlying 1D array)
-    TNL::Containers::NDArray<
-            RealType,
-            TNL::Containers::SizesHolder< IndexType, NumberOfEquations, 0 >,  // i, F
-            std::index_sequence< 0, 1 >,  // i, F  (host)
-            std::index_sequence< 0, 1 >,  // i, F  (cuda)
-            DeviceType >
+    NDArray< TNL::Containers::SizesHolder< IndexType, NumberOfEquations, 0 >,  // i, F
+             std::index_sequence< 0, 1 >,   // i, F  (host)
+             std::index_sequence< 0, 1 > >  // i, F  (cuda)
         Z_iF;
 
     // accessor for auxiliary dofs
-    TNL::Containers::NDArray<
-            RealType,
-            TNL::Containers::SizesHolder< IndexType, NumberOfEquations, 0 >,  // i, K
-            std::index_sequence< 0, 1 >,  // i, K  (host)
-            std::index_sequence< 0, 1 >,  // i, K  (cuda)
-            DeviceType >
+    NDArray< TNL::Containers::SizesHolder< IndexType, NumberOfEquations, 0 >,  // i, K
+             std::index_sequence< 0, 1 >,   // i, K  (host)
+             std::index_sequence< 0, 1 > >  // i, K  (cuda)
         Z_iK;
 
     // accessors for coefficients
     // TODO: optimize for models that don't use all coefficients
-    TNL::Containers::NDArray<
-            RealType,
-            TNL::Containers::SizesHolder< IndexType, NumberOfEquations, NumberOfEquations, 0 >,  // i, j, K
-            std::index_sequence< 0, 2, 1 >,  // i, K, j  (host)
-            std::index_sequence< 0, 1, 2 >,  // i, j, K  (cuda)
-            DeviceType >
+    NDArray< TNL::Containers::SizesHolder< IndexType, NumberOfEquations, NumberOfEquations, 0 >,  // i, j, K
+             std::index_sequence< 0, 2, 1 >,   // i, K, j  (host)
+             std::index_sequence< 0, 1, 2 > >  // i, j, K  (cuda)
         N_ijK;
 
-    TNL::Containers::NDArray<
-            RealType,
-            TNL::Containers::SizesHolder< IndexType, NumberOfEquations, NumberOfEquations, 0, FacesPerCell >,  // i, j, K, e
-            std::index_sequence< 0, 2, 1, 3 >,  // i, K, j, e  (host)
-            std::index_sequence< 0, 1, 3, 2 >,  // i, j, e, K  (cuda)
-            DeviceType >
+    NDArray< TNL::Containers::SizesHolder< IndexType, NumberOfEquations, NumberOfEquations, 0, FacesPerCell >,  // i, j, K, e
+             std::index_sequence< 0, 2, 1, 3 >,   // i, K, j, e  (host)
+             std::index_sequence< 0, 1, 3, 2 > >  // i, j, e, K  (cuda)
         u_ijKe;
 
-    TNL::Containers::NDArray<
-            RealType,
-            TNL::Containers::SizesHolder< IndexType, NumberOfEquations, 0 >,  // i, K
-            std::index_sequence< 0, 1 >,  // i, K  (host)
-            std::index_sequence< 0, 1 >,  // i, K  (cuda)
-            DeviceType >
+    NDArray< TNL::Containers::SizesHolder< IndexType, NumberOfEquations, 0 >,  // i, K
+             std::index_sequence< 0, 1 >,   // i, K  (host)
+             std::index_sequence< 0, 1 > >  // i, K  (cuda)
         m_iK;
 
     // NOTE: only for D isotropic (represented by scalar value)
-    TNL::Containers::NDArray<
-            RealType,
-            TNL::Containers::SizesHolder< IndexType, NumberOfEquations, NumberOfEquations, 0 >,  // i, j, K
-            std::index_sequence< 0, 2, 1 >,  // i, K, j  (host)
-            std::index_sequence< 0, 1, 2 >,  // i, j, K  (cuda)
-            DeviceType >
+    NDArray< TNL::Containers::SizesHolder< IndexType, NumberOfEquations, NumberOfEquations, 0 >,  // i, j, K
+             std::index_sequence< 0, 2, 1 >,   // i, K, j  (host)
+             std::index_sequence< 0, 1, 2 > >  // i, j, K  (cuda)
         D_ijK;
 
-    TNL::Containers::NDArray<
-            RealType,
-            TNL::Containers::SizesHolder< IndexType, NumberOfEquations, 0, FacesPerCell >,  // i, K, e
-            std::index_sequence< 0, 1, 2 >,  // i, K, e  (host)
-            std::index_sequence< 0, 2, 1 >,  // i, e, K  (cuda)
-            DeviceType >
+    NDArray< TNL::Containers::SizesHolder< IndexType, NumberOfEquations, 0, FacesPerCell >,  // i, K, e
+             std::index_sequence< 0, 1, 2 >,   // i, K, e  (host)
+             std::index_sequence< 0, 2, 1 > >  // i, e, K  (cuda)
         w_iKe;
 
-    TNL::Containers::NDArray<
-            RealType,
-            TNL::Containers::SizesHolder< IndexType, NumberOfEquations, NumberOfEquations, 0, FacesPerCell >,  // i, j, K, e
-            std::index_sequence< 0, 2, 1, 3 >,  // i, K, j, e  (host)
-            std::index_sequence< 0, 1, 3, 2 >,  // i, j, e, K  (cuda)
-            DeviceType >
+    NDArray< TNL::Containers::SizesHolder< IndexType, NumberOfEquations, NumberOfEquations, 0, FacesPerCell >,  // i, j, K, e
+             std::index_sequence< 0, 2, 1, 3 >,   // i, K, j, e  (host)
+             std::index_sequence< 0, 1, 3, 2 > >  // i, j, e, K  (cuda)
         a_ijKe;
 
-    TNL::Containers::NDArray<
-            RealType,
-            TNL::Containers::SizesHolder< IndexType, NumberOfEquations, NumberOfEquations, 0 >,  // i, j, K
-            std::index_sequence< 0, 2, 1 >,  // i, K, j  (host)
-            std::index_sequence< 0, 1, 2 >,  // i, j, K  (cuda)
-            DeviceType >
+    NDArray< TNL::Containers::SizesHolder< IndexType, NumberOfEquations, NumberOfEquations, 0 >,  // i, j, K
+             std::index_sequence< 0, 2, 1 >,   // i, K, j  (host)
+             std::index_sequence< 0, 1, 2 > >  // i, j, K  (cuda)
         r_ijK;
 
-    TNL::Containers::NDArray<
-            RealType,
-            TNL::Containers::SizesHolder< IndexType, NumberOfEquations, 0 >,  // i, K
-            std::index_sequence< 0, 1 >,  // i, K  (host)
-            std::index_sequence< 0, 1 >,  // i, K  (cuda)
-            DeviceType >
+    NDArray< TNL::Containers::SizesHolder< IndexType, NumberOfEquations, 0 >,  // i, K
+             std::index_sequence< 0, 1 >,   // i, K  (host)
+             std::index_sequence< 0, 1 > >  // i, K  (cuda)
         f_iK;
 
 
     // coefficients specific to the MHFEM scheme
 
     // conservative velocities for upwind: \vec v_i = - \sum_j \mat D_ij \grad Z_j + \vec w_i
-    TNL::Containers::NDArray<
-            RealType,
-            TNL::Containers::SizesHolder< IndexType, NumberOfEquations, 0, FacesPerCell >,  // i, K, e
-            std::index_sequence< 0, 1, 2 >,  // i, K, e  (host)
-            std::index_sequence< 0, 2, 1 >,  // i, e, K  (cuda)
-            DeviceType >
+    NDArray< TNL::Containers::SizesHolder< IndexType, NumberOfEquations, 0, FacesPerCell >,  // i, K, e
+             std::index_sequence< 0, 1, 2 >,   // i, K, e  (host)
+             std::index_sequence< 0, 2, 1 > >  // i, e, K  (cuda)
         v_iKe;
 
-    TNL::Containers::NDArray<
-            RealType,
-            TNL::Containers::SizesHolder< IndexType, NumberOfEquations, 0 >,  // i, E
-            std::index_sequence< 0, 1 >,  // i, E  (host)
-            std::index_sequence< 0, 1 >,  // i, E  (cuda)
-            DeviceType >
+    NDArray< TNL::Containers::SizesHolder< IndexType, NumberOfEquations, 0 >,  // i, E
+             std::index_sequence< 0, 1 >,   // i, E  (host)
+             std::index_sequence< 0, 1 > >  // i, E  (cuda)
         m_iE_upw;
 
-    TNL::Containers::NDArray<
-            RealType,
-            TNL::Containers::SizesHolder< IndexType, NumberOfEquations, NumberOfEquations, 0 >,  // i, j, E
-            // NOTE: this must match the manual indexing in the UpwindZ class
-            std::index_sequence< 0, 1, 2 >,  // i, j, E  (host)
-            std::index_sequence< 0, 1, 2 >,  // i, j, E  (cuda)
-            DeviceType >
+    NDArray< TNL::Containers::SizesHolder< IndexType, NumberOfEquations, NumberOfEquations, 0 >,  // i, j, E
+             // NOTE: this must match the manual indexing in the UpwindZ class
+             std::index_sequence< 0, 1, 2 >,   // i, j, E  (host)
+             std::index_sequence< 0, 1, 2 > >  // i, j, E  (cuda)
         Z_ijE_upw;
 
     // values with different 's' represent the local matrix b_ijK
-    TNL::Containers::NDArray<
-            RealType,
-            TNL::Containers::SizesHolder< IndexType, NumberOfEquations, NumberOfEquations, 0, MassMatrix::size >,  // i, j, K, s
-            std::index_sequence< 0, 2, 1, 3 >,  // i, K, j, s  (host)
-            std::index_sequence< 0, 1, 3, 2 >,  // i, j, s, K  (cuda)
-            DeviceType >
+    NDArray< TNL::Containers::SizesHolder< IndexType, NumberOfEquations, NumberOfEquations, 0, MassMatrix::size >,  // i, j, K, s
+             std::index_sequence< 0, 2, 1, 3 >,   // i, K, j, s  (host)
+             std::index_sequence< 0, 1, 3, 2 > >  // i, j, s, K  (cuda)
         b_ijK_storage;
 
-    TNL::Containers::NDArray<
-            RealType,
-            TNL::Containers::SizesHolder< IndexType, NumberOfEquations, NumberOfEquations, 0, FacesPerCell >,  // i, j, K, e
-            std::index_sequence< 0, 2, 1, 3 >,  // i, K, j, e  (host)
-            std::index_sequence< 0, 1, 3, 2 >,  // i, j, e, K  (cuda)
-            DeviceType >
+    NDArray< TNL::Containers::SizesHolder< IndexType, NumberOfEquations, NumberOfEquations, 0, FacesPerCell >,  // i, j, K, e
+             std::index_sequence< 0, 2, 1, 3 >,   // i, K, j, e  (host)
+             std::index_sequence< 0, 1, 3, 2 > >  // i, j, e, K  (cuda)
         R_ijKe;
 
-    TNL::Containers::NDArray<
-            RealType,
-            TNL::Containers::SizesHolder< IndexType, NumberOfEquations, 0 >,  // i, K
-            std::index_sequence< 0, 1 >,  // i, K  (host)
-            std::index_sequence< 0, 1 >,  // i, K  (cuda)
-            DeviceType >
+    NDArray< TNL::Containers::SizesHolder< IndexType, NumberOfEquations, 0 >,  // i, K
+             std::index_sequence< 0, 1 >,   // i, K  (host)
+             std::index_sequence< 0, 1 > >  // i, K  (cuda)
         R_iK;
 
 //protected:

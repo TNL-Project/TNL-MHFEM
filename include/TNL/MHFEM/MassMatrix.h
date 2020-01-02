@@ -2,9 +2,9 @@
 
 #include <TNL/Meshes/GridEntity.h>
 #include <TNL/Meshes/MeshEntity.h>
+#include <TNL/Containers/NDArray.h>
 
 #include "../lib_general/mesh_helpers.h"
-#include "../lib_general/ndarray.h"
 #include "../lib_general/LU.h"
 
 // TODO: implement SlicedNDArray, write accessor classes for slices and use them in the update methods below

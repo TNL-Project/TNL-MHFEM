@@ -3,7 +3,6 @@
 #include "SecondaryCoefficients.h"
 #include "../lib_general/mesh_helpers.h"
 #include "../lib_general/LU.h"
-#include "../lib_general/ndarray.h"
 
 // TODO: bind with mesh-dependent data, e.g. as a subclass or local type
 
