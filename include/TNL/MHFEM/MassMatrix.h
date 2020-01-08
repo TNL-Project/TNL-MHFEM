@@ -520,6 +520,8 @@ class MassMatrix< TNL::Meshes::MeshEntity< MeshConfig, Device, TNL::Meshes::Topo
 public:
     using Mesh = TNL::Meshes::Mesh< MeshConfig, Device >;
     using MeshEntity = TNL::Meshes::MeshEntity< MeshConfig, Device, TNL::Meshes::Topologies::Triangle >;
+    using RealType = typename Mesh::RealType;
+    using PointType = typename Mesh::PointType;
     using LocalIndex = typename MeshEntity::LocalIndexType;
     static constexpr MassLumping lumping = MassLumping::disabled;
 
@@ -542,13 +544,13 @@ public:
         const auto& v1 = mesh.template getEntity< 0 >( entity.template getSubentityIndex< 0 >( 1 ) );
         const auto& v2 = mesh.template getEntity< 0 >( entity.template getSubentityIndex< 0 >( 2 ) );
 
-        const auto P0 = v0.getPoint() - v2.getPoint();
-        const auto P1 = v1.getPoint() - v2.getPoint();
+        const PointType P0 = v0.getPoint() - v2.getPoint();
+        const PointType P1 = v1.getPoint() - v2.getPoint();
         // P2 = 0
 
-        const typename Mesh::RealType P00 = (P0, P0);
-        const typename Mesh::RealType P01 = (P0, P1);
-        const typename Mesh::RealType P11 = (P1, P1);
+        const RealType P00 = (P0, P0);
+        const RealType P01 = (P0, P1);
+        const RealType P11 = (P1, P1);
 
         const auto denominator = 24 * getEntityMeasure( mesh, entity );
 
@@ -637,6 +639,8 @@ class MassMatrix< TNL::Meshes::MeshEntity< MeshConfig, Device, TNL::Meshes::Topo
 public:
     using Mesh = TNL::Meshes::Mesh< MeshConfig, Device >;
     using MeshEntity = TNL::Meshes::MeshEntity< MeshConfig, Device, TNL::Meshes::Topologies::Tetrahedron >;
+    using RealType = typename Mesh::RealType;
+    using PointType = typename Mesh::PointType;
     using LocalIndex = typename MeshEntity::LocalIndexType;
     static constexpr MassLumping lumping = MassLumping::disabled;
 
@@ -660,17 +664,17 @@ public:
         const auto& v2 = mesh.template getEntity< 0 >( entity.template getSubentityIndex< 0 >( 2 ) );
         const auto& v3 = mesh.template getEntity< 0 >( entity.template getSubentityIndex< 0 >( 3 ) );
 
-        const auto P0 = v0.getPoint() - v3.getPoint();
-        const auto P1 = v1.getPoint() - v3.getPoint();
-        const auto P2 = v2.getPoint() - v3.getPoint();
+        const PointType P0 = v0.getPoint() - v3.getPoint();
+        const PointType P1 = v1.getPoint() - v3.getPoint();
+        const PointType P2 = v2.getPoint() - v3.getPoint();
         // P3 = 0
 
-        const typename Mesh::RealType P00 = (P0, P0);
-        const typename Mesh::RealType P11 = (P1, P1);
-        const typename Mesh::RealType P22 = (P2, P2);
-        const typename Mesh::RealType P01 = (P0, P1);
-        const typename Mesh::RealType P02 = (P0, P2);
-        const typename Mesh::RealType P12 = (P1, P2);
+        const RealType P00 = (P0, P0);
+        const RealType P11 = (P1, P1);
+        const RealType P22 = (P2, P2);
+        const RealType P01 = (P0, P1);
+        const RealType P02 = (P0, P2);
+        const RealType P12 = (P1, P2);
 
         const auto D = mdd.D_ijK( i, j, K );
         const auto denominator = 180 * getEntityMeasure( mesh, entity );
