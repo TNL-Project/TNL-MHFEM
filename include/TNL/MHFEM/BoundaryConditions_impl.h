@@ -1,5 +1,7 @@
 #pragma once
 
+#include <TNL/Containers/StaticArray.h>
+
 #include "BoundaryConditions.h"
 #include "../lib_general/mesh_helpers.h"
 #include "SecondaryCoefficients.h"
@@ -10,7 +12,7 @@ namespace mhfem
 {
 
 template< typename Mesh, typename MeshDependentData >
-struct NeumannMatrixRowSetter
+struct AdvectiveRowSetter
 {
     template< typename MatrixRow, typename FaceIndexes, typename IndexType >
     __cuda_callable__
@@ -77,7 +79,7 @@ template< int Dimension,
           typename Device,
           typename MeshIndex,
           typename MeshDependentData >
-struct NeumannMatrixRowSetter< TNL::Meshes::Grid< Dimension, MeshReal, Device, MeshIndex >, MeshDependentData >
+struct AdvectiveRowSetter< TNL::Meshes::Grid< Dimension, MeshReal, Device, MeshIndex >, MeshDependentData >
 {
     template< typename MatrixRow, typename FaceIndexes, typename IndexType >
     __cuda_callable__
@@ -97,6 +99,42 @@ struct NeumannMatrixRowSetter< TNL::Meshes::Grid< Dimension, MeshReal, Device, M
                                       mdd.getDofIndex( j, faceIndexes[ f ] ),
                                       coeff::A_ijKEF( mdd, i, j, K, E, e, faceIndexes[ f ], f ) );
             }
+        }
+    }
+};
+
+
+template< typename Mesh, typename MeshDependentData >
+struct FluxRowSetter
+{
+    // TODO
+};
+
+template< int Dimension,
+          typename MeshReal,
+          typename Device,
+          typename MeshIndex,
+          typename MeshDependentData >
+struct FluxRowSetter< TNL::Meshes::Grid< Dimension, MeshReal, Device, MeshIndex >, MeshDependentData >
+{
+    template< typename MatrixRow, typename FaceIndexes, typename IndexType >
+    __cuda_callable__
+    static void setRow( MatrixRow & matrixRow,
+                        const MeshDependentData & mdd,
+                        const FaceIndexes & faceIndexes,
+                        const int & i,
+                        const IndexType & K,
+                        const IndexType & E,
+                        const int & e )
+    {
+        using Mesh = TNL::Meshes::Grid< Dimension, MeshReal, Device, MeshIndex >;
+        AdvectiveRowSetter< Mesh, MeshDependentData >::setRow( matrixRow, mdd, faceIndexes, i, K, E, e );
+
+        for( int j = 0; j < MeshDependentData::NumberOfEquations; j++ ) {
+            const auto value = matrixRow.getElementValue( j * MeshDependentData::FacesPerCell + e );
+            matrixRow.setElement( j * MeshDependentData::FacesPerCell + e,
+                                  mdd.getDofIndex( j, E ),
+                                  value - mdd.u_ijKe( i, j, K, e ) - mdd.a_ijKe( i, j, K, e ) );
         }
     }
 };
@@ -123,13 +161,11 @@ init( const TNL::Config::ParameterContainer & parameters,
         return false;
     }
 
-    dirichletTags.setSize( storage.dofSize );
-    dirichletValues.setSize( storage.dofSize );
-    neumannValues.setSize( storage.dofSize );
+    tags.setSize( storage.dofSize );
+    values.setSize( storage.dofSize );
 
-    dirichletTags = storage.dirichletTags;
-    dirichletValues = storage.dirichletValues;
-    neumannValues = storage.neumannValues;
+    tags = storage.tags;
+    values = storage.values;
 
     return true;
 }
@@ -142,17 +178,15 @@ void
 BoundaryConditions< Mesh, MeshDependentData, ModelImplementation >::
 reorderBoundaryConditions( const MeshOrdering & meshOrdering )
 {
-    TagArrayType tags;
-    DofVectorType dir, neu;
-    const IndexType faces = dirichletTags.getSize() / MeshDependentData::NumberOfEquations;
+    TagArrayType aux_tags;
+    ValueArrayType aux_values;
+    const IndexType faces = tags.getSize() / MeshDependentData::NumberOfEquations;
     for( int i = 0; i < MeshDependentData::NumberOfEquations; i++ ) {
         // TODO: this depends on the specific layout of dofs, general reordering of NDArray is needed
-        tags.bind( dirichletTags.getData() + i * faces, faces );
-        dir.bind( dirichletValues.getData() + i * faces, faces );
-        neu.bind( neumannValues.getData() + i * faces, faces );
-        meshOrdering.template reorderVector< Mesh::getMeshDimension() - 1 >( tags );
-        meshOrdering.template reorderVector< Mesh::getMeshDimension() - 1 >( dir );
-        meshOrdering.template reorderVector< Mesh::getMeshDimension() - 1 >( neu );
+        aux_tags.bind( tags.getData() + i * faces, faces );
+        aux_values.bind( values.getData() + i * faces, faces );
+        meshOrdering.template reorderVector< Mesh::getMeshDimension() - 1 >( aux_tags );
+        meshOrdering.template reorderVector< Mesh::getMeshDimension() - 1 >( aux_values );
     }
 }
 
@@ -179,8 +213,11 @@ getLinearSystemRowLength( const MeshType & mesh,
                           const typename MeshType::Face & entity,
                           const int & i ) const
 {
-//    TNL_ASSERT( mesh.isBoundaryEntity( entity ), );
-    if( this->isDirichletBoundary( mesh, i, entity ) )
+    TNL_ASSERT( mesh.isBoundaryEntity( entity ), );
+
+    const IndexType faces = mesh.template getEntitiesCount< typename Mesh::Face >();
+    const BoundaryConditionsType type = tags[ i * faces + entity.getIndex() ];
+    if( type == BoundaryConditionsType::FixedValue )
         return 1;
     return MeshDependentDataType::FacesPerCell * MeshDependentDataType::NumberOfEquations;
 }
@@ -203,78 +240,105 @@ setMatrixElements( const typename MeshType::Face & entity,
     const auto & mesh = this->mesh.template getData< DeviceType >();
     const auto & mdd = this->mdd.template getData< DeviceType >();
 
-//    TNL_ASSERT( mesh.isBoundaryEntity( entity ), );
+    TNL_ASSERT( mesh.isBoundaryEntity( entity ), );
 
     const IndexType E = entity.getIndex();
     const IndexType indexRow = mdd.getDofIndex( i, E );
 
     typename Matrix::MatrixRow matrixRow = matrix.getRow( indexRow );
 
-    // Dirichlet boundary
-    if( isDirichletBoundary( mesh, i, entity ) ) {
-        matrixRow.setElement( 0, indexRow, 1.0 );
-        b[ indexRow ] = static_cast<const ModelImplementation*>(this)->getDirichletValue( mesh, i, E, time );
-    }
-    // Neumann boundary
-    else {
-        // for boundary faces returns only one valid cell index
-        IndexType cellIndexes[ 2 ];
-        const int numCells = getCellsForFace( mesh, entity, cellIndexes );
-        const IndexType & K = cellIndexes[ 0 ];
-
-        TNL_ASSERT( numCells == 1,
-                    std::cerr << "assertion numCells == 1 failed" << std::endl
-                              << "E = " << E << std::endl
-                              << "K0 = " << cellIndexes[ 0 ] << std::endl
-                              << "K1 = " << cellIndexes[ 1 ] << std::endl; );
-
-        // prepare face indexes
-        const auto faceIndexes = getFacesForCell( mesh, K );
-        const int e = getLocalIndex( faceIndexes, E );
-
-        // set right hand side value
-        RealType bValue = - static_cast<const ModelImplementation*>(this)->getNeumannValue( mesh, i, E, time ) * getEntityMeasure( mesh, entity );
-
-        bValue += mdd.w_iKe( i, K, e );
-        for( int j = 0; j < MeshDependentDataType::NumberOfEquations; j++ ) {
-            bValue += MeshDependentDataType::MassMatrix::b_ijKe( mdd, i, j, K, e ) * mdd.R_iK( j, K );
-        }
-        b[ indexRow ] = bValue;
-
-        // set non-zero elements
-        NeumannMatrixRowSetter< MeshType, MeshDependentDataType >::
-            setRow( matrixRow,
-                    mdd,
-                    faceIndexes,
-                    i, K, E, e );
-    }
-}
-
-template< typename Mesh,
-          typename MeshDependentData,
-          typename ModelImplementation >
-__cuda_callable__
-bool
-BoundaryConditions< Mesh, MeshDependentData, ModelImplementation >::
-isNeumannBoundary( const MeshType & mesh, const int & i, const typename Mesh::Face & face ) const
-{
-//    if( ! face.isBoundaryEntity() )
-//        return false;
-    return ! isDirichletBoundary( mesh, i, face );
-}
-
-template< typename Mesh,
-          typename MeshDependentData,
-          typename ModelImplementation >
-__cuda_callable__
-bool
-BoundaryConditions< Mesh, MeshDependentData, ModelImplementation >::
-isDirichletBoundary( const MeshType & mesh, const int & i, const typename Mesh::Face & face ) const
-{
-//    if( ! face.isBoundaryEntity() )
-//        return false;
     const IndexType faces = mesh.template getEntitiesCount< typename Mesh::Face >();
-    return dirichletTags[ i * faces + face.getIndex() ];
+    const BoundaryConditionsType type = tags[ i * faces + E ];
+
+    switch( type ) {
+        // fixed-value (Dirichlet) boundary condition
+        case BoundaryConditionsType::FixedValue:
+            matrixRow.setElement( 0, indexRow, 1.0 );
+            b[ indexRow ] = static_cast<const ModelImplementation*>(this)->getDirichletValue( mesh, i, E, time );
+            break;
+
+        // fixed-flux (Neumann) boundary condition
+        case BoundaryConditionsType::FixedFlux:
+        {
+            // for boundary faces returns only one valid cell index
+            IndexType cellIndexes[ 2 ];
+            const int numCells = getCellsForFace( mesh, entity, cellIndexes );
+            const IndexType & K = cellIndexes[ 0 ];
+
+            TNL_ASSERT( numCells == 1,
+                        std::cerr << "assertion numCells == 1 failed" << std::endl
+                                  << "E = " << E << std::endl
+                                  << "K0 = " << cellIndexes[ 0 ] << std::endl
+                                  << "K1 = " << cellIndexes[ 1 ] << std::endl; );
+
+            // prepare face indexes
+            const auto faceIndexes = getFacesForCell( mesh, K );
+            const int e = getLocalIndex( faceIndexes, E );
+
+            // set right hand side value
+            RealType bValue = - static_cast<const ModelImplementation*>(this)->getNeumannValue( mesh, i, E, time ) * getEntityMeasure( mesh, entity );
+
+            // advective term
+            // TODO: make it implicit
+//            for( int j = 0; j < MeshDependentDataType::NumberOfEquations; j++ ) {
+//                bValue += mdd.a_ijKe( i, j, K, e ) * mdd.Z_ijE_upw( i, j, E );
+//            }
+
+            bValue += mdd.w_iKe( i, K, e );
+            for( int j = 0; j < MeshDependentDataType::NumberOfEquations; j++ ) {
+                bValue += MeshDependentDataType::MassMatrix::b_ijKe( mdd, i, j, K, e ) * mdd.R_iK( j, K );
+            }
+            b[ indexRow ] = bValue;
+
+            // set non-zero elements
+            FluxRowSetter< MeshType, MeshDependentDataType >::
+                setRow( matrixRow,
+                        mdd,
+                        faceIndexes,
+                        i, K, E, e );
+            break;
+        }
+
+        // advective outflow boundary condition
+        case BoundaryConditionsType::AdvectiveOutflow:
+        {
+            // for boundary faces returns only one valid cell index
+            IndexType cellIndexes[ 2 ];
+            const int numCells = getCellsForFace( mesh, entity, cellIndexes );
+            const IndexType & K = cellIndexes[ 0 ];
+
+            TNL_ASSERT( numCells == 1,
+                        std::cerr << "assertion numCells == 1 failed" << std::endl
+                                  << "E = " << E << std::endl
+                                  << "K0 = " << cellIndexes[ 0 ] << std::endl
+                                  << "K1 = " << cellIndexes[ 1 ] << std::endl; );
+
+            // prepare face indexes
+            const auto faceIndexes = getFacesForCell( mesh, K );
+            const int e = getLocalIndex( faceIndexes, E );
+
+            // set right hand side value
+            RealType bValue = 0;
+
+            bValue += mdd.w_iKe( i, K, e );
+            for( int j = 0; j < MeshDependentDataType::NumberOfEquations; j++ ) {
+                bValue += MeshDependentDataType::MassMatrix::b_ijKe( mdd, i, j, K, e ) * mdd.R_iK( j, K );
+            }
+            b[ indexRow ] = bValue;
+
+            // set non-zero elements
+            AdvectiveRowSetter< MeshType, MeshDependentDataType >::
+                setRow( matrixRow,
+                        mdd,
+                        faceIndexes,
+                        i, K, E, e );
+            break;
+        }
+
+        default:
+            TNL_ASSERT_TRUE( false, "unknown boundary condition type was encountered" );
+            break;
+    }
 }
 
 } // namespace mhfem

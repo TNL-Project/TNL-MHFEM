@@ -1,9 +1,10 @@
 #pragma once
 
 #include <TNL/Pointers/SharedPointer.h>
-#include <TNL/Containers/Vector.h>
-#include <TNL/Containers/StaticVector.h>
+#include <TNL/Containers/Array.h>
 #include <TNL/Operators/Operator.h>
+
+#include "BoundaryConditionsType.h"
 
 namespace mhfem
 {
@@ -27,8 +28,8 @@ public:
     using DeviceType = typename MeshType::DeviceType;
     using RealType = typename MeshDependentDataType::RealType;
     using IndexType = typename MeshDependentDataType::IndexType;
-    using TagArrayType = TNL::Containers::Array< bool, DeviceType, IndexType >;
-    using DofVectorType = TNL::Containers::Vector< RealType, DeviceType, IndexType >;
+    using TagArrayType = TNL::Containers::Array< BoundaryConditionsType, DeviceType, IndexType >;
+    using ValueArrayType = TNL::Containers::Array< RealType, DeviceType, IndexType >;
 
     // NOTE: children of BoundaryConditions (i.e. ModelImplementation) must implement these methods
 //    bool
@@ -74,22 +75,15 @@ public:
                             Matrix & matrix,
                             Vector & b ) const;
 
-    __cuda_callable__
-    bool isNeumannBoundary( const MeshType & mesh, const int & i, const typename Mesh::Face & face ) const;
-
-    __cuda_callable__
-    bool isDirichletBoundary( const MeshType & mesh, const int & i, const typename Mesh::Face & face ) const;
-
 protected:
     TNL::Pointers::SharedPointer< MeshType > mesh;
     TNL::Pointers::SharedPointer< MeshDependentDataType > mdd;
 
-    // vector holding tags to differentiate the boundary condition based on the face index
-    // (true indicates Dirichlet boundary)
-    TagArrayType dirichletTags;
+    // array holding tags to differentiate the boundary condition based on the face index
+    TagArrayType tags;
 
-    // vectors holding the Dirichlet and Neumann values
-    DofVectorType dirichletValues, neumannValues;
+    // array holding the values to be interpreted by the boundary condition specified on each face
+    ValueArrayType values;
 };
 
 } // namespace mhfem
