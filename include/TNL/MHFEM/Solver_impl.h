@@ -2,7 +2,6 @@
 
 #include <TNL/FileName.h>
 #include <TNL/Matrices/MatrixSetter.h>
-#include <TNL/Functions/MeshFunction.h>
 
 #include "../lib_general/mesh_helpers.h"
 #include "../lib_general/GenericEnumerator.h"
@@ -451,12 +450,22 @@ postIterate( const RealType & time,
     timer_postIterate.start();
 
     timer_explicit.start();
-    // bind output
-    meshFunctionZK->bind( meshPointer, mdd->Z_iK.getStorageArray() );
-    // bind inputs
-    functionZK->bind( meshPointer, mdd );
-    // evaluate
-    evaluatorZK.evaluate( meshFunctionZK, functionZK );
+    {
+        using coeff = SecondaryCoefficients< MeshDependentDataType >;
+
+        const Mesh* _mesh = &meshPointer.template getData< DeviceType >();
+        MeshDependentDataType* _mdd = &mdd.template modifyData< DeviceType >();
+
+        auto kernel = [_mdd, _mesh] __cuda_callable__ ( int i, IndexType K ) mutable
+        {
+            const auto faceIndexes = getFacesForCell( *_mesh, K );
+            _mdd->Z_iK( i, K ) = coeff::Z_iK( *_mdd, faceIndexes, i, K );
+        };
+        const IndexType cells = meshPointer->template getEntitiesCount< typename Mesh::Cell >();
+        TNL::Algorithms::ParallelFor2D< DeviceType >::exec( (IndexType) 0, (IndexType) 0,
+                                                            MeshDependentDataType::NumberOfEquations, cells,
+                                                            kernel );
+    }
     timer_explicit.stop();
 
     // update coefficients of the conservative velocities

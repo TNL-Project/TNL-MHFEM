@@ -6,8 +6,7 @@ namespace mhfem
 {
 
 template< typename MeshDependentData, MassLumping = MeshDependentData::MassMatrix::lumping >
-struct MassLumpingDependentCoefficients
-{};
+struct MassLumpingDependentCoefficients;
 
 template< typename MeshDependentData >
 struct MassLumpingDependentCoefficients< MeshDependentData, MassLumping::enabled >

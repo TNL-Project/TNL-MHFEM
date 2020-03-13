@@ -11,7 +11,6 @@
 
 #include "DifferentialOperator.h"
 #include "RightHandSide.h"
-#include "HybridizationExplicitFunction.h"
 #include "Upwind.h"
 #include "../lib_general/MeshOrdering.h"
 #include "../lib_general/LinearSystemAssembler.h"
@@ -125,15 +124,6 @@ protected:
 
 
     // cached instances for postIterate method
-
-    // output
-    using ZkMeshFunction = TNL::Functions::MeshFunction< MeshType, MeshType::getMeshDimension(), RealType, MeshDependentDataType::NumberOfEquations >;
-    TNL::Pointers::SharedPointer< ZkMeshFunction, DeviceType > meshFunctionZK;
-    // input
-    using HybridizationFunction = HybridizationExplicitFunction< MeshType, MeshDependentDataType >;
-    TNL::Pointers::SharedPointer< HybridizationFunction, DeviceType > functionZK;
-    // evaluator
-    TNL::Functions::MeshFunctionEvaluator< ZkMeshFunction, HybridizationFunction > evaluatorZK;
 
     // output
     using DofFunction = TNL::Functions::MeshFunction< Mesh, Mesh::getMeshDimension() - 1, RealType, MeshDependentDataType::NumberOfEquations >;
