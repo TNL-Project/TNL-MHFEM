@@ -6,7 +6,6 @@
 #include "../lib_general/mesh_helpers.h"
 
 #include "Solver.h"
-#include "LocalUpdaters.h"
 
 namespace mhfem
 {
@@ -72,7 +71,7 @@ setup( const TNL::Config::ParameterContainer & parameters,
             return false;
     }
 
-    // Our kernels for LocalUpdaters and DifferentialOperator have many local memory spills,
+    // Our kernels for preIterate, postIterate and DifferentialOperator have many local memory spills,
     // so this helps a lot. It does not affect TNL's reduction and multireduction algorithms,
     // which set cudaFuncCachePreferShared manually per kernel.
 #ifdef HAVE_CUDA
@@ -265,7 +264,7 @@ preIterate( const RealType & time,
     // FIXME
     mdd->current_time = time;
 
-    // FIXME: nasty hack to pass tau to LocalUpdaters
+    // FIXME: nasty hack to pass tau to MassLumpingDependentCoefficients and SecondaryCoefficients
     mdd->current_tau = tau;
 
     // not necessary for correctness, but for correct timings
@@ -288,8 +287,6 @@ preIterate( const RealType & time,
         TNL::Algorithms::ParallelFor< DeviceType >::exec( (IndexType) 0, cells, kernel );
     }
     timer_nonlinear.stop();
-
-    TNL::Meshes::Traverser< MeshType, typename MeshType::Cell, MeshDependentDataType::NumberOfEquations > traverser_Ki;
 
     // update coefficients b_ijKEF
     timer_b.start();
@@ -345,12 +342,94 @@ preIterate( const RealType & time,
     timer_upwind.stop();
 
     timer_R.start();
-    traverser_Ki.template processAllEntities< typename LocalUpdaters< MeshType, MeshDependentDataType >::update_R >( meshPointer, _mdd );
+    {
+        auto kernel = [_mdd, _mesh] __cuda_callable__ ( int i, IndexType K ) mutable
+        {
+            // get face indexes
+            const auto faceIndexes = getFacesForCell( *_mesh, K );
+
+            // update coefficients R_ijKE
+            for( int j = 0; j < MeshDependentDataType::NumberOfEquations; j++ )
+                for( int e = 0; e < MeshDependentDataType::FacesPerCell; e++ )
+                    _mdd->R_ijKe( i, j, K, e ) = coeff::R_ijKe( *_mdd, faceIndexes, i, j, K, e );
+
+            // update coefficient R_iK
+            const auto& entity = _mesh->template getEntity< typename MeshType::Cell >( K );
+            _mdd->R_iK( i, K ) = coeff::R_iK( *_mdd, *_mesh, entity, faceIndexes, i, K );
+        };
+        TNL::Algorithms::ParallelFor2D< DeviceType >::exec( (IndexType) 0, (IndexType) 0,
+                                                            MeshDependentDataType::NumberOfEquations, cells,
+                                                            kernel );
+    }
     timer_R.stop();
 
-    TNL::Meshes::Traverser< MeshType, typename MeshType::Cell > traverser_K;
     timer_Q.start();
-    traverser_K.template processAllEntities< typename LocalUpdaters< MeshType, MeshDependentDataType >::update_Q >( meshPointer, _mdd );
+    {
+        auto kernel = [_mdd, _mesh] __cuda_callable__ ( IndexType K ) mutable
+        {
+            // get face indexes
+            const auto faceIndexes = getFacesForCell( *_mesh, K );
+            const auto& entity = _mesh->template getEntity< typename MeshType::Cell >( K );
+
+            using LocalMatrixType = TNL::Containers::StaticMatrix< RealType, MeshDependentDataType::NumberOfEquations, MeshDependentDataType::NumberOfEquations >;
+#ifndef __CUDA_ARCH__
+            LocalMatrixType Q;
+//            RealType rhs[ MeshDependentDataType::NumberOfEquations ];
+#else
+            // TODO: use dynamic allocation via Devices::Cuda::getSharedMemory
+            // (we'll need to pass custom launch configuration to the ParallelFor)
+            // Now we just assume that the ParallelFor kernel uses 256 threads per block.
+            __shared__ LocalMatrixType __Qs[ 256 ];
+            LocalMatrixType& Q = __Qs[ ( ( threadIdx.z * blockDim.y ) + threadIdx.y ) * blockDim.x + threadIdx.x ];
+
+            // TODO: this limits the kernel to 1 block on Fermi - maybe cudaFuncCachePreferShared specifically for this kernel would help
+//            __shared__ RealType __rhss[ MeshDependentDataType::NumberOfEquations * 256 ];
+//            RealType* rhs = &__rhss[ MeshDependentDataType::NumberOfEquations * (
+//                                        ( ( threadIdx.z * blockDim.y ) + threadIdx.y ) * blockDim.x + threadIdx.x
+//                                    ) ];
+#endif
+
+            for( int i = 0; i < MeshDependentDataType::NumberOfEquations; i++ ) {
+                // Q is singular if it has a row with all elements equal to zero
+                bool singular = true;
+
+                for( int j = 0; j < MeshDependentDataType::NumberOfEquations; j++ ) {
+                    const RealType value = coeff::Q_ijK( *_mdd, *_mesh, entity, faceIndexes, i, j, K );
+                    Q( i, j ) = value;
+
+                    // update singularity state
+                    if( value != 0.0 )
+                        singular = false;
+                }
+
+                // check for singularity
+                if( singular ) {
+                    Q( i, i ) = 1.0;
+                    _mdd->R_iK( i, K ) += _mdd->Z_iK( i, K );
+                }
+            }
+
+            LU_factorize( Q );
+
+            RealType rhs[ MeshDependentDataType::NumberOfEquations ];
+
+            for( int i = 0; i < MeshDependentDataType::NumberOfEquations; i++ )
+                rhs[ i ] = _mdd->R_iK( i, K );
+            LU_solve_inplace( Q, rhs );
+            for( int i = 0; i < MeshDependentDataType::NumberOfEquations; i++ )
+                _mdd->R_iK( i, K ) = rhs[ i ];
+
+            for( int j = 0; j < MeshDependentDataType::NumberOfEquations; j++ )
+                for( int e = 0; e < MeshDependentDataType::FacesPerCell; e++ ) {
+                    for( int i = 0; i < MeshDependentDataType::NumberOfEquations; i++ )
+                        rhs[ i ] = _mdd->R_ijKe( i, j, K, e );
+                    LU_solve_inplace( Q, rhs );
+                    for( int i = 0; i < MeshDependentDataType::NumberOfEquations; i++ )
+                        _mdd->R_ijKe( i, j, K, e ) = rhs[ i ];
+                }
+        };
+        TNL::Algorithms::ParallelFor< DeviceType >::exec( (IndexType) 0, cells, kernel );
+    }
     timer_Q.stop();
 
     timer_preIterate.stop();
