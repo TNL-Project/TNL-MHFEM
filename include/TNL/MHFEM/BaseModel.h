@@ -71,6 +71,13 @@ public:
                                                                   CudaPermutation,
                                                                   HostPermutation >,
                                               DeviceType >;
+    // host NDArray - intended for output/buffering only
+    template< typename SizesHolder,
+              typename HostPermutation >
+    using HostNDArray = TNL::Containers::NDArray< RealType,
+                                                  SizesHolder,
+                                                  HostPermutation,
+                                                  TNL::Devices::Host >;
 
     // main dofs (allocated as ND array, the TNL's DofVector is bound to the underlying 1D array)
     NDArray< TNL::Containers::SizesHolder< IndexType, NumberOfEquations, 0 >,  // i, F

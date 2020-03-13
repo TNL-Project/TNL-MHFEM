@@ -34,12 +34,11 @@ getLinearSystemRowLength( const MeshType & mesh,
 
 template< typename Mesh,
           typename MeshDependentData >
-    template< typename DofFunctionPointer, typename Vector, typename Matrix >
+    template< typename Vector, typename Matrix >
 __cuda_callable__
 void
 DifferentialOperator< Mesh, MeshDependentData >::
-setMatrixElements( DofFunctionPointer & u,
-                   const typename MeshType::Face & entity,
+setMatrixElements( const typename MeshType::Face & entity,
                    const RealType & time,
                    const RealType & tau,
                    const int & i,
@@ -218,12 +217,11 @@ template< typename MeshReal,
           typename Device,
           typename MeshIndex,
           typename MeshDependentData >
-    template< typename DofFunctionPointer, typename Vector, typename Matrix >
+    template< typename Vector, typename Matrix >
 __cuda_callable__
 void
 DifferentialOperator< TNL::Meshes::Grid< 1, MeshReal, Device, MeshIndex >, MeshDependentData >::
-setMatrixElements( DofFunctionPointer & u,
-                   const typename MeshType::Face & entity,
+setMatrixElements( const typename MeshType::Face & entity,
                    const RealType & time,
                    const RealType & tau,
                    const int & i,
@@ -297,12 +295,11 @@ template< typename MeshReal,
           typename Device,
           typename MeshIndex,
           typename MeshDependentData >
-    template< typename DofVectorPointer, typename Vector, typename Matrix >
+    template< typename Vector, typename Matrix >
 __cuda_callable__
 void
 DifferentialOperator< TNL::Meshes::Grid< 2, MeshReal, Device, MeshIndex >, MeshDependentData >::
-setMatrixElements( DofVectorPointer & u,
-                   const typename MeshType::Face & entity,
+setMatrixElements( const typename MeshType::Face & entity,
                    const RealType & time,
                    const RealType & tau,
                    const int & i,
@@ -408,12 +405,11 @@ template< typename MeshReal,
           typename Device,
           typename MeshIndex,
           typename MeshDependentData >
-    template< typename DofVectorPointer, typename Vector, typename Matrix >
+    template< typename Vector, typename Matrix >
 __cuda_callable__
 void
 DifferentialOperator< TNL::Meshes::Grid< 3, MeshReal, Device, MeshIndex >, MeshDependentData >::
-setMatrixElements( DofVectorPointer & u,
-                   const typename MeshType::Face & entity,
+setMatrixElements( const typename MeshType::Face & entity,
                    const RealType & time,
                    const RealType & tau,
                    const int & i,

@@ -1,12 +1,10 @@
 #pragma once
 
-#include <TNL/Solvers/SolverMonitor.h>
 #include <TNL/Logger.h>
 #include <TNL/Containers/Vector.h>
 #include <TNL/Pointers/SharedPointer.h>
-#include <TNL/Solvers/PDE/LinearSystemAssembler.h>
-#include <TNL/Solvers/PDE/NoTimeDiscretisation.h>
-#include <TNL/Problems/PDEProblem.h>
+#include <TNL/Solvers/Linear/LinearSolver.h>
+#include <TNL/Solvers/LinearSolverTypeResolver.h>
 #include <TNL/Functions/MeshFunction.h>
 #include <TNL/Timer.h>
 #include <TNL/Communicators/NoDistrCommunicator.h>
@@ -16,6 +14,7 @@
 #include "HybridizationExplicitFunction.h"
 #include "Upwind.h"
 #include "../lib_general/MeshOrdering.h"
+#include "../lib_general/LinearSystemAssembler.h"
 
 namespace mhfem
 {
@@ -24,12 +23,7 @@ template< typename Mesh,
           typename MeshDependentData,
           typename BoundaryConditions,
           typename Matrix >
-class Solver :
-    public TNL::Problems::PDEProblem< Mesh,
-                                      TNL::Communicators::NoDistrCommunicator,
-                                      typename MeshDependentData::RealType,
-                                      typename MeshDependentData::DeviceType,
-                                      typename MeshDependentData::IndexType >
+class Solver
 {
 public:
     using RealType = typename MeshDependentData::RealType;
@@ -41,9 +35,7 @@ public:
     using MeshDependentDataType = MeshDependentData;
     using MeshDependentDataPointer = TNL::Pointers::SharedPointer< MeshDependentDataType, DeviceType >;
     using DofVectorType = TNL::Containers::Vector< RealType, DeviceType, IndexType >;
-    using DofVectorPointer = TNL::Pointers::SharedPointer< DofVectorType >;
-    using DofFunction = TNL::Functions::MeshFunction< Mesh, Mesh::getMeshDimension() - 1, RealType, MeshDependentDataType::NumberOfEquations >;
-    using DofFunctionPointer = TNL::Pointers::SharedPointer< DofFunction >;
+    using DofViewType = TNL::Containers::VectorView< RealType, DeviceType, IndexType >;
     using DifferentialOperator = mhfem::DifferentialOperator< MeshType, MeshDependentDataType >;
     using DifferentialOperatorPointer = TNL::Pointers::SharedPointer< DifferentialOperator >;
     using BoundaryConditionsPointer = TNL::Pointers::SharedPointer< BoundaryConditions >;
@@ -54,77 +46,82 @@ public:
 
     static TNL::String getPrologHeader();
 
-    static void writeProlog( TNL::Logger & logger,
-                             const TNL::Config::ParameterContainer & parameters );
-
-    TNL::Solvers::SolverMonitor* getSolverMonitor();
-
     void setMesh( MeshPointer & meshPointer );
 
     bool setup( const TNL::Config::ParameterContainer & parameters,
-                const TNL::String & prefix );
+                const TNL::String & prefix = "" );
 
-    bool setInitialCondition( const TNL::Config::ParameterContainer & parameters,
-                              DofVectorPointer & dofsPointer );
+    bool setInitialCondition( const TNL::Config::ParameterContainer & parameters );
 
-    bool setupLinearSystem( MatrixPointer & matrixPointer );
+    void setupLinearSystem();
 
     bool makeSnapshot( const RealType & time,
-                       const IndexType & step,
-                       DofVectorPointer & dofsPointer );
+                       const IndexType & step );
 
     IndexType getDofs() const;
 
-    void bindDofs( DofVectorPointer & dofs );
+    MeshDependentDataPointer& getMeshDependentData();
 
-    bool preIterate( const RealType & time,
-                     const RealType & tau,
-                     DofVectorPointer & dofsPointer );
+    void preIterate( const RealType & time,
+                     const RealType & tau );
 
-    void assemblyLinearSystem( const RealType & time,
-                               const RealType & tau,
-                               DofVectorPointer & dofsPointer,
-                               MatrixPointer & matrixPointer,
-                               DofVectorPointer & rightHandSidePointer );
+    void assembleLinearSystem( const RealType & time,
+                               const RealType & tau );
 
-    void saveFailedLinearSystem( const Matrix & matrix,
-                                 const DofVectorType & dofs,
-                                 const DofVectorType & rhs ) const;
+    void solveLinearSystem( TNL::Solvers::IterativeSolverMonitor< RealType, IndexType >* solverMonitor = nullptr );
 
-    bool postIterate( const RealType & time,
-                      const RealType & tau,
-                      DofVectorPointer & dofsPointer );
+    void saveLinearSystem( const Matrix & matrix,
+                           DofViewType dofs,
+                           DofViewType rhs ) const;
 
-    bool writeEpilog( TNL::Logger & logger );
+    void postIterate( const RealType & time,
+                      const RealType & tau );
+
+    void writeEpilog( TNL::Logger & logger ) const;
 
 protected:
     // prefix for snapshots
-    TNL::String outputPrefix;
+    TNL::String outputDirectory;
     bool doMeshOrdering;
 
-    // timers for profiling
-    TNL::Timer timer_b, timer_R, timer_Q, timer_explicit, timer_nonlinear, timer_velocities, timer_upwind;
+    // output/profiling variables
+    long long int allIterations = 0;
+    TNL::Timer timer_preIterate, timer_assembleLinearSystem, timer_linearPreconditioner, timer_linearSolver, timer_postIterate,
+               // preIterate
+               timer_b, timer_R, timer_Q, timer_nonlinear, timer_upwind,
+               // postIterate
+               timer_explicit, timer_velocities;
 
-    MeshPointer meshPointer;
+    MeshPointer meshPointer = nullptr;
     // holder for mesh ordering permutations
     MeshOrdering< Mesh > meshOrdering;
     MeshDependentDataPointer mdd;
 
-    DofFunctionPointer dofFunctionPointer;
     DifferentialOperatorPointer differentialOperatorPointer;
     BoundaryConditionsPointer boundaryConditionsPointer;
     RightHandSidePointer rightHandSidePointer;
 
-    // cached instance for assemblyLinearSystem
-    using LinearSystemAssembler = TNL::Solvers::PDE::LinearSystemAssembler
+    // cached instance for assembleLinearSystem
+    using LinearSystemAssembler = mhfem::LinearSystemAssembler
                                   < MeshType,
-                                    DofFunction,
                                     DifferentialOperator,
                                     BoundaryConditions,
                                     RightHandSide,
-                                    TNL::Solvers::PDE::NoTimeDiscretisation,
                                     DofVectorType >;
     LinearSystemAssembler systemAssembler;
+
+    // linear system preconditioner and solver
+    using LinearSolverType = TNL::Solvers::Linear::LinearSolver< MatrixType >;
+    using LinearSolverPointer = std::shared_ptr< LinearSolverType >;
+    using PreconditionerType = typename LinearSolverType::PreconditionerType;
+    using PreconditionerPointer = std::shared_ptr< PreconditionerType >;
+    // uninitialized smart pointers (they are initialized in the setup method)
+    LinearSolverPointer linearSystemSolver = nullptr;
+    PreconditionerPointer preconditioner = nullptr;
+
+    // matrix and right hand side vector for the linear system
+    MatrixPointer matrixPointer;
+    DofVectorType rhsVector;
 
 
     // cached instances for postIterate method
@@ -139,6 +136,7 @@ protected:
     TNL::Functions::MeshFunctionEvaluator< ZkMeshFunction, HybridizationFunction > evaluatorZK;
 
     // output
+    using DofFunction = TNL::Functions::MeshFunction< Mesh, Mesh::getMeshDimension() - 1, RealType, MeshDependentDataType::NumberOfEquations >;
     TNL::Pointers::SharedPointer< DofFunction, DeviceType > upwindMeshFunction;
     // input
     using UpwindFunction = Upwind< MeshType, MeshDependentDataType, BoundaryConditions >;

@@ -1,5 +1,7 @@
 #pragma once
 
+// FIXME: Grid.h must be included before GridEntity.h - should be fixed in TNL
+#include <TNL/Meshes/Grid.h>
 #include <TNL/Meshes/GridEntity.h>
 #include <TNL/Meshes/MeshEntity.h>
 #include <TNL/Containers/NDArray.h>

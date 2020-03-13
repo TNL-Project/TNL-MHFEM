@@ -112,10 +112,6 @@ init( const TNL::Config::ParameterContainer & parameters,
 {
     const IndexType numberOfFaces = mesh.template getEntitiesCount< typename Mesh::Face >();
 
-    if( ! parameters.checkParameter( "boundary-conditions-file" ) ) {
-        std::cerr << "Missing parameter: --boundary-conditions-file" << std::endl;
-        return false;
-    }
     const TNL::String fname = parameters.getParameter< TNL::String >( "boundary-conditions-file" );
 
     models::boundary::BoundaryConditionsStorage< RealType, IndexType > storage;
@@ -192,12 +188,11 @@ getLinearSystemRowLength( const MeshType & mesh,
 template< typename Mesh,
           typename MeshDependentData,
           typename ModelImplementation >
-    template< typename DofVectorPointer, typename Vector, typename Matrix >
+    template< typename Vector, typename Matrix >
 __cuda_callable__
 void
 BoundaryConditions< Mesh, MeshDependentData, ModelImplementation >::
-setMatrixElements( DofVectorPointer & u,
-                   const typename MeshType::Face & entity,
+setMatrixElements( const typename MeshType::Face & entity,
                    const RealType & time,
                    const RealType & tau,
                    const int & i,

@@ -6,7 +6,6 @@
 
 #include "../lib_general/mesh_helpers.h"
 #include "../lib_general/GenericEnumerator.h"
-#include "../lib_general/FaceAverageFunction.h"
 
 #include "Solver.h"
 #include "LocalUpdaters.h"
@@ -23,31 +22,6 @@ Solver< Mesh, MeshDependentData, BoundaryConditions, Matrix >::
 getPrologHeader()
 {
     return TNL::String( "NumDwarf solver" );
-}
-
-template< typename Mesh,
-          typename MeshDependentData,
-          typename BoundaryConditions,
-          typename Matrix >
-void
-Solver< Mesh, MeshDependentData, BoundaryConditions, Matrix >::
-writeProlog( TNL::Logger & logger, const TNL::Config::ParameterContainer & parameters )
-{
-    logger.writeParameter< TNL::String >( "Output prefix:", parameters.getParameter< TNL::String >( "output-prefix" ) );
-    logger.writeParameter< bool >( "Mesh ordering enabled:", parameters.getParameter< bool >( "reorder-mesh" ) );
-    logger.writeSeparator();
-    MeshDependentDataType::writeProlog( logger, parameters );
-}
-
-template< typename Mesh,
-          typename MeshDependentData,
-          typename BoundaryConditions,
-          typename Matrix >
-TNL::Solvers::SolverMonitor*
-Solver< Mesh, MeshDependentData, BoundaryConditions, Matrix >::
-getSolverMonitor()
-{
-    return 0;
 }
 
 template< typename Mesh,
@@ -74,9 +48,31 @@ Solver< Mesh, MeshDependentData, BoundaryConditions, Matrix >::
 setup( const TNL::Config::ParameterContainer & parameters,
        const TNL::String & prefix )
 {
+    if( ! meshPointer ) {
+        std::cerr << "The meshPointer is NULL, the setMesh method must be called first." << std::endl;
+        return false;
+    }
+
     // prefix for snapshots
-    outputPrefix = parameters.getParameter< TNL::String >( "output-prefix" ) + TNL::String("-");
+    outputDirectory = parameters.getParameter< TNL::String >( "output-directory" );
     doMeshOrdering = parameters.getParameter< bool >( "reorder-mesh" );
+
+    // set up the linear solver
+    const TNL::String& linearSolverName = parameters.getParameter< TNL::String >( "linear-solver" );
+    linearSystemSolver = TNL::Solvers::getLinearSolver< MatrixType >( linearSolverName );
+    if( ! linearSystemSolver )
+        return false;
+    if( ! linearSystemSolver->setup( parameters ) )
+        return false;
+
+    // set up the preconditioner
+    const TNL::String& preconditionerName = parameters.getParameter< TNL::String >( "preconditioner" );
+    preconditioner = TNL::Solvers::getPreconditioner< MatrixType >( preconditionerName );
+    if( preconditioner ) {
+        linearSystemSolver->setPreconditioner( preconditioner );
+        if( ! preconditioner->setup( parameters ) )
+            return false;
+    }
 
     // Our kernels for LocalUpdaters and DifferentialOperator have many local memory spills,
     // so this helps a lot. It does not affect TNL's reduction and multireduction algorithms,
@@ -99,7 +95,6 @@ typename Solver< Mesh, MeshDependentData, BoundaryConditions, Matrix >::IndexTyp
 Solver< Mesh, MeshDependentData, BoundaryConditions, Matrix >::
 getDofs() const
 {
-    // TODO: avoid the re-allocation on re-binding
     return MeshDependentDataType::NumberOfEquations * meshPointer->template getEntitiesCount< typename MeshType::Face >();
 }
 
@@ -107,11 +102,11 @@ template< typename Mesh,
           typename MeshDependentData,
           typename BoundaryConditions,
           typename Matrix >
-void
+typename Solver< Mesh, MeshDependentData, BoundaryConditions, Matrix >::MeshDependentDataPointer&
 Solver< Mesh, MeshDependentData, BoundaryConditions, Matrix >::
-bindDofs( DofVectorPointer & dofVectorPointer )
+getMeshDependentData()
 {
-    dofFunctionPointer->bind( meshPointer, dofVectorPointer );
+    return mdd;
 }
 
 
@@ -121,17 +116,8 @@ template< typename Mesh,
           typename Matrix >
 bool
 Solver< Mesh, MeshDependentData, BoundaryConditions, Matrix >::
-setInitialCondition( const TNL::Config::ParameterContainer & parameters,
-                     DofVectorPointer & dofVectorPointer )
+setInitialCondition( const TNL::Config::ParameterContainer & parameters )
 {
-    // HACK: we allocate DOFs as an NDArray (mdd->Z_iF) and bind the TNL's
-    // DofVector to the underlying 1D array
-    // (not related to setting initial condition, but this is the first place
-    // where we have both dofVector and mdd together)
-    dofVectorPointer->bind( mdd->Z_iF.getStorageArray() );
-
-    bindDofs( dofVectorPointer );
-
     if( ! boundaryConditionsPointer->init( parameters, *meshPointer ) )
         return false;
 
@@ -145,22 +131,42 @@ setInitialCondition( const TNL::Config::ParameterContainer & parameters,
         meshOrdering.reset_faces();
     }
 
-    // initialize dofVector as an average of mdd.Z on neighbouring cells
+    #ifdef HAVE_CUDA
+    // make sure that meshPointer and mdd are synchronized
+    TNL::Pointers::synchronizeSmartPointersOnDevice< DeviceType >();
+    #endif
+
+    // initialize mdd.Z_iF as an average of mdd.Z on neighbouring cells
     // (this is not strictly necessary, we just provide an initial guess for
     // the iterative linear solver)
-        // bind input
-        using FaceAverageFunction = FaceAverageFunction< MeshType, MeshDependentDataType >;
-        TNL::Pointers::SharedPointer< FaceAverageFunction, DeviceType > faceAverageFunction;
-        faceAverageFunction->bind( meshPointer, mdd );
-        // evaluator
-        TNL::Functions::MeshFunctionEvaluator< DofFunction, FaceAverageFunction > faceAverageEvaluator;
-        // TODO: correctness of the evaluator depends on the specific layout of Z_iF
-        faceAverageEvaluator.evaluate(
-                dofFunctionPointer,     // out
-                faceAverageFunction );  // in
+    const Mesh* _mesh = &meshPointer.template getData< DeviceType >();
+    MeshDependentDataType* _mdd = &mdd.template modifyData< DeviceType >();
+    auto faceAverageKernel = [_mesh, _mdd] __cuda_callable__ ( int i, IndexType E )
+    {
+        IndexType cellIndexes[ 2 ] = {0, 0};
+        const auto & entity = _mesh->template getEntity< typename Mesh::Face >( E );
+        int numCells = getCellsForFace( *_mesh, entity, cellIndexes );
+
+        // NOTE: using the boundary condition is too much work, because it might be
+        // uninitialized at this point, and it does not help that much to be worth it
+        if( numCells == 1 ) {
+            _mdd->Z_iF( i, E ) = _mdd->Z_iK( i, cellIndexes[ 0 ] );
+        }
+        else {
+            _mdd->Z_iF( i, E ) = 0.5 * ( _mdd->Z_iK( i, cellIndexes[ 0 ] )
+                                       + _mdd->Z_iK( i, cellIndexes[ 1 ] ) );
+        }
+    };
+    const IndexType faces = meshPointer->template getEntitiesCount< typename Mesh::Face >();
+    TNL::Algorithms::ParallelFor2D< DeviceType >::exec( (IndexType) 0, (IndexType) 0,
+                                                        MeshDependentDataType::NumberOfEquations, faces,
+                                                        faceAverageKernel );
 
     mdd->v_iKe.setValue( 0.0 );
 
+    // reset output/profiling variables
+    allIterations = 0;
+    timer_preIterate.reset();
     timer_b.reset();
     timer_R.reset();
     timer_Q.reset();
@@ -176,15 +182,16 @@ template< typename Mesh,
           typename MeshDependentData,
           typename BoundaryConditions,
           typename Matrix >
-bool
+void
 Solver< Mesh, MeshDependentData, BoundaryConditions, Matrix >::
-setupLinearSystem( MatrixPointer & matrixPointer )
+setupLinearSystem()
 {
     using CompressedRowLengthsVectorType = typename MatrixType::CompressedRowLengthsVector;
 
     const IndexType dofs = this->getDofs();
     TNL::Pointers::SharedPointer< CompressedRowLengthsVectorType > rowLengthsPointer;
     rowLengthsPointer->setSize( dofs );
+    rowLengthsPointer->setValue( -1 );
 
     TNL::Matrices::MatrixSetter< MeshType, DifferentialOperator, BoundaryConditions, CompressedRowLengthsVectorType > matrixSetter;
     matrixSetter.template getCompressedRowLengths< typename Mesh::Face >(
@@ -196,13 +203,20 @@ setupLinearSystem( MatrixPointer & matrixPointer )
     // sanity check (doesn't happen if the traverser works, but this is pretty
     // hard to debug and the check does not cost us much in initialization)
     if( TNL::min( *rowLengthsPointer ) <= 0 ) {
-        std::cerr << "Attempted to set invalid rowsLengths vector:" << std::endl << *rowLengthsPointer << std::endl;
-        return false;
+        std::stringstream ss;
+        ss << "MHFEM error: attempted to set invalid rowsLengths vector:\n" << *rowLengthsPointer << std::endl;
+        throw std::runtime_error( ss.str() );
     }
 
+    // initialize matrix
     matrixPointer->setDimensions( dofs, dofs );
     matrixPointer->setCompressedRowLengths( *rowLengthsPointer );
-    return true;
+
+    // initialize the right hand side vector
+    rhsVector.setSize( dofs );
+
+    // set the matrix for the linear solver
+    linearSystemSolver->setMatrix( matrixPointer );
 }
 
 template< typename Mesh,
@@ -212,16 +226,16 @@ template< typename Mesh,
 bool
 Solver< Mesh, MeshDependentData, BoundaryConditions, Matrix >::
 makeSnapshot( const RealType & time,
-              const IndexType & step,
-              DofVectorPointer & dofVectorPointer )
+              const IndexType & step )
 {
-    std::cout << std::endl << "Writing output at time " << time << " step " << step << std::endl;
+    // TODO: write only into the log file
+//    std::cout << std::endl << "Writing output at time " << time << " step " << step << std::endl;
 
     // reorder DOFs back to original numbering before snapshot
     if( doMeshOrdering )
         mdd->reorderDofs( meshOrdering, true );
 
-    if( ! mdd->makeSnapshot( time, step, *meshPointer, outputPrefix ) )
+    if( ! mdd->makeSnapshot( time, step, *meshPointer, outputDirectory + "/" ) )
         return false;
 
     // reorder DOFs back to the special numbering after snapshot
@@ -229,7 +243,7 @@ makeSnapshot( const RealType & time,
         mdd->reorderDofs( meshOrdering, false );
 
     // FIXME: TwoPhaseModel::makeSnapshotOnFaces does not work in 2D
-//    if( ! mdd->makeSnapshotOnFaces( time, step, mesh, dofVector, outputPrefix ) )
+//    if( ! mdd->makeSnapshotOnFaces( time, step, mesh, dofVector, outputDirectory + "/" ) )
 //        return false;
 
 //    std::cout << "solution (Z_iE): " << std::endl << mdd->Z_iF.getStorageArray() << std::endl;
@@ -243,12 +257,13 @@ template< typename Mesh,
           typename MeshDependentData,
           typename BoundaryConditions,
           typename Matrix >
-bool
+void
 Solver< Mesh, MeshDependentData, BoundaryConditions, Matrix >::
 preIterate( const RealType & time,
-            const RealType & tau,
-            DofVectorPointer & dofVectorPointer )
+            const RealType & tau )
 {
+    timer_preIterate.start();
+
     // FIXME
     mdd->current_time = time;
 
@@ -302,7 +317,7 @@ preIterate( const RealType & time,
         // bind output
         upwindZMeshFunction->bind( meshPointer, mdd->Z_ijE_upw.getStorageArray() );
         // bind inputs
-        upwindZFunction->bind( meshPointer, mdd, *dofVectorPointer );
+        upwindZFunction->bind( meshPointer, mdd );
         // evaluate
         upwindZEvaluator.evaluate(
                 upwindZMeshFunction,     // out
@@ -318,6 +333,8 @@ preIterate( const RealType & time,
     traverser_K.template processAllEntities< typename LocalUpdaters< MeshType, MeshDependentDataType >::update_Q >( meshPointer, mdd_device );
     timer_Q.stop();
 
+    timer_preIterate.stop();
+
 //    std::cout << "N = " << mdd->N << std::endl;
 //    std::cout << "u = " << mdd->u << std::endl;
 //    std::cout << "m = " << mdd->m << std::endl;
@@ -331,8 +348,6 @@ preIterate( const RealType & time,
 //    std::cout << "m_upw = " << mdd->m_iE_upw.getStorageArray() << std::endl;
 //    std::cout << "R_ijKF = " << mdd->R1 << std::endl;
 //    std::cout << "R_iK = " << mdd->R2 << std::endl;
-
-    return true;
 }
 
 template< typename Mesh,
@@ -341,12 +356,11 @@ template< typename Mesh,
           typename Matrix >
 void
 Solver< Mesh, MeshDependentData, BoundaryConditions, Matrix >::
-assemblyLinearSystem( const RealType & time,
-                      const RealType & tau,
-                      DofVectorPointer & dofVectorPointer,
-                      MatrixPointer & matrixPointer,
-                      DofVectorPointer & bPointer )
+assembleLinearSystem( const RealType & time,
+                      const RealType & tau )
 {
+    timer_assembleLinearSystem.start();
+
     // Setting this here instead of some setup method ensures that
     // the systemAssembler always has the correct operator etc.
     systemAssembler.setDifferentialOperator( this->differentialOperatorPointer );
@@ -354,27 +368,26 @@ assemblyLinearSystem( const RealType & time,
     systemAssembler.setRightHandSide( this->rightHandSidePointer );
 
     // initialize system assembler for stationary problem
-    systemAssembler.template assembly< typename MeshType::Face >(
+    systemAssembler.template assemble< typename MeshType::Face >(
             time,
             tau,
             meshPointer,
-            dofFunctionPointer,
             matrixPointer,
-            bPointer );
+            rhsVector );
+
+    timer_assembleLinearSystem.stop();
 
 //    (*matrixPointer).print( std::cout );
-//    std::cout << *bPointer << std::endl;
+//    std::cout << rhsVector << std::endl;
 //    if( time > tau )
 //        abort();
 
 //    static IndexType iter = 0;
-//    TNL::String matrixFileName = outputPrefix + "matrix.tnl";
-//    TNL::String dofFileName = outputPrefix + "dof.vec.tnl";
-//    TNL::String rhsFileName = outputPrefix + "rhs.vec.tnl";
+//    TNL::String matrixFileName = outputDirectory + "/matrix.tnl";
+//    TNL::String dofFileName = outputDirectory + "/dof.vec.tnl";
+//    TNL::String rhsFileName = outputDirectory + "/rhs.vec.tnl";
 //    if( iter == 10 ) {
-//        matrixPointer->save( matrixFileName );
-//        dofVectorPointer->save( dofFileName );
-//        bPointer->save( rhsFileName );
+//        saveLinearSystem( *matrixPointer, *dofVectorPointer, rhsVector );
 //    }
 //    iter++;
 }
@@ -385,26 +398,58 @@ template< typename Mesh,
           typename Matrix >
 void
 Solver< Mesh, MeshDependentData, BoundaryConditions, Matrix >::
-saveFailedLinearSystem( const Matrix & matrix,
-                        const DofVectorType & dofs,
-                        const DofVectorType & rhs ) const
+saveLinearSystem( const Matrix & matrix,
+                  DofViewType dofs,
+                  DofViewType rhs ) const
 {
-    matrix.save( outputPrefix + "matrix.tnl" );
-    dofs.save( outputPrefix + "dof.vec.tnl" );
-    rhs.save( outputPrefix + "rhs.vec.tnl" );
-    std::cerr << "The linear system has been saved to " << outputPrefix << "{matrix,dof.vec,rhs.vec}.tnl" << std::endl;
+    matrix.save( outputDirectory + "/matrix.tnl" );
+    dofs.save( outputDirectory + "/dof.vec.tnl" );
+    rhs.save( outputDirectory + "/rhs.vec.tnl" );
+    std::cerr << "The linear system has been saved to " << outputDirectory << "/{matrix,dof.vec,rhs.vec}.tnl" << std::endl;
 }
 
 template< typename Mesh,
           typename MeshDependentData,
           typename BoundaryConditions,
           typename Matrix >
-bool
+void
+Solver< Mesh, MeshDependentData, BoundaryConditions, Matrix >::
+solveLinearSystem( TNL::Solvers::IterativeSolverMonitor< RealType, IndexType >* solverMonitor )
+{
+    if( solverMonitor )
+        linearSystemSolver->setSolverMonitor( *solverMonitor );
+
+    if( preconditioner )
+    {
+        timer_linearPreconditioner.start();
+        preconditioner->update( matrixPointer );
+        timer_linearPreconditioner.stop();
+    }
+
+    timer_linearSolver.start();
+    DofViewType dofs = mdd->Z_iF.getStorageArray().getView();
+    const bool converged = linearSystemSolver->solve( rhsVector, dofs );
+    allIterations += linearSystemSolver->getIterations();
+    timer_linearSolver.stop();
+
+    if( ! converged ) {
+        // save the linear system for debugging
+        saveLinearSystem( *matrixPointer, dofs, rhsVector );
+        throw std::runtime_error( "MHFEM error: the linear system solver did not converge." );
+    }
+}
+
+template< typename Mesh,
+          typename MeshDependentData,
+          typename BoundaryConditions,
+          typename Matrix >
+void
 Solver< Mesh, MeshDependentData, BoundaryConditions, Matrix >::
 postIterate( const RealType & time,
-             const RealType & tau,
-             DofVectorPointer & dofVectorPointer )
+             const RealType & tau )
 {
+    timer_postIterate.start();
+
     timer_explicit.start();
     // bind output
     meshFunctionZK->bind( meshPointer, mdd->Z_iK.getStorageArray() );
@@ -424,29 +469,34 @@ postIterate( const RealType & time,
     traverser_Ki.template processAllEntities< typename LocalUpdaters< MeshType, MeshDependentDataType >::update_v >( meshPointer, mdd_device );
     timer_velocities.stop();
 
+    timer_postIterate.stop();
+
 //    std::cout << "solution (Z_iE): " << std::endl << *dofVectorPointer << std::endl;
 //    std::cout << "solution (Z_iK): " << std::endl << mdd->Z_iK.getStorageArray() << std::endl;
 //    std::cin.get();
-
-    return true;
 }
 
 template< typename Mesh,
           typename MeshDependentData,
           typename BoundaryConditions,
           typename Matrix >
-bool
+void
 Solver< Mesh, MeshDependentData, BoundaryConditions, Matrix >::
-writeEpilog( TNL::Logger & logger )
+writeEpilog( TNL::Logger & logger ) const
 {
-    logger.writeParameter< double >( "nonlinear update time:", timer_nonlinear.getRealTime() );
-    logger.writeParameter< double >( "update_b time:", timer_b.getRealTime() );
-    logger.writeParameter< double >( "upwind update time:", timer_upwind.getRealTime() );
-    logger.writeParameter< double >( "update_R time:", timer_R.getRealTime() );
-    logger.writeParameter< double >( "update_Q time:", timer_Q.getRealTime() );
-    logger.writeParameter< double >( "Z_iF -> Z_iK update time:", timer_explicit.getRealTime() );
-    logger.writeParameter< double >( "velocities update time:", timer_velocities.getRealTime() );
-    return true;
+    logger.writeParameter< long long int >( "Total count of linear solver iterations:", allIterations );
+    logger.writeParameter< double >( "Pre-iterate time:", timer_preIterate.getRealTime() );
+    logger.writeParameter< double >( "  nonlinear update time:", timer_nonlinear.getRealTime() );
+    logger.writeParameter< double >( "  update_b time:", timer_b.getRealTime() );
+    logger.writeParameter< double >( "  upwind update time:", timer_upwind.getRealTime() );
+    logger.writeParameter< double >( "  update_R time:", timer_R.getRealTime() );
+    logger.writeParameter< double >( "  update_Q time:", timer_Q.getRealTime() );
+    logger.writeParameter< double >( "Linear system assembler time:", timer_assembleLinearSystem.getRealTime() );
+    logger.writeParameter< double >( "Linear preconditioner update time:", timer_linearPreconditioner.getRealTime() );
+    logger.writeParameter< double >( "Linear system solver time:", timer_linearPreconditioner.getRealTime() );
+    logger.writeParameter< double >( "Post-iterate time:", timer_postIterate.getRealTime() );
+    logger.writeParameter< double >( "  Z_iF -> Z_iK update time:", timer_explicit.getRealTime() );
+    logger.writeParameter< double >( "  velocities update time:", timer_velocities.getRealTime() );
 }
 
 } // namespace mhfem

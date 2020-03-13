@@ -70,6 +70,7 @@ public:
 
             // We need to check inflow of ALL phases!
             // FIXME: this assumes two-phase model, general system might be coupled differently or even decoupled
+            // TODO: check the BoundaryConditionsType value
             bool inflow = false;
             for( int j = 0; j < MeshDependentDataType::NumberOfEquations; j++ )
                 // Taking the boundary value increases the error, for example in the mcwh3d problem
@@ -126,12 +127,10 @@ public:
     static constexpr int getEntitiesDimensions() { return Mesh::getMeshDimension() - 1; }
  
     void bind( const TNL::Pointers::SharedPointer< MeshType > & mesh,
-               TNL::Pointers::SharedPointer< MeshDependentDataType > mdd,
-               DofVectorType & Z_iF )
+               TNL::Pointers::SharedPointer< MeshDependentDataType > mdd )
     {
         this->mesh = mesh;
         this->mdd = mdd;
-        this->Z_iF.bind( Z_iF );
     }
 
     // FIXME: template needed due to limitation of FunctionAdapter, otherwise we would use MeshType::Face
@@ -179,14 +178,13 @@ public:
         else {
             // TODO: this matches the Dirichlet condition, but what happens on Neumann boundary?
             // TODO: at time=0 the value on Neumann boundary is indeterminate
-            return Z_iF[ mdd.getDofIndex( j, E ) ];
+            return mdd.Z_iF( j, E );
         }
     }
 
 protected:
     TNL::Pointers::SharedPointer< MeshType > mesh;
     TNL::Pointers::SharedPointer< MeshDependentDataType > mdd;
-    DofVectorType Z_iF;
 };
 
 } // namespace mhfem
