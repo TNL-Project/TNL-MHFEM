@@ -170,13 +170,6 @@ public:
              std::index_sequence< 0, 1 > >  // i, K  (cuda)
         R_iK;
 
-//protected:
-    
-    // FIXME: nasty hack to pass tau to LocalUpdaters
-    RealType current_tau;
-    // FIXME: nasty hack to pass time to CompositionalModel::r_X
-    RealType current_time;
-
 protected:
     // number of entities of the mesh for which the vectors are allocated
     IndexType numberOfCells = 0;

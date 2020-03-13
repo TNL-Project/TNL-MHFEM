@@ -261,12 +261,6 @@ preIterate( const RealType & time,
 {
     timer_preIterate.start();
 
-    // FIXME
-    mdd->current_time = time;
-
-    // FIXME: nasty hack to pass tau to MassLumpingDependentCoefficients and SecondaryCoefficients
-    mdd->current_tau = tau;
-
     // not necessary for correctness, but for correct timings
     #ifdef HAVE_CUDA
     TNL::Pointers::synchronizeSmartPointersOnDevice< DeviceType >();
@@ -280,9 +274,9 @@ preIterate( const RealType & time,
     // update non-linear terms
     timer_nonlinear.start();
     {
-        auto kernel = [_mdd, _mesh] __cuda_callable__ ( IndexType K ) mutable
+        auto kernel = [_mdd, _mesh, time] __cuda_callable__ ( IndexType K ) mutable
         {
-            _mdd->updateNonLinearTerms( *_mesh, K );
+            _mdd->updateNonLinearTerms( *_mesh, K, time );
         };
         TNL::Algorithms::ParallelFor< DeviceType >::exec( (IndexType) 0, cells, kernel );
     }
@@ -343,7 +337,7 @@ preIterate( const RealType & time,
 
     timer_R.start();
     {
-        auto kernel = [_mdd, _mesh] __cuda_callable__ ( int i, IndexType K ) mutable
+        auto kernel = [_mdd, _mesh, tau] __cuda_callable__ ( int i, IndexType K ) mutable
         {
             // get face indexes
             const auto faceIndexes = getFacesForCell( *_mesh, K );
@@ -351,11 +345,11 @@ preIterate( const RealType & time,
             // update coefficients R_ijKE
             for( int j = 0; j < MeshDependentDataType::NumberOfEquations; j++ )
                 for( int e = 0; e < MeshDependentDataType::FacesPerCell; e++ )
-                    _mdd->R_ijKe( i, j, K, e ) = coeff::R_ijKe( *_mdd, faceIndexes, i, j, K, e );
+                    _mdd->R_ijKe( i, j, K, e ) = coeff::R_ijKe( *_mdd, faceIndexes, i, j, K, e, tau );
 
             // update coefficient R_iK
             const auto& entity = _mesh->template getEntity< typename MeshType::Cell >( K );
-            _mdd->R_iK( i, K ) = coeff::R_iK( *_mdd, *_mesh, entity, faceIndexes, i, K );
+            _mdd->R_iK( i, K ) = coeff::R_iK( *_mdd, *_mesh, entity, faceIndexes, i, K, tau );
         };
         TNL::Algorithms::ParallelFor2D< DeviceType >::exec( (IndexType) 0, (IndexType) 0,
                                                             MeshDependentDataType::NumberOfEquations, cells,
@@ -365,7 +359,7 @@ preIterate( const RealType & time,
 
     timer_Q.start();
     {
-        auto kernel = [_mdd, _mesh] __cuda_callable__ ( IndexType K ) mutable
+        auto kernel = [_mdd, _mesh, tau] __cuda_callable__ ( IndexType K ) mutable
         {
             // get face indexes
             const auto faceIndexes = getFacesForCell( *_mesh, K );
@@ -394,7 +388,7 @@ preIterate( const RealType & time,
                 bool singular = true;
 
                 for( int j = 0; j < MeshDependentDataType::NumberOfEquations; j++ ) {
-                    const RealType value = coeff::Q_ijK( *_mdd, *_mesh, entity, faceIndexes, i, j, K );
+                    const RealType value = coeff::Q_ijK( *_mdd, *_mesh, entity, faceIndexes, i, j, K, tau );
                     Q( i, j ) = value;
 
                     // update singularity state
