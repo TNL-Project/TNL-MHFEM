@@ -315,24 +315,98 @@ preIterate( const RealType & time,
     //       coefficients, but "new" Z_{j,K} and Z_{j,F}. From the semi-implicit approach it follows that
     //       velocity calculated this way is conservative, which is very important for upwinding.
     timer_upwind.start();
-        // bind output
-        upwindMeshFunction->bind( meshPointer, mdd->m_iE_upw.getStorageArray() );
-        // bind inputs
-        upwindFunction->bind( meshPointer, mdd, boundaryConditionsPointer );
-        // evaluate
-        upwindEvaluator.evaluate(
-                upwindMeshFunction,     // out
-                upwindFunction );       // in
+    {
+        const auto* _bc = &boundaryConditionsPointer.template getData< DeviceType >();
+        const IndexType faces = meshPointer->template getEntitiesCount< typename Mesh::Face >();
 
-        // upwind Z_ijE_upw (this needs the a_ij and u_ij coefficients)
-        // bind output
-        upwindZMeshFunction->bind( meshPointer, mdd->Z_ijE_upw.getStorageArray() );
-        // bind inputs
-        upwindZFunction->bind( meshPointer, mdd );
-        // evaluate
-        upwindZEvaluator.evaluate(
-                upwindZMeshFunction,     // out
-                upwindZFunction );       // in
+        auto kernel_m_iE = [_mdd, _mesh, _bc, time] __cuda_callable__ ( int i, IndexType E ) mutable
+        {
+            const auto& entity = _mesh->template getEntity< typename MeshType::Face >( E );
+
+            IndexType cellIndexes[ 2 ];
+            const int numCells = getCellsForFace( *_mesh, entity, cellIndexes );
+
+            // index of the main element (left/bottom if indexFace is inner face, otherwise the element next to the boundary face)
+            const IndexType & K1 = cellIndexes[ 0 ];
+
+            // find local index of face E
+            const auto faceIndexes = getFacesForCell( *_mesh, K1 );
+            const int e = getLocalIndex( faceIndexes, E );
+
+            if( numCells == 1 ) {
+                // We need to check inflow of ALL phases!
+                // FIXME: this assumes two-phase model, general system might be coupled differently or even decoupled
+                // TODO: check the BoundaryConditionsType value
+                bool inflow = false;
+                for( int j = 0; j < MeshDependentDataType::NumberOfEquations; j++ )
+                    // Taking the boundary value increases the error, for example in the mcwh3d problem
+                    // on cubes, so we need to use mdd.v_iKe instead of _bc->getNeumannValue
+                    if( _mdd->v_iKe( j, K1, e ) < 0 ) {
+                        inflow = true;
+                        break;
+                    }
+
+                if( inflow )
+                    // The velocity might be negative even on faces with 0 Neumann condition (probably
+                    // due to rounding errors), so the model must check if the value is available and
+                    // otherwise return m_iK( i, K1 ).
+                    _mdd->m_iE_upw( i, E ) = _mdd->getBoundaryMobility( *_mesh, *_bc, i, entity, time );
+                else
+                    _mdd->m_iE_upw( i, E ) = _mdd->m_iK( i, K1 );
+            }
+            else {
+                const IndexType & K2 = cellIndexes[ 1 ];
+                // Theoretically, v_iKE is conservative so one might expect that `vel = mdd.v_iKe( i, K1, e )`
+                // is enough, but there might be numerical errors. Perhaps more importantly, the main equation
+                // might not be based on balancing v_iKE, but some other quantity. We also use a dummy equation
+                // if Q_K is singular, so this has significant effect on the error.
+                const RealType vel = _mdd->v_iKe( i, K1, e ) - _mdd->v_iKe( i, K2, e );
+
+                if( vel >= 0.0 )
+                    _mdd->m_iE_upw( i, E ) = _mdd->m_iK( i, K1 );
+                else
+                    _mdd->m_iE_upw( i, E ) = _mdd->m_iK( i, K2 );
+            }
+        };
+        TNL::Algorithms::ParallelFor2D< DeviceType >::exec( (IndexType) 0, (IndexType) 0,
+                                                            MeshDependentDataType::NumberOfEquations, faces,
+                                                            kernel_m_iE );
+
+        auto kernel_Z_ijE = [_mdd, _mesh] __cuda_callable__ ( int i, int j, IndexType E ) mutable
+        {
+            const auto& entity = _mesh->template getEntity< typename MeshType::Face >( E );
+
+            IndexType cellIndexes[ 2 ];
+            const int numCells = getCellsForFace( *_mesh, entity, cellIndexes );
+
+            // index of the main element (left/bottom if indexFace is inner face, otherwise the element next to the boundary face)
+            const IndexType & K1 = cellIndexes[ 0 ];
+
+            // find local index of face E
+            const auto faceIndexes = getFacesForCell( *_mesh, K1 );
+            const int e = getLocalIndex( faceIndexes, E );
+
+            const RealType a_plus_u = _mdd->a_ijKe( i, j, K1, e ) + _mdd->u_ijKe( i, j, K1, e );
+
+            if( a_plus_u > 0.0 ) {
+                _mdd->Z_ijE_upw( i, j, E ) = _mdd->Z_iK( j, K1 );
+            }
+            else if( a_plus_u == 0.0 )
+                _mdd->Z_ijE_upw( i, j, E ) = 0;
+            else if( numCells == 2 ) {
+                const IndexType & K2 = cellIndexes[ 1 ];
+                _mdd->Z_ijE_upw( i, j, E ) = _mdd->Z_iK( j, K2 );
+            }
+            else {
+                // TODO: this matches the Dirichlet condition, but what happens on Neumann boundary?
+                // TODO: at time=0 the value on Neumann boundary is indeterminate
+                _mdd->Z_ijE_upw( i, j, E ) = _mdd->Z_iF( j, E );
+            }
+        };
+        TNL::Algorithms::ParallelFor3D< DeviceType >::exec( (IndexType) 0, (IndexType) 0, (IndexType) 0,
+                                                            MeshDependentDataType::NumberOfEquations, MeshDependentDataType::NumberOfEquations, faces,
+                                                            kernel_Z_ijE );
+    }
     timer_upwind.stop();
 
     timer_R.start();

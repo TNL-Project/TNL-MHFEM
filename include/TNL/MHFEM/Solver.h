@@ -5,13 +5,11 @@
 #include <TNL/Pointers/SharedPointer.h>
 #include <TNL/Solvers/Linear/LinearSolver.h>
 #include <TNL/Solvers/LinearSolverTypeResolver.h>
-#include <TNL/Functions/MeshFunction.h>
 #include <TNL/Timer.h>
 #include <TNL/Communicators/NoDistrCommunicator.h>
 
 #include "DifferentialOperator.h"
 #include "RightHandSide.h"
-#include "Upwind.h"
 #include "../lib_general/MeshOrdering.h"
 #include "../lib_general/LinearSystemAssembler.h"
 
@@ -121,27 +119,6 @@ protected:
     // matrix and right hand side vector for the linear system
     MatrixPointer matrixPointer;
     DofVectorType rhsVector;
-
-
-    // cached instances for postIterate method
-
-    // output
-    using DofFunction = TNL::Functions::MeshFunction< Mesh, Mesh::getMeshDimension() - 1, RealType, MeshDependentDataType::NumberOfEquations >;
-    TNL::Pointers::SharedPointer< DofFunction, DeviceType > upwindMeshFunction;
-    // input
-    using UpwindFunction = Upwind< MeshType, MeshDependentDataType, BoundaryConditions >;
-    TNL::Pointers::SharedPointer< UpwindFunction, DeviceType > upwindFunction;
-    // evaluator
-    TNL::Functions::MeshFunctionEvaluator< DofFunction, UpwindFunction > upwindEvaluator;
-
-    // output
-    using NDofFunction = TNL::Functions::MeshFunction< Mesh, Mesh::getMeshDimension() - 1, RealType, MeshDependentDataType::NumberOfEquations * MeshDependentDataType::NumberOfEquations >;
-    TNL::Pointers::SharedPointer< NDofFunction, DeviceType > upwindZMeshFunction;
-    // input
-    using UpwindZFunction = UpwindZ< MeshType, MeshDependentDataType, BoundaryConditions >;
-    TNL::Pointers::SharedPointer< UpwindZFunction, DeviceType > upwindZFunction;
-    // evaluator
-    TNL::Functions::MeshFunctionEvaluator< NDofFunction, UpwindZFunction > upwindZEvaluator;
 };
 
 } // namespace mhfem
