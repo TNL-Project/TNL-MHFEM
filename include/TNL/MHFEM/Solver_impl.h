@@ -4,7 +4,6 @@
 #include <TNL/Matrices/MatrixSetter.h>
 
 #include "../lib_general/mesh_helpers.h"
-#include "../lib_general/GenericEnumerator.h"
 
 #include "Solver.h"
 #include "LocalUpdaters.h"
@@ -274,27 +273,50 @@ preIterate( const RealType & time,
     TNL::Pointers::synchronizeSmartPointersOnDevice< DeviceType >();
     #endif
 
-    auto* mdd_device = &mdd.template modifyData< DeviceType >();
+    using coeff = SecondaryCoefficients< MeshDependentDataType >;
+    const Mesh* _mesh = &meshPointer.template getData< DeviceType >();
+    MeshDependentDataType* _mdd = &mdd.template modifyData< DeviceType >();
+    const IndexType cells = meshPointer->template getEntitiesCount< typename Mesh::Cell >();
 
     // update non-linear terms
     timer_nonlinear.start();
-    GenericEnumerator< MeshType, MeshDependentDataType >::
-        template enumerate< &MeshDependentDataType::updateNonLinearTerms, typename MeshType::Cell >( meshPointer, mdd_device );
+    {
+        auto kernel = [_mdd, _mesh] __cuda_callable__ ( IndexType K ) mutable
+        {
+            _mdd->updateNonLinearTerms( *_mesh, K );
+        };
+        TNL::Algorithms::ParallelFor< DeviceType >::exec( (IndexType) 0, cells, kernel );
+    }
     timer_nonlinear.stop();
 
-    // update coefficients b_ijKEF
     TNL::Meshes::Traverser< MeshType, typename MeshType::Cell, MeshDependentDataType::NumberOfEquations > traverser_Ki;
+
+    // update coefficients b_ijKEF
     timer_b.start();
-    traverser_Ki.template processAllEntities< typename LocalUpdaters< MeshType, MeshDependentDataType >::update_b >( meshPointer, mdd_device );
+    {
+        auto kernel = [_mdd, _mesh] __cuda_callable__ ( int i, int j, IndexType K ) mutable
+        {
+            using MassMatrix = typename MeshDependentDataType::MassMatrix;
+            MassMatrix::update( *_mesh, *_mdd, K, i, j );
+        };
+        TNL::Algorithms::ParallelFor3D< DeviceType >::exec( (IndexType) 0, (IndexType) 0, (IndexType) 0,
+                                                            MeshDependentDataType::NumberOfEquations, MeshDependentDataType::NumberOfEquations, cells,
+                                                            kernel );
+    }
     timer_b.stop();
 
     // update vector coefficients (u, w, a), whose projection into the RTN_0(K) space
     // generally depends on the b_ijKEF coefficients
     timer_nonlinear.start();
-    GenericEnumerator< MeshType, MeshDependentDataType >::
-        template enumerate< &MeshDependentDataType::updateVectorCoefficients,
-                            typename MeshType::Cell,
-                            MeshDependentDataType::NumberOfEquations >( meshPointer, mdd_device );
+    {
+        auto kernel = [_mdd, _mesh] __cuda_callable__ ( int i, IndexType K ) mutable
+        {
+            _mdd->updateVectorCoefficients( *_mesh, K, i );
+        };
+        TNL::Algorithms::ParallelFor2D< DeviceType >::exec( (IndexType) 0, (IndexType) 0,
+                                                            MeshDependentDataType::NumberOfEquations, cells,
+                                                            kernel );
+    }
     timer_nonlinear.stop();
 
     // update upwinded mobility values
@@ -312,7 +334,6 @@ preIterate( const RealType & time,
                 upwindFunction );       // in
 
         // upwind Z_ijE_upw (this needs the a_ij and u_ij coefficients)
-        timer_upwind.start();
         // bind output
         upwindZMeshFunction->bind( meshPointer, mdd->Z_ijE_upw.getStorageArray() );
         // bind inputs
@@ -324,12 +345,12 @@ preIterate( const RealType & time,
     timer_upwind.stop();
 
     timer_R.start();
-    traverser_Ki.template processAllEntities< typename LocalUpdaters< MeshType, MeshDependentDataType >::update_R >( meshPointer, mdd_device );
+    traverser_Ki.template processAllEntities< typename LocalUpdaters< MeshType, MeshDependentDataType >::update_R >( meshPointer, _mdd );
     timer_R.stop();
 
     TNL::Meshes::Traverser< MeshType, typename MeshType::Cell > traverser_K;
     timer_Q.start();
-    traverser_K.template processAllEntities< typename LocalUpdaters< MeshType, MeshDependentDataType >::update_Q >( meshPointer, mdd_device );
+    traverser_K.template processAllEntities< typename LocalUpdaters< MeshType, MeshDependentDataType >::update_Q >( meshPointer, _mdd );
     timer_Q.stop();
 
     timer_preIterate.stop();
@@ -449,19 +470,18 @@ postIterate( const RealType & time,
 {
     timer_postIterate.start();
 
+    using coeff = SecondaryCoefficients< MeshDependentDataType >;
+    const Mesh* _mesh = &meshPointer.template getData< DeviceType >();
+    MeshDependentDataType* _mdd = &mdd.template modifyData< DeviceType >();
+    const IndexType cells = meshPointer->template getEntitiesCount< typename Mesh::Cell >();
+
     timer_explicit.start();
     {
-        using coeff = SecondaryCoefficients< MeshDependentDataType >;
-
-        const Mesh* _mesh = &meshPointer.template getData< DeviceType >();
-        MeshDependentDataType* _mdd = &mdd.template modifyData< DeviceType >();
-
         auto kernel = [_mdd, _mesh] __cuda_callable__ ( int i, IndexType K ) mutable
         {
             const auto faceIndexes = getFacesForCell( *_mesh, K );
             _mdd->Z_iK( i, K ) = coeff::Z_iK( *_mdd, faceIndexes, i, K );
         };
-        const IndexType cells = meshPointer->template getEntitiesCount< typename Mesh::Cell >();
         TNL::Algorithms::ParallelFor2D< DeviceType >::exec( (IndexType) 0, (IndexType) 0,
                                                             MeshDependentDataType::NumberOfEquations, cells,
                                                             kernel );
@@ -473,9 +493,17 @@ postIterate( const RealType & time,
     //       coefficients, but "new" Z_{j,K} and Z_{j,F}. From the semi-implicit approach it follows that
     //       velocity calculated this way is conservative, which is very important for upwinding.
     timer_velocities.start();
-    TNL::Meshes::Traverser< MeshType, typename MeshType::Cell, MeshDependentDataType::NumberOfEquations > traverser_Ki;
-    auto* mdd_device = &mdd.template modifyData< DeviceType >();
-    traverser_Ki.template processAllEntities< typename LocalUpdaters< MeshType, MeshDependentDataType >::update_v >( meshPointer, mdd_device );
+    {
+        auto kernel = [_mdd, _mesh] __cuda_callable__ ( int i, IndexType K ) mutable
+        {
+            const auto faceIndexes = getFacesForCell( *_mesh, K );
+            for( int e = 0; e < MeshDependentDataType::FacesPerCell; e++ )
+                _mdd->v_iKe( i, K, e ) = coeff::v_iKE( *_mdd, faceIndexes, i, K, faceIndexes[ e ], e );
+        };
+        TNL::Algorithms::ParallelFor2D< DeviceType >::exec( (IndexType) 0, (IndexType) 0,
+                                                            MeshDependentDataType::NumberOfEquations, cells,
+                                                            kernel );
+    }
     timer_velocities.stop();
 
     timer_postIterate.stop();

@@ -19,24 +19,6 @@ public:
     using RealType = typename MeshDependentDataType::RealType;
     using coeff = SecondaryCoefficients< MeshDependentDataType >;
 
-    struct update_b
-    {
-        __cuda_callable__
-        static void processEntity( const MeshType & mesh,
-                                   MeshDependentDataType* mdd,
-                                   const typename MeshType::Cell & entity,
-                                   const int & i )
-        {
-            using MassMatrix = typename MeshDependentDataType::MassMatrix;
-            const auto K = entity.getIndex();
-
-            // update coefficients b_ijKEF
-            for( int j = 0; j < MeshDependentDataType::NumberOfEquations; j++ ) {
-                MassMatrix::update( mesh, *mdd, K, i, j );
-            }
-        }
-    };
-
     struct update_R
     {
         __cuda_callable__
@@ -129,22 +111,6 @@ public:
                     for( int i = 0; i < MeshDependentDataType::NumberOfEquations; i++ )
                         mdd->R_ijKe( i, j, K, e ) = rhs[ i ];
                 }
-        }
-    };
-
-    struct update_v
-    {
-        __cuda_callable__
-        static void processEntity( const MeshType & mesh,
-                                   MeshDependentDataType* mdd,
-                                   const typename MeshType::Cell & entity,
-                                   const int & i )
-        {
-            const auto K = entity.getIndex();
-            const auto faceIndexes = getFacesForCell( mesh, K );
-
-            for( int e = 0; e < MeshDependentDataType::FacesPerCell; e++ )
-                mdd->v_iKe( i, K, e ) = coeff::v_iKE( *mdd, faceIndexes, i, K, faceIndexes[ e ], e );
         }
     };
 };
