@@ -5,8 +5,7 @@
 #include "BoundaryConditions.h"
 #include "../lib_general/mesh_helpers.h"
 #include "SecondaryCoefficients.h"
-// TODO: move this into the mhfem directory/namespace
-#include "../models/boundary/BoundaryConditionsStorage.h"
+#include "BoundaryConditionsStorage.h"
 
 namespace mhfem
 {
@@ -152,10 +151,10 @@ init( const TNL::Config::ParameterContainer & parameters,
 
     const TNL::String fname = parameters.getParameter< TNL::String >( "boundary-conditions-file" );
 
-    models::boundary::BoundaryConditionsStorage< RealType, IndexType > storage;
+    BoundaryConditionsStorage< RealType > storage;
     storage.load( fname );
 
-    if( MeshDependentDataType::NumberOfEquations * numberOfFaces != storage.dofSize ) {
+    if( MeshDependentDataType::NumberOfEquations * numberOfFaces != (IndexType) storage.dofSize ) {
         std::cerr << "Wrong dofSize in BoundaryConditionsStorage loaded from file " << fname << ". Expected " << numberOfFaces
              << " elements, got " << storage.dofSize << "." << std::endl;
         return false;
