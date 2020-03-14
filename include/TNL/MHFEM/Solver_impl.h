@@ -133,7 +133,7 @@ setInitialCondition( const TNL::Config::ParameterContainer & parameters )
     TNL::Pointers::synchronizeSmartPointersOnDevice< DeviceType >();
     #endif
 
-    // initialize mdd.Z_iF as an average of mdd.Z on neighbouring cells
+    // initialize mdd->Z_iF as an average of mdd->Z on neighbouring cells
     // (this is not strictly necessary, we just provide an initial guess for
     // the iterative linear solver)
     const Mesh* _mesh = &meshPointer.template getData< DeviceType >();
@@ -154,10 +154,7 @@ setInitialCondition( const TNL::Config::ParameterContainer & parameters )
                                        + _mdd->Z_iK( i, cellIndexes[ 1 ] ) );
         }
     };
-    const IndexType faces = meshPointer->template getEntitiesCount< typename Mesh::Face >();
-    TNL::Algorithms::ParallelFor2D< DeviceType >::exec( (IndexType) 0, (IndexType) 0,
-                                                        MeshDependentDataType::NumberOfEquations, faces,
-                                                        faceAverageKernel );
+    mdd->Z_iF.forAll( faceAverageKernel );
 
     mdd->v_iKe.setValue( 0.0 );
 
@@ -285,13 +282,13 @@ preIterate( const RealType & time,
     // update coefficients b_ijKEF
     timer_b.start();
     {
-        auto kernel = [_mdd, _mesh] __cuda_callable__ ( int i, int j, IndexType K ) mutable
+        auto kernel = [_mdd, _mesh] __cuda_callable__ ( IndexType K, int i, int j ) mutable
         {
             using MassMatrix = typename MeshDependentDataType::MassMatrix;
             MassMatrix::update( *_mesh, *_mdd, K, i, j );
         };
         TNL::Algorithms::ParallelFor3D< DeviceType >::exec( (IndexType) 0, (IndexType) 0, (IndexType) 0,
-                                                            MeshDependentDataType::NumberOfEquations, MeshDependentDataType::NumberOfEquations, cells,
+                                                            cells, MeshDependentDataType::NumberOfEquations, MeshDependentDataType::NumberOfEquations,
                                                             kernel );
     }
     timer_b.stop();
@@ -300,12 +297,12 @@ preIterate( const RealType & time,
     // generally depends on the b_ijKEF coefficients
     timer_nonlinear.start();
     {
-        auto kernel = [_mdd, _mesh] __cuda_callable__ ( int i, IndexType K ) mutable
+        auto kernel = [_mdd, _mesh] __cuda_callable__ ( IndexType K, int i ) mutable
         {
             _mdd->updateVectorCoefficients( *_mesh, K, i );
         };
         TNL::Algorithms::ParallelFor2D< DeviceType >::exec( (IndexType) 0, (IndexType) 0,
-                                                            MeshDependentDataType::NumberOfEquations, cells,
+                                                            cells, MeshDependentDataType::NumberOfEquations,
                                                             kernel );
     }
     timer_nonlinear.stop();
@@ -333,6 +330,8 @@ preIterate( const RealType & time,
             const auto faceIndexes = getFacesForCell( *_mesh, K1 );
             const int e = getLocalIndex( faceIndexes, E );
 
+            RealType m_iE_upw;
+
             if( numCells == 1 ) {
                 // We need to check inflow of ALL phases!
                 // FIXME: this assumes two-phase model, general system might be coupled differently or even decoupled
@@ -340,7 +339,7 @@ preIterate( const RealType & time,
                 bool inflow = false;
                 for( int j = 0; j < MeshDependentDataType::NumberOfEquations; j++ )
                     // Taking the boundary value increases the error, for example in the mcwh3d problem
-                    // on cubes, so we need to use mdd.v_iKe instead of _bc->getNeumannValue
+                    // on cubes, so we need to use _mdd->v_iKe instead of _bc->getNeumannValue
                     if( _mdd->v_iKe( j, K1, e ) < 0 ) {
                         inflow = true;
                         break;
@@ -350,27 +349,28 @@ preIterate( const RealType & time,
                     // The velocity might be negative even on faces with 0 Neumann condition (probably
                     // due to rounding errors), so the model must check if the value is available and
                     // otherwise return m_iK( i, K1 ).
-                    _mdd->m_iE_upw( i, E ) = _mdd->getBoundaryMobility( *_mesh, *_bc, i, entity, time );
+                    m_iE_upw = _mdd->getBoundaryMobility( *_mesh, *_bc, i, entity, time );
                 else
-                    _mdd->m_iE_upw( i, E ) = _mdd->m_iK( i, K1 );
+                    m_iE_upw = _mdd->m_iK( i, K1 );
             }
             else {
                 const IndexType & K2 = cellIndexes[ 1 ];
-                // Theoretically, v_iKE is conservative so one might expect that `vel = mdd.v_iKe( i, K1, e )`
+                // Theoretically, v_iKE is conservative so one might expect that `vel = _mdd->v_iKe( i, K1, e )`
                 // is enough, but there might be numerical errors. Perhaps more importantly, the main equation
                 // might not be based on balancing v_iKE, but some other quantity. We also use a dummy equation
                 // if Q_K is singular, so this has significant effect on the error.
                 const RealType vel = _mdd->v_iKe( i, K1, e ) - _mdd->v_iKe( i, K2, e );
 
                 if( vel >= 0.0 )
-                    _mdd->m_iE_upw( i, E ) = _mdd->m_iK( i, K1 );
+                    m_iE_upw = _mdd->m_iK( i, K1 );
                 else
-                    _mdd->m_iE_upw( i, E ) = _mdd->m_iK( i, K2 );
+                    m_iE_upw = _mdd->m_iK( i, K2 );
             }
+
+            // write into the global memory after all branches have converged
+            _mdd->m_iE_upw( i, E ) = m_iE_upw;
         };
-        TNL::Algorithms::ParallelFor2D< DeviceType >::exec( (IndexType) 0, (IndexType) 0,
-                                                            MeshDependentDataType::NumberOfEquations, faces,
-                                                            kernel_m_iE );
+        mdd->m_iE_upw.forAll( kernel_m_iE );
 
         auto kernel_Z_ijE = [_mdd, _mesh] __cuda_callable__ ( int i, int j, IndexType E ) mutable
         {
@@ -388,30 +388,32 @@ preIterate( const RealType & time,
 
             const RealType a_plus_u = _mdd->a_ijKe( i, j, K1, e ) + _mdd->u_ijKe( i, j, K1, e );
 
-            if( a_plus_u > 0.0 ) {
-                _mdd->Z_ijE_upw( i, j, E ) = _mdd->Z_iK( j, K1 );
-            }
+            RealType Z_ijE_upw;
+
+            if( a_plus_u > 0.0 )
+                Z_ijE_upw = _mdd->Z_iK( j, K1 );
             else if( a_plus_u == 0.0 )
-                _mdd->Z_ijE_upw( i, j, E ) = 0;
+                Z_ijE_upw = 0;
             else if( numCells == 2 ) {
                 const IndexType & K2 = cellIndexes[ 1 ];
-                _mdd->Z_ijE_upw( i, j, E ) = _mdd->Z_iK( j, K2 );
+                Z_ijE_upw = _mdd->Z_iK( j, K2 );
             }
             else {
                 // TODO: this matches the Dirichlet condition, but what happens on Neumann boundary?
                 // TODO: at time=0 the value on Neumann boundary is indeterminate
-                _mdd->Z_ijE_upw( i, j, E ) = _mdd->Z_iF( j, E );
+                Z_ijE_upw = _mdd->Z_iF( j, E );
             }
+
+            // write into the global memory after all branches have converged
+            _mdd->Z_ijE_upw( i, j, E ) = Z_ijE_upw;
         };
-        TNL::Algorithms::ParallelFor3D< DeviceType >::exec( (IndexType) 0, (IndexType) 0, (IndexType) 0,
-                                                            MeshDependentDataType::NumberOfEquations, MeshDependentDataType::NumberOfEquations, faces,
-                                                            kernel_Z_ijE );
+        mdd->Z_ijE_upw.forAll( kernel_Z_ijE );
     }
     timer_upwind.stop();
 
     timer_R.start();
     {
-        auto kernel = [_mdd, _mesh, tau] __cuda_callable__ ( int i, IndexType K ) mutable
+        auto kernel = [_mdd, _mesh, tau] __cuda_callable__ ( IndexType K, int i ) mutable
         {
             // get face indexes
             const auto faceIndexes = getFacesForCell( *_mesh, K );
@@ -426,7 +428,7 @@ preIterate( const RealType & time,
             _mdd->R_iK( i, K ) = coeff::R_iK( *_mdd, *_mesh, entity, faceIndexes, i, K, tau );
         };
         TNL::Algorithms::ParallelFor2D< DeviceType >::exec( (IndexType) 0, (IndexType) 0,
-                                                            MeshDependentDataType::NumberOfEquations, cells,
+                                                            cells, MeshDependentDataType::NumberOfEquations,
                                                             kernel );
     }
     timer_R.stop();
@@ -629,9 +631,7 @@ postIterate( const RealType & time,
             const auto faceIndexes = getFacesForCell( *_mesh, K );
             _mdd->Z_iK( i, K ) = coeff::Z_iK( *_mdd, faceIndexes, i, K );
         };
-        TNL::Algorithms::ParallelFor2D< DeviceType >::exec( (IndexType) 0, (IndexType) 0,
-                                                            MeshDependentDataType::NumberOfEquations, cells,
-                                                            kernel );
+        mdd->Z_iK.forAll( kernel );
     }
     timer_explicit.stop();
 
@@ -641,14 +641,14 @@ postIterate( const RealType & time,
     //       velocity calculated this way is conservative, which is very important for upwinding.
     timer_velocities.start();
     {
-        auto kernel = [_mdd, _mesh] __cuda_callable__ ( int i, IndexType K ) mutable
+        auto kernel = [_mdd, _mesh] __cuda_callable__ ( IndexType K, int i ) mutable
         {
             const auto faceIndexes = getFacesForCell( *_mesh, K );
             for( int e = 0; e < MeshDependentDataType::FacesPerCell; e++ )
                 _mdd->v_iKe( i, K, e ) = coeff::v_iKE( *_mdd, faceIndexes, i, K, faceIndexes[ e ], e );
         };
         TNL::Algorithms::ParallelFor2D< DeviceType >::exec( (IndexType) 0, (IndexType) 0,
-                                                            MeshDependentDataType::NumberOfEquations, cells,
+                                                            cells, MeshDependentDataType::NumberOfEquations,
                                                             kernel );
     }
     timer_velocities.stop();
