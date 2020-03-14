@@ -677,7 +677,7 @@ writeEpilog( TNL::Logger & logger ) const
     logger.writeParameter< double >( "  update_Q time:", timer_Q.getRealTime() );
     logger.writeParameter< double >( "Linear system assembler time:", timer_assembleLinearSystem.getRealTime() );
     logger.writeParameter< double >( "Linear preconditioner update time:", timer_linearPreconditioner.getRealTime() );
-    logger.writeParameter< double >( "Linear system solver time:", timer_linearPreconditioner.getRealTime() );
+    logger.writeParameter< double >( "Linear system solver time:", timer_linearSolver.getRealTime() );
     logger.writeParameter< double >( "Post-iterate time:", timer_postIterate.getRealTime() );
     logger.writeParameter< double >( "  Z_iF -> Z_iK update time:", timer_explicit.getRealTime() );
     logger.writeParameter< double >( "  velocities update time:", timer_velocities.getRealTime() );
