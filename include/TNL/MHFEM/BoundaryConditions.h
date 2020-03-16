@@ -84,8 +84,10 @@ protected:
     // array holding tags to differentiate the boundary condition based on the face index
     TagArrayType tags;
 
-    // array holding the values to be interpreted by the boundary condition specified on each face
+    // arrays holding the values to be interpreted by the boundary condition specified on each face
     ValueArrayType values;
+    // Dirichlet values are "special" - boundary values may be necessary even for flux-based conditions (upwind on inflow)
+    ValueArrayType dirichletValues;
 };
 
 } // namespace mhfem

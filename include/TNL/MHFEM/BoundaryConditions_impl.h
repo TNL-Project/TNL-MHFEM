@@ -154,17 +154,15 @@ init( const TNL::Config::ParameterContainer & parameters,
     BoundaryConditionsStorage< RealType > storage;
     storage.load( fname );
 
-    if( MeshDependentDataType::NumberOfEquations * numberOfFaces != (IndexType) storage.dofSize ) {
+    if( MeshDependentDataType::NumberOfEquations * numberOfFaces != storage.dofSize ) {
         std::cerr << "Wrong dofSize in BoundaryConditionsStorage loaded from file " << fname << ". Expected " << numberOfFaces
              << " elements, got " << storage.dofSize << "." << std::endl;
         return false;
     }
 
-    tags.setSize( storage.dofSize );
-    values.setSize( storage.dofSize );
-
     tags = storage.tags;
     values = storage.values;
+    dirichletValues = storage.dirichletValues;
 
     return true;
 }
@@ -178,14 +176,16 @@ BoundaryConditions< Mesh, MeshDependentData, ModelImplementation >::
 reorderBoundaryConditions( const MeshOrdering & meshOrdering )
 {
     TagArrayType aux_tags;
-    ValueArrayType aux_values;
+    ValueArrayType aux_values, aux_dirValues;
     const IndexType faces = tags.getSize() / MeshDependentData::NumberOfEquations;
     for( int i = 0; i < MeshDependentData::NumberOfEquations; i++ ) {
         // TODO: this depends on the specific layout of dofs, general reordering of NDArray is needed
         aux_tags.bind( tags.getData() + i * faces, faces );
         aux_values.bind( values.getData() + i * faces, faces );
+        aux_dirValues.bind( dirichletValues.getData() + i * faces, faces );
         meshOrdering.template reorderVector< Mesh::getMeshDimension() - 1 >( aux_tags );
         meshOrdering.template reorderVector< Mesh::getMeshDimension() - 1 >( aux_values );
+        meshOrdering.template reorderVector< Mesh::getMeshDimension() - 1 >( aux_dirValues );
     }
 }
 
