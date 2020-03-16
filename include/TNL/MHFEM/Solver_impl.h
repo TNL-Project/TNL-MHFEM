@@ -316,7 +316,7 @@ preIterate( const RealType & time,
         const auto* _bc = &boundaryConditionsPointer.template getData< DeviceType >();
         const IndexType faces = meshPointer->template getEntitiesCount< typename Mesh::Face >();
 
-        auto kernel_m_iE = [_mdd, _mesh, _bc, time] __cuda_callable__ ( int i, IndexType E ) mutable
+        auto kernel_m_iE = [_mdd, _mesh, _bc, time, tau] __cuda_callable__ ( int i, IndexType E ) mutable
         {
             const auto& entity = _mesh->template getEntity< typename MeshType::Face >( E );
 
@@ -349,7 +349,7 @@ preIterate( const RealType & time,
                     // The velocity might be negative even on faces with 0 Neumann condition (probably
                     // due to rounding errors), so the model must check if the value is available and
                     // otherwise return m_iK( i, K1 ).
-                    m_iE_upw = _mdd->getBoundaryMobility( *_mesh, *_bc, i, entity, time );
+                    m_iE_upw = _mdd->getBoundaryMobility( *_mesh, *_bc, i, entity, time, tau );
                 else
                     m_iE_upw = _mdd->m_iK( i, K1 );
             }

@@ -40,16 +40,18 @@ public:
 //    __cuda_callable__
 //    typename MeshDependentData::RealType
 //    getNeumannValue( const MeshType & mesh,
-//                     const int & i,
-//                     const IndexType & E,
-//                     const RealType & time ) const;
+//                     const int i,
+//                     const IndexType E,
+//                     const RealType time,
+//                     const RealType tau ) const;
 //
 //    __cuda_callable__
 //    typename MeshDependentData::RealType
 //    getDirichletValue( const MeshType & mesh,
-//                       const int & i,
-//                       const IndexType & E,
-//                       const RealType & time ) const;
+//                       const int i,
+//                       const IndexType E,
+//                       const RealType time,
+//                       const RealType tau ) const;
 
     bool init( const TNL::Config::ParameterContainer & parameters,
                const MeshType & mesh );

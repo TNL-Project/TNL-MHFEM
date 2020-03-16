@@ -253,7 +253,7 @@ setMatrixElements( const typename MeshType::Face & entity,
         // fixed-value (Dirichlet) boundary condition
         case BoundaryConditionsType::FixedValue:
             matrixRow.setElement( 0, indexRow, 1.0 );
-            b[ indexRow ] = static_cast<const ModelImplementation*>(this)->getDirichletValue( mesh, i, E, time );
+            b[ indexRow ] = static_cast<const ModelImplementation*>(this)->getDirichletValue( mesh, i, E, time, tau );
             break;
 
         // fixed-flux (Neumann) boundary condition
@@ -275,7 +275,7 @@ setMatrixElements( const typename MeshType::Face & entity,
             const int e = getLocalIndex( faceIndexes, E );
 
             // set right hand side value
-            RealType bValue = - static_cast<const ModelImplementation*>(this)->getNeumannValue( mesh, i, E, time ) * getEntityMeasure( mesh, entity );
+            RealType bValue = - static_cast<const ModelImplementation*>(this)->getNeumannValue( mesh, i, E, time, tau ) * getEntityMeasure( mesh, entity );
 
             // advective term
             // TODO: make it implicit

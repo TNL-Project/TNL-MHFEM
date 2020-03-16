@@ -88,7 +88,7 @@ void solve( Problem& problem,
 
     double t = initialTime;
     std::size_t step = 0;
-    std::size_t allSteps = ceil( ( finalTime - initialTime ) / snapshotPeriod );
+    std::size_t allSteps = std::ceil( ( finalTime - initialTime ) / snapshotPeriod );
 
     ioTimer.start();
     if( ! problem.makeSnapshot( t, step ) )
