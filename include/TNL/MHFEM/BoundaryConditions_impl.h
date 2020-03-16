@@ -106,16 +106,6 @@ struct AdvectiveRowSetter< TNL::Meshes::Grid< Dimension, MeshReal, Device, MeshI
 template< typename Mesh, typename MeshDependentData >
 struct FluxRowSetter
 {
-    // TODO
-};
-
-template< int Dimension,
-          typename MeshReal,
-          typename Device,
-          typename MeshIndex,
-          typename MeshDependentData >
-struct FluxRowSetter< TNL::Meshes::Grid< Dimension, MeshReal, Device, MeshIndex >, MeshDependentData >
-{
     template< typename MatrixRow, typename FaceIndexes, typename IndexType >
     __cuda_callable__
     static void setRow( MatrixRow & matrixRow,
@@ -126,9 +116,10 @@ struct FluxRowSetter< TNL::Meshes::Grid< Dimension, MeshReal, Device, MeshIndex 
                         const IndexType & E,
                         const int & e )
     {
-        using Mesh = TNL::Meshes::Grid< Dimension, MeshReal, Device, MeshIndex >;
         AdvectiveRowSetter< Mesh, MeshDependentData >::setRow( matrixRow, mdd, faceIndexes, i, K, E, e );
 
+        // modify the diagonal elements in each j-block
+        // TODO: the effect of u_ij and a_ij in boundary conditions is still very experimental!
         for( int j = 0; j < MeshDependentData::NumberOfEquations; j++ ) {
             const auto value = matrixRow.getElementValue( j * MeshDependentData::FacesPerCell + e );
             matrixRow.setElement( j * MeshDependentData::FacesPerCell + e,
@@ -212,7 +203,7 @@ getLinearSystemRowLength( const MeshType & mesh,
                           const typename MeshType::Face & entity,
                           const int & i ) const
 {
-    TNL_ASSERT( mesh.isBoundaryEntity( entity ), );
+//    TNL_ASSERT( mesh.isBoundaryEntity( entity ), );
 
     const IndexType faces = mesh.template getEntitiesCount< typename Mesh::Face >();
     const BoundaryConditionsType type = tags[ i * faces + entity.getIndex() ];
@@ -239,7 +230,7 @@ setMatrixElements( const typename MeshType::Face & entity,
     const auto & mesh = this->mesh.template getData< DeviceType >();
     const auto & mdd = this->mdd.template getData< DeviceType >();
 
-    TNL_ASSERT( mesh.isBoundaryEntity( entity ), );
+//    TNL_ASSERT( mesh.isBoundaryEntity( entity ), );
 
     const IndexType E = entity.getIndex();
     const IndexType indexRow = mdd.getDofIndex( i, E );
@@ -276,12 +267,6 @@ setMatrixElements( const typename MeshType::Face & entity,
 
             // set right hand side value
             RealType bValue = - static_cast<const ModelImplementation*>(this)->getNeumannValue( mesh, i, E, time, tau ) * getEntityMeasure( mesh, entity );
-
-            // advective term
-            // TODO: make it implicit
-//            for( int j = 0; j < MeshDependentDataType::NumberOfEquations; j++ ) {
-//                bValue += mdd.a_ijKe( i, j, K, e ) * mdd.Z_ijE_upw( i, j, E );
-//            }
 
             bValue += mdd.w_iKe( i, K, e );
             for( int j = 0; j < MeshDependentDataType::NumberOfEquations; j++ ) {
