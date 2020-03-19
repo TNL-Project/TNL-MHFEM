@@ -11,7 +11,6 @@
 #include "DifferentialOperator.h"
 #include "RightHandSide.h"
 #include "../lib_general/MeshOrdering.h"
-#include "../lib_general/LinearSystemAssembler.h"
 
 namespace mhfem
 {
@@ -97,15 +96,6 @@ protected:
     DifferentialOperatorPointer differentialOperatorPointer;
     BoundaryConditionsPointer boundaryConditionsPointer;
     RightHandSidePointer rightHandSidePointer;
-
-    // cached instance for assembleLinearSystem
-    using LinearSystemAssembler = mhfem::LinearSystemAssembler
-                                  < MeshType,
-                                    DifferentialOperator,
-                                    BoundaryConditions,
-                                    RightHandSide,
-                                    DofVectorType >;
-    LinearSystemAssembler systemAssembler;
 
     // linear system preconditioner and solver
     using LinearSolverType = TNL::Solvers::Linear::LinearSolver< MatrixType >;

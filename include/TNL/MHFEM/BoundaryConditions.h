@@ -1,8 +1,6 @@
 #pragma once
 
-#include <TNL/Pointers/SharedPointer.h>
 #include <TNL/Containers/Array.h>
-#include <TNL/Operators/Operator.h>
 
 #include "BoundaryConditionsType.h"
 
@@ -13,14 +11,6 @@ template< typename Mesh,
           typename MeshDependentData,
           typename ModelImplementation >
 class BoundaryConditions
-    : public TNL::Operators::Operator< Mesh,
-                                       TNL::Functions::MeshInteriorDomain,
-                                       Mesh::getMeshDimension() - 1,
-                                       Mesh::getMeshDimension() - 1,
-                                       typename MeshDependentData::RealType,
-                                       typename MeshDependentData::IndexType,
-                                       MeshDependentData::NumberOfEquations,
-                                       MeshDependentData::NumberOfEquations >
 {
 public:
     using MeshType = Mesh;
@@ -59,28 +49,23 @@ public:
     template< typename MeshOrdering >
     void reorderBoundaryConditions( const MeshOrdering & meshOrdering );
 
-    void bind( const TNL::Pointers::SharedPointer< MeshType > & mesh,
-               TNL::Pointers::SharedPointer< MeshDependentDataType > & mdd );
-
     __cuda_callable__
     IndexType getLinearSystemRowLength( const MeshType & mesh,
-                                        const IndexType & indexEntity,
-                                        const typename MeshType::Face & entity,
-                                        const int & i ) const;
+                                        const IndexType E,
+                                        const int i ) const;
 
-    template< typename Vector, typename Matrix >
+    template< typename Matrix, typename Vector >
     __cuda_callable__
-    void setMatrixElements( const typename MeshType::Face & entity,
-                            const RealType & time,
-                            const RealType & tau,
-                            const int & i,
+    void setMatrixElements( const MeshType & mesh,
+                            const MeshDependentDataType & mdd,
+                            const IndexType E,
+                            const int i,
+                            const RealType time,
+                            const RealType tau,
                             Matrix & matrix,
                             Vector & b ) const;
 
 protected:
-    TNL::Pointers::SharedPointer< MeshType > mesh;
-    TNL::Pointers::SharedPointer< MeshDependentDataType > mdd;
-
     // array holding tags to differentiate the boundary condition based on the face index
     TagArrayType tags;
 

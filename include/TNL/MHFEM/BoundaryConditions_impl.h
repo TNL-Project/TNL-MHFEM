@@ -183,30 +183,17 @@ reorderBoundaryConditions( const MeshOrdering & meshOrdering )
 template< typename Mesh,
           typename MeshDependentData,
           typename ModelImplementation >
-void
-BoundaryConditions< Mesh, MeshDependentData, ModelImplementation >::
-bind( const TNL::Pointers::SharedPointer< MeshType > & mesh,
-      TNL::Pointers::SharedPointer< MeshDependentDataType > & mdd )
-{
-    this->mesh = mesh;
-    this->mdd = mdd;
-}
-
-template< typename Mesh,
-          typename MeshDependentData,
-          typename ModelImplementation >
 __cuda_callable__
 typename MeshDependentData::IndexType
 BoundaryConditions< Mesh, MeshDependentData, ModelImplementation >::
 getLinearSystemRowLength( const MeshType & mesh,
-                          const IndexType & E,
-                          const typename MeshType::Face & entity,
-                          const int & i ) const
+                          const IndexType E,
+                          const int i ) const
 {
-//    TNL_ASSERT( mesh.isBoundaryEntity( entity ), );
+    TNL_ASSERT_TRUE( isBoundaryFace( mesh, E ), "" );
 
     const IndexType faces = mesh.template getEntitiesCount< typename Mesh::Face >();
-    const BoundaryConditionsType type = tags[ i * faces + entity.getIndex() ];
+    const BoundaryConditionsType type = tags[ i * faces + E ];
     if( type == BoundaryConditionsType::FixedValue )
         return 1;
     return MeshDependentDataType::FacesPerCell * MeshDependentDataType::NumberOfEquations;
@@ -215,24 +202,21 @@ getLinearSystemRowLength( const MeshType & mesh,
 template< typename Mesh,
           typename MeshDependentData,
           typename ModelImplementation >
-    template< typename Vector, typename Matrix >
+    template< typename Matrix, typename Vector >
 __cuda_callable__
 void
 BoundaryConditions< Mesh, MeshDependentData, ModelImplementation >::
-setMatrixElements( const typename MeshType::Face & entity,
-                   const RealType & time,
-                   const RealType & tau,
-                   const int & i,
+setMatrixElements( const MeshType & mesh,
+                   const MeshDependentDataType & mdd,
+                   const IndexType E,
+                   const int i,
+                   const RealType time,
+                   const RealType tau,
                    Matrix & matrix,
                    Vector & b ) const
 {
-    // dereference the smart pointer on device
-    const auto & mesh = this->mesh.template getData< DeviceType >();
-    const auto & mdd = this->mdd.template getData< DeviceType >();
+    TNL_ASSERT_TRUE( isBoundaryFace( mesh, E ), "" );
 
-//    TNL_ASSERT( mesh.isBoundaryEntity( entity ), );
-
-    const IndexType E = entity.getIndex();
     const IndexType indexRow = mdd.getDofIndex( i, E );
 
     typename Matrix::MatrixRow matrixRow = matrix.getRow( indexRow );
@@ -252,7 +236,7 @@ setMatrixElements( const typename MeshType::Face & entity,
         {
             // for boundary faces returns only one valid cell index
             IndexType cellIndexes[ 2 ];
-            const int numCells = getCellsForFace( mesh, entity, cellIndexes );
+            const int numCells = getCellsForFace( mesh, E, cellIndexes );
             const IndexType & K = cellIndexes[ 0 ];
 
             TNL_ASSERT( numCells == 1,
@@ -266,6 +250,7 @@ setMatrixElements( const typename MeshType::Face & entity,
             const int e = getLocalIndex( faceIndexes, E );
 
             // set right hand side value
+            const auto& entity = mesh.template getEntity< typename MeshType::Face >( E );
             RealType bValue = - static_cast<const ModelImplementation*>(this)->getNeumannValue( mesh, i, E, time, tau ) * getEntityMeasure( mesh, entity );
 
             bValue += mdd.w_iKe( i, K, e );
@@ -288,7 +273,7 @@ setMatrixElements( const typename MeshType::Face & entity,
         {
             // for boundary faces returns only one valid cell index
             IndexType cellIndexes[ 2 ];
-            const int numCells = getCellsForFace( mesh, entity, cellIndexes );
+            const int numCells = getCellsForFace( mesh, E, cellIndexes );
             const IndexType & K = cellIndexes[ 0 ];
 
             TNL_ASSERT( numCells == 1,

@@ -31,9 +31,6 @@ setMesh( MeshPointer & meshPointer )
 {
     this->meshPointer = meshPointer;
     mdd->allocate( *meshPointer );
-    differentialOperatorPointer->bind( meshPointer, mdd );
-    boundaryConditionsPointer->bind( meshPointer, mdd );
-    rightHandSidePointer->bind( meshPointer, mdd );
 }
 
 template< typename Mesh,
@@ -141,8 +138,7 @@ setInitialCondition( const TNL::Config::ParameterContainer & parameters )
     auto faceAverageKernel = [_mesh, _mdd] __cuda_callable__ ( int i, IndexType E )
     {
         IndexType cellIndexes[ 2 ] = {0, 0};
-        const auto & entity = _mesh->template getEntity< typename Mesh::Face >( E );
-        int numCells = getCellsForFace( *_mesh, entity, cellIndexes );
+        const int numCells = getCellsForFace( *_mesh, E, cellIndexes );
 
         // NOTE: using the boundary condition is too much work, because it might be
         // uninitialized at this point, and it does not help that much to be worth it
@@ -180,31 +176,45 @@ void
 Solver< Mesh, MeshDependentData, BoundaryConditions, Matrix >::
 setupLinearSystem()
 {
-    using CompressedRowLengthsVectorType = typename MatrixType::CompressedRowLengthsVector;
+    using CompressedRowLengths =
+        TNL::Containers::NDArray< IndexType,
+                                  TNL::Containers::SizesHolder< IndexType, MeshDependentDataType::NumberOfEquations, 0 >,  // i, F
+                                  std::index_sequence< 0, 1 >,  // i, F  (must match the permutation for mdd.Z_iF for all devices
+                                  DeviceType >;
 
-    const IndexType dofs = this->getDofs();
-    TNL::Pointers::SharedPointer< CompressedRowLengthsVectorType > rowLengthsPointer;
-    rowLengthsPointer->setSize( dofs );
-    rowLengthsPointer->setValue( -1 );
+    CompressedRowLengths rowLengths;
+    const IndexType faces = meshPointer->template getEntitiesCount< typename Mesh::Face >();
+    rowLengths.setSizes( 0, faces );
+    rowLengths.setValue( -1 );
 
-    TNL::Matrices::MatrixSetter< MeshType, DifferentialOperator, BoundaryConditions, CompressedRowLengthsVectorType > matrixSetter;
-    matrixSetter.template getCompressedRowLengths< typename Mesh::Face >(
-            meshPointer,
-            differentialOperatorPointer,
-            boundaryConditionsPointer,
-            rowLengthsPointer );
+    auto rowLengths_view = rowLengths.getView();
+    const Mesh* _mesh = &meshPointer.template getData< DeviceType >();
+    const auto* _op = &differentialOperatorPointer.template getData< DeviceType >();
+    const auto* _bc = &boundaryConditionsPointer.template getData< DeviceType >();
+    auto kernel = [rowLengths_view, _mesh, _op, _bc] __cuda_callable__ ( int i, IndexType E ) mutable
+    {
+        IndexType length;
+        if( isBoundaryFace( *_mesh, E ) )
+            length = _bc->getLinearSystemRowLength( *_mesh, E, i );
+        else
+            length = _op->getLinearSystemRowLength( *_mesh, E, i );
+        rowLengths_view( i, E ) = length;
+    };
+    rowLengths_view.forAll( kernel );
 
     // sanity check (doesn't happen if the traverser works, but this is pretty
     // hard to debug and the check does not cost us much in initialization)
-    if( TNL::min( *rowLengthsPointer ) <= 0 ) {
+    TNL::Containers::VectorView< IndexType, DeviceType, IndexType > rowLengths_vector( rowLengths.getStorageArray().getView() );
+    if( TNL::min( rowLengths_vector ) <= 0 ) {
         std::stringstream ss;
-        ss << "MHFEM error: attempted to set invalid rowsLengths vector:\n" << *rowLengthsPointer << std::endl;
+        ss << "MHFEM error: attempted to set invalid rowsLengths vector:\n" << rowLengths_vector << std::endl;
         throw std::runtime_error( ss.str() );
     }
 
     // initialize matrix
+    const IndexType dofs = this->getDofs();
     matrixPointer->setDimensions( dofs, dofs );
-    matrixPointer->setCompressedRowLengths( *rowLengthsPointer );
+    matrixPointer->setCompressedRowLengths( rowLengths_vector );
 
     // initialize the right hand side vector
     rhsVector.setSize( dofs );
@@ -318,10 +328,8 @@ preIterate( const RealType & time,
 
         auto kernel_m_iE = [_mdd, _mesh, _bc, time, tau] __cuda_callable__ ( int i, IndexType E ) mutable
         {
-            const auto& entity = _mesh->template getEntity< typename MeshType::Face >( E );
-
             IndexType cellIndexes[ 2 ];
-            const int numCells = getCellsForFace( *_mesh, entity, cellIndexes );
+            const int numCells = getCellsForFace( *_mesh, E, cellIndexes );
 
             // index of the main element (left/bottom if indexFace is inner face, otherwise the element next to the boundary face)
             const IndexType & K1 = cellIndexes[ 0 ];
@@ -374,10 +382,8 @@ preIterate( const RealType & time,
 
         auto kernel_Z_ijE = [_mdd, _mesh] __cuda_callable__ ( int i, int j, IndexType E ) mutable
         {
-            const auto& entity = _mesh->template getEntity< typename MeshType::Face >( E );
-
             IndexType cellIndexes[ 2 ];
-            const int numCells = getCellsForFace( *_mesh, entity, cellIndexes );
+            const int numCells = getCellsForFace( *_mesh, E, cellIndexes );
 
             // index of the main element (left/bottom if indexFace is inner face, otherwise the element next to the boundary face)
             const IndexType & K1 = cellIndexes[ 0 ];
@@ -530,19 +536,23 @@ assembleLinearSystem( const RealType & time,
 {
     timer_assembleLinearSystem.start();
 
-    // Setting this here instead of some setup method ensures that
-    // the systemAssembler always has the correct operator etc.
-    systemAssembler.setDifferentialOperator( this->differentialOperatorPointer );
-    systemAssembler.setBoundaryConditions( this->boundaryConditionsPointer );
-    systemAssembler.setRightHandSide( this->rightHandSidePointer );
-
-    // initialize system assembler for stationary problem
-    systemAssembler.template assemble< typename MeshType::Face >(
-            time,
-            tau,
-            meshPointer,
-            matrixPointer,
-            rhsVector );
+    const auto* _mesh = &meshPointer.template getData< DeviceType >();
+    const auto* _mdd = &mdd.template modifyData< DeviceType >();
+    const auto* _op = &differentialOperatorPointer.template getData< DeviceType >();
+    const auto* _bc = &boundaryConditionsPointer.template getData< DeviceType >();
+    const auto* _rhs = &rightHandSidePointer.template getData< DeviceType >();
+    auto* _matrix = &matrixPointer.template modifyData< DeviceType >();
+    auto _b = rhsVector.getView();
+    auto kernel = [_mesh, _mdd, _op, _bc, _rhs, _matrix, _b, time, tau] __cuda_callable__ ( int i, IndexType E ) mutable
+    {
+        if( isBoundaryFace( *_mesh, E ) )
+            _bc->setMatrixElements( *_mesh, *_mdd, E, i, time + tau, tau, *_matrix, _b );
+        else {
+            _op->setMatrixElements( *_mesh, *_mdd, E, i, time + tau, tau, *_matrix, _b );
+            _b[ _mdd->getDofIndex( i, E ) ] = (*_rhs)( *_mesh, *_mdd, E, i );
+        }
+    };
+    mdd->Z_iF.forAll( kernel );
 
     timer_assembleLinearSystem.stop();
 

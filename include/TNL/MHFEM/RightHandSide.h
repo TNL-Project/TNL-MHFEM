@@ -1,9 +1,5 @@
 #pragma once
 
-#include <TNL/Pointers/SharedPointer.h>
-#include <TNL/Functions/Domain.h>
-#include <TNL/Functions/Range.h>
-
 #include "../lib_general/mesh_helpers.h"
 
 namespace mhfem
@@ -12,8 +8,6 @@ namespace mhfem
 template< typename Mesh,
           typename MeshDependentData >
 class RightHandSide
-    : public TNL::Functions::Domain< Mesh::getMeshDimension(), TNL::Functions::MeshDomain >,
-      public TNL::Functions::Range< typename MeshDependentData::RealType, MeshDependentData::NumberOfEquations >
 {
 public:
     using MeshType = Mesh;
@@ -22,34 +16,16 @@ public:
     using RealType = typename MeshDependentDataType::RealType;
     using IndexType = typename MeshDependentDataType::IndexType;
 
-    static constexpr int getEntitiesDimensions() { return Mesh::getMeshDimension() - 1; }
- 
-    void bind( const TNL::Pointers::SharedPointer< MeshType > & mesh,
-               TNL::Pointers::SharedPointer< MeshDependentDataType > & mdd )
-    {
-        this->mesh = mesh;
-        this->mdd = mdd;
-    }
-
-    // FIXME: template needed due to limitation of FunctionAdapter, otherwise we would use MeshType::Face
-    // (for grids it is different from MeshType::template EntityType< d >, because it has non-default Config parameter)
-    template< typename EntityType >
     __cuda_callable__
-    RealType operator()( const EntityType & entity,
-                         const RealType & time,
-                         const int & i ) const
+    RealType operator()( const MeshType & mesh,
+                         const MeshDependentDataType & mdd,
+                         const IndexType E,
+                         const int i ) const
     {
-        static_assert( EntityType::getEntityDimension() == getEntitiesDimensions(),
-                       "This function is defined on faces." );
-
-        // dereference the smart pointer on device
-        const auto & mesh = this->mesh.template getData< DeviceType >();
-        const auto & mdd = this->mdd.template getData< DeviceType >();
-
-        const IndexType E = entity.getIndex();
+        TNL_ASSERT_TRUE( ! isBoundaryFace( mesh, E ), "" );
 
         IndexType cellIndexes[ 2 ];
-        const int numCells = getCellsForFace( mesh, entity, cellIndexes );
+        const int numCells = getCellsForFace( mesh, E, cellIndexes );
 
         TNL_ASSERT( numCells == 2,
                     std::cerr << "assertion numCells == 2 failed" << std::endl; );
@@ -70,10 +46,6 @@ public:
         }
         return result;
     }
-
-protected:
-    TNL::Pointers::SharedPointer< MeshType > mesh;
-    TNL::Pointers::SharedPointer< MeshDependentDataType > mdd;
 };
 
 } // namespace mhfem

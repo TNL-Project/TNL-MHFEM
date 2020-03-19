@@ -9,56 +9,41 @@ namespace mhfem
 
 template< typename Mesh,
           typename MeshDependentData >
-void
-DifferentialOperator< Mesh, MeshDependentData >::
-bind( const TNL::Pointers::SharedPointer< MeshType > & mesh,
-      TNL::Pointers::SharedPointer< MeshDependentDataType > & mdd )
-{
-    this->mesh = mesh;
-    this->mdd = mdd;
-}
-
-template< typename Mesh,
-          typename MeshDependentData >
 __cuda_callable__
 typename MeshDependentData::IndexType
 DifferentialOperator< Mesh, MeshDependentData >::
 getLinearSystemRowLength( const MeshType & mesh,
-                          const IndexType & indexEntity,
-                          const typename MeshType::Face & entity,
-                          const int & i ) const
+                          const IndexType E,
+                          const int i ) const
 {
-//    TNL_ASSERT( ! mesh.isBoundaryEntity( entity ), );
+    TNL_ASSERT_TRUE( ! isBoundaryFace( mesh, E ), "" );
     return ( 2 * MeshDependentDataType::FacesPerCell - 1 ) * MeshDependentDataType::NumberOfEquations;
 }
 
 template< typename Mesh,
           typename MeshDependentData >
-    template< typename Vector, typename Matrix >
+    template< typename Matrix, typename Vector >
 __cuda_callable__
 void
 DifferentialOperator< Mesh, MeshDependentData >::
-setMatrixElements( const typename MeshType::Face & entity,
-                   const RealType & time,
-                   const RealType & tau,
-                   const int & i,
+setMatrixElements( const MeshType & mesh,
+                   const MeshDependentDataType & mdd,
+                   const IndexType E,
+                   const int i,
+                   const RealType time,
+                   const RealType tau,
                    Matrix & matrix,
                    Vector & b ) const
 {
-    // dereference the smart pointer on device
-    const auto & mesh = this->mesh.template getData< DeviceType >();
-    const auto & mdd = this->mdd.template getData< DeviceType >();
+    TNL_ASSERT_TRUE( ! isBoundaryFace( mesh, E ), "" );
 
-//    TNL_ASSERT( ! mesh.isBoundaryEntity( entity ), );
-
-    const IndexType E = entity.getIndex();
     const IndexType indexRow = mdd.getDofIndex( i, E );
 
     typename Matrix::MatrixRow matrixRow = matrix.getRow( indexRow );
 
     // indexes of the right (cellIndexes[0]) and left (cellIndexes[1]) cells
     IndexType cellIndexes[ 2 ];
-    const int numCells = getCellsForFace( mesh, entity, cellIndexes );
+    const int numCells = getCellsForFace( mesh, E, cellIndexes );
 
     TNL_ASSERT( numCells == 2,
                 std::cerr << "assertion numCells == 2 failed" << std::endl; );
@@ -188,28 +173,14 @@ template< typename MeshReal,
           typename Device,
           typename MeshIndex,
           typename MeshDependentData >
-void
-DifferentialOperator< TNL::Meshes::Grid< 1, MeshReal, Device, MeshIndex >, MeshDependentData >::
-bind( const TNL::Pointers::SharedPointer< MeshType > & mesh,
-      TNL::Pointers::SharedPointer< MeshDependentDataType > & mdd )
-{
-    this->mesh = mesh;
-    this->mdd = mdd;
-}
-
-template< typename MeshReal,
-          typename Device,
-          typename MeshIndex,
-          typename MeshDependentData >
 __cuda_callable__
 typename MeshDependentData::IndexType
 DifferentialOperator< TNL::Meshes::Grid< 1, MeshReal, Device, MeshIndex >, MeshDependentData >::
 getLinearSystemRowLength( const MeshType & mesh,
-                          const IndexType & indexEntity,
-                          const typename MeshType::Face & entity,
-                          const int & i ) const
+                          const IndexType E,
+                          const int i ) const
 {
-//    TNL_ASSERT( ! mesh.isBoundaryEntity( entity ), );
+    TNL_ASSERT_TRUE( ! isBoundaryFace( mesh, E ), "" );
     return 3 * MeshDependentDataType::NumberOfEquations;
 }
 
@@ -217,31 +188,28 @@ template< typename MeshReal,
           typename Device,
           typename MeshIndex,
           typename MeshDependentData >
-    template< typename Vector, typename Matrix >
+    template< typename Matrix, typename Vector >
 __cuda_callable__
 void
 DifferentialOperator< TNL::Meshes::Grid< 1, MeshReal, Device, MeshIndex >, MeshDependentData >::
-setMatrixElements( const typename MeshType::Face & entity,
-                   const RealType & time,
-                   const RealType & tau,
-                   const int & i,
+setMatrixElements( const MeshType & mesh,
+                   const MeshDependentDataType & mdd,
+                   const IndexType E,
+                   const int i,
+                   const RealType time,
+                   const RealType tau,
                    Matrix & matrix,
                    Vector & b ) const
 {
-    // dereference the smart pointer on device
-    const auto & mesh = this->mesh.template getData< DeviceType >();
-    const auto & mdd = this->mdd.template getData< DeviceType >();
+    TNL_ASSERT_TRUE( ! isBoundaryFace( mesh, E ), "" );
 
-//    TNL_ASSERT( ! mesh.isBoundaryEntity( entity ), );
-
-    const IndexType E = entity.getIndex();
     const IndexType indexRow = mdd.getDofIndex( i, E );
 
     typename Matrix::MatrixRow matrixRow = matrix.getRow( indexRow );
 
     // indexes of the right (cellIndexes[0]) and left (cellIndexes[1]) cells
     IndexType cellIndexes[ 2 ];
-    const int numCells = getCellsForFace( mesh, entity, cellIndexes );
+    const int numCells = getCellsForFace( mesh, E, cellIndexes );
 
     TNL_ASSERT( numCells == 2,
                 std::cerr << "assertion numCells == 2 failed" << std::endl; );
@@ -266,28 +234,14 @@ template< typename MeshReal,
           typename Device,
           typename MeshIndex,
           typename MeshDependentData >
-void
-DifferentialOperator< TNL::Meshes::Grid< 2, MeshReal, Device, MeshIndex >, MeshDependentData >::
-bind( const TNL::Pointers::SharedPointer< MeshType > & mesh,
-      TNL::Pointers::SharedPointer< MeshDependentDataType > & mdd )
-{
-    this->mesh = mesh;
-    this->mdd = mdd;
-}
-
-template< typename MeshReal,
-          typename Device,
-          typename MeshIndex,
-          typename MeshDependentData >
 __cuda_callable__
 typename MeshDependentData::IndexType
 DifferentialOperator< TNL::Meshes::Grid< 2, MeshReal, Device, MeshIndex >, MeshDependentData >::
 getLinearSystemRowLength( const MeshType & mesh,
-                          const IndexType & indexEntity,
-                          const typename MeshType::Face & entity,
-                          const int & i ) const
+                          const IndexType E,
+                          const int i ) const
 {
-//    TNL_ASSERT( ! mesh.isBoundaryEntity( entity ), );
+    TNL_ASSERT_TRUE( ! isBoundaryFace( mesh, E ), "" );
     return 7 * MeshDependentDataType::NumberOfEquations;
 }
 
@@ -295,31 +249,28 @@ template< typename MeshReal,
           typename Device,
           typename MeshIndex,
           typename MeshDependentData >
-    template< typename Vector, typename Matrix >
+    template< typename Matrix, typename Vector >
 __cuda_callable__
 void
 DifferentialOperator< TNL::Meshes::Grid< 2, MeshReal, Device, MeshIndex >, MeshDependentData >::
-setMatrixElements( const typename MeshType::Face & entity,
-                   const RealType & time,
-                   const RealType & tau,
-                   const int & i,
+setMatrixElements( const MeshType & mesh,
+                   const MeshDependentDataType & mdd,
+                   const IndexType E,
+                   const int i,
+                   const RealType time,
+                   const RealType tau,
                    Matrix & matrix,
                    Vector & b ) const
 {
-    // dereference the smart pointer on device
-    const auto & mesh = this->mesh.template getData< DeviceType >();
-    const auto & mdd = this->mdd.template getData< DeviceType >();
+    TNL_ASSERT_TRUE( ! isBoundaryFace( mesh, E ), "" );
 
-//    TNL_ASSERT( ! mesh.isBoundaryEntity( entity ), );
-
-    const IndexType E = entity.getIndex();
     const IndexType indexRow = mdd.getDofIndex( i, E );
 
     typename Matrix::MatrixRow matrixRow = matrix.getRow( indexRow );
 
     // indexes of the right/top (cellIndexes[0]) and left/bottom (cellIndexes[1]) cells
     IndexType cellIndexes[ 2 ];
-    const int numCells = getCellsForFace( mesh, entity, cellIndexes );
+    const int numCells = getCellsForFace( mesh, E, cellIndexes );
 
     TNL_ASSERT( numCells == 2,
                 std::cerr << "assertion numCells == 2 failed" << std::endl; );
@@ -328,10 +279,7 @@ setMatrixElements( const typename MeshType::Face & entity,
     const auto faceIndexesK0 = getFacesForCell( mesh, cellIndexes[ 0 ] );
     const auto faceIndexesK1 = getFacesForCell( mesh, cellIndexes[ 1 ] );
 
-    const auto & orientation = entity.getOrientation();
-
-//    if( isVerticalFace( mesh, E ) ) {
-    if( orientation.x() ) {
+    if( E < mesh.getNumberOfNxFaces() ) {
         //        K1   K0
         //      ___________
         //      | 6  |  7 |
@@ -376,28 +324,14 @@ template< typename MeshReal,
           typename Device,
           typename MeshIndex,
           typename MeshDependentData >
-void
-DifferentialOperator< TNL::Meshes::Grid< 3, MeshReal, Device, MeshIndex >, MeshDependentData >::
-bind( const TNL::Pointers::SharedPointer< MeshType > & mesh,
-      TNL::Pointers::SharedPointer< MeshDependentDataType > & mdd )
-{
-    this->mesh = mesh;
-    this->mdd = mdd;
-}
-
-template< typename MeshReal,
-          typename Device,
-          typename MeshIndex,
-          typename MeshDependentData >
 __cuda_callable__
 typename MeshDependentData::IndexType
 DifferentialOperator< TNL::Meshes::Grid< 3, MeshReal, Device, MeshIndex >, MeshDependentData >::
 getLinearSystemRowLength( const MeshType & mesh,
-                          const IndexType & indexEntity,
-                          const typename MeshType::Face & entity,
-                          const int & i ) const
+                          const IndexType E,
+                          const int i ) const
 {
-//    TNL_ASSERT( ! mesh.isBoundaryEntity( entity ), );
+    TNL_ASSERT_TRUE( ! isBoundaryFace( mesh, E ), "" );
     return 11 * MeshDependentDataType::NumberOfEquations;
 }
 
@@ -405,31 +339,28 @@ template< typename MeshReal,
           typename Device,
           typename MeshIndex,
           typename MeshDependentData >
-    template< typename Vector, typename Matrix >
+    template< typename Matrix, typename Vector >
 __cuda_callable__
 void
 DifferentialOperator< TNL::Meshes::Grid< 3, MeshReal, Device, MeshIndex >, MeshDependentData >::
-setMatrixElements( const typename MeshType::Face & entity,
-                   const RealType & time,
-                   const RealType & tau,
-                   const int & i,
+setMatrixElements( const MeshType & mesh,
+                   const MeshDependentDataType & mdd,
+                   const IndexType E,
+                   const int i,
+                   const RealType time,
+                   const RealType tau,
                    Matrix & matrix,
                    Vector & b ) const
 {
-    // dereference the smart pointer on device
-    const auto & mesh = this->mesh.template getData< DeviceType >();
-    const auto & mdd = this->mdd.template getData< DeviceType >();
+    TNL_ASSERT_TRUE( ! isBoundaryFace( mesh, E ), "" );
 
-//    TNL_ASSERT( ! mesh.isBoundaryEntity( entity ), );
-
-    const IndexType E = entity.getIndex();
     const IndexType indexRow = mdd.getDofIndex( i, E );
 
     typename Matrix::MatrixRow matrixRow = matrix.getRow( indexRow );
 
     // indexes of the right/top (cellIndexes[0]) and left/bottom (cellIndexes[1]) cells
     IndexType cellIndexes[ 2 ];
-    const int numCells = getCellsForFace( mesh, entity, cellIndexes );
+    const int numCells = getCellsForFace( mesh, E, cellIndexes );
 
     TNL_ASSERT( numCells == 2,
                 std::cerr << "assertion numCells == 2 failed" << std::endl; );
@@ -438,11 +369,7 @@ setMatrixElements( const typename MeshType::Face & entity,
     const auto faceIndexesK0 = getFacesForCell( mesh, cellIndexes[ 0 ] );
     const auto faceIndexesK1 = getFacesForCell( mesh, cellIndexes[ 1 ] );
 
-    const auto & orientation = entity.getOrientation();
-
-    // TODO: write something like isNxFace/isNyFace/isNzFace
-//    if( E < mesh.template getNumberOfFaces< 1, 0, 0 >() ) {
-    if( orientation.x() ) {
+    if( E < mesh.getNumberOfNxFaces() ) {
         //        K1   K0
         //      ___________
         //      | 6  |  7 |
@@ -464,8 +391,7 @@ setMatrixElements( const typename MeshType::Face & entity,
             matrixRow.setElement( j * 11 + 10, mdd.getDofIndex( j, faceIndexesK0[ 5 ] ), coeff::A_ijKEF( mdd, i, j, cellIndexes[ 0 ], E, 0, faceIndexesK0[ 5 ], 5 ) );
         }
     }
-//    else if( E < mesh.template getNumberOfFaces< 1, 1, 0 >() ) {
-    else if( orientation.y() ) {
+    else if( E < mesh.getNumberOfNxAndNyFaces() ) {
         //      ______
         //      | 7  |
         //     2|   3| K0

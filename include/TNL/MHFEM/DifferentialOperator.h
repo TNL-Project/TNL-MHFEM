@@ -1,8 +1,6 @@
 #pragma once
 
-#include <TNL/Pointers/SharedPointer.h>
 #include <TNL/Meshes/Grid.h>
-#include <TNL/Operators/Operator.h>
 
 #include "SecondaryCoefficients.h"
 
@@ -12,14 +10,6 @@ namespace mhfem
 template< typename Mesh,
           typename MeshDependentData >
 class DifferentialOperator
-    : public TNL::Operators::Operator< Mesh,
-                                       TNL::Functions::MeshInteriorDomain,
-                                       Mesh::getMeshDimension() - 1,
-                                       Mesh::getMeshDimension() - 1,
-                                       typename MeshDependentData::RealType,
-                                       typename MeshDependentData::IndexType,
-                                       MeshDependentData::NumberOfEquations,
-                                       MeshDependentData::NumberOfEquations >
 {
 public:
     using MeshType = Mesh;
@@ -29,27 +19,23 @@ public:
     using IndexType = typename MeshDependentDataType::IndexType;
     using LocalIndex = typename Mesh::LocalIndexType;
 
-    void bind( const TNL::Pointers::SharedPointer< MeshType > & mesh,
-               TNL::Pointers::SharedPointer< MeshDependentDataType > & mdd );
-
     __cuda_callable__
     IndexType getLinearSystemRowLength( const MeshType & mesh,
-                                        const IndexType & indexEntity,
-                                        const typename MeshType::Face & entity,
-                                        const int & i ) const;
+                                        const IndexType E,
+                                        const int i ) const;
 
-    template< typename Vector, typename Matrix >
+    template< typename Matrix, typename Vector >
     __cuda_callable__
-    void setMatrixElements( const typename MeshType::Face & entity,
-                            const RealType & time,
-                            const RealType & tau,
-                            const int & i,
+    void setMatrixElements( const MeshType & mesh,
+                            const MeshDependentDataType & mdd,
+                            const IndexType E,
+                            const int i,
+                            const RealType time,
+                            const RealType tau,
                             Matrix & matrix,
                             Vector & b ) const;
 
 protected:
-    TNL::Pointers::SharedPointer< MeshType > mesh;
-    TNL::Pointers::SharedPointer< MeshDependentDataType > mdd;
     using coeff = SecondaryCoefficients< MeshDependentDataType >;
 };
 
@@ -58,14 +44,6 @@ template< typename MeshReal,
           typename MeshIndex,
           typename MeshDependentData >
 class DifferentialOperator< TNL::Meshes::Grid< 1, MeshReal, Device, MeshIndex >, MeshDependentData >
-    : public TNL::Operators::Operator< TNL::Meshes::Grid< 1, MeshReal, Device, MeshIndex >,
-                                       TNL::Functions::MeshInteriorDomain,
-                                       TNL::Meshes::Grid< 1, MeshReal, Device, MeshIndex >::getMeshDimension() - 1,
-                                       TNL::Meshes::Grid< 1, MeshReal, Device, MeshIndex >::getMeshDimension() - 1,
-                                       typename MeshDependentData::RealType,
-                                       typename MeshDependentData::IndexType,
-                                       MeshDependentData::NumberOfEquations,
-                                       MeshDependentData::NumberOfEquations >
 {
 public:
     using MeshType = TNL::Meshes::Grid< 1, MeshReal, Device, MeshIndex >;
@@ -74,27 +52,23 @@ public:
     using RealType = typename MeshDependentDataType::RealType;
     using IndexType = typename MeshDependentDataType::IndexType;
 
-    void bind( const TNL::Pointers::SharedPointer< MeshType > & mesh,
-               TNL::Pointers::SharedPointer< MeshDependentDataType > & mdd );
-
     __cuda_callable__
     IndexType getLinearSystemRowLength( const MeshType & mesh,
-                                        const IndexType & indexEntity,
-                                        const typename MeshType::Face & entity,
-                                        const int & i ) const;
+                                        const IndexType E,
+                                        const int i ) const;
 
-    template< typename Vector, typename Matrix >
+    template< typename Matrix, typename Vector >
     __cuda_callable__
-    void setMatrixElements( const typename MeshType::Face & entity,
-                            const RealType & time,
-                            const RealType & tau,
-                            const int & i,
+    void setMatrixElements( const MeshType & mesh,
+                            const MeshDependentDataType & mdd,
+                            const IndexType E,
+                            const int i,
+                            const RealType time,
+                            const RealType tau,
                             Matrix & matrix,
                             Vector & b ) const;
 
 protected:
-    TNL::Pointers::SharedPointer< MeshType > mesh;
-    TNL::Pointers::SharedPointer< MeshDependentDataType > mdd;
     using coeff = SecondaryCoefficients< MeshDependentDataType >;
 };
 
@@ -103,14 +77,6 @@ template< typename MeshReal,
           typename MeshIndex,
           typename MeshDependentData >
 class DifferentialOperator< TNL::Meshes::Grid< 2, MeshReal, Device, MeshIndex >, MeshDependentData >
-    : public TNL::Operators::Operator< TNL::Meshes::Grid< 1, MeshReal, Device, MeshIndex >,
-                                       TNL::Functions::MeshInteriorDomain,
-                                       TNL::Meshes::Grid< 1, MeshReal, Device, MeshIndex >::getMeshDimension() - 1,
-                                       TNL::Meshes::Grid< 1, MeshReal, Device, MeshIndex >::getMeshDimension() - 1,
-                                       typename MeshDependentData::RealType,
-                                       typename MeshDependentData::IndexType,
-                                       MeshDependentData::NumberOfEquations,
-                                       MeshDependentData::NumberOfEquations >
 {
 public:
     using MeshType = TNL::Meshes::Grid< 2, MeshReal, Device, MeshIndex >;
@@ -119,27 +85,23 @@ public:
     using RealType = typename MeshDependentDataType::RealType;
     using IndexType = typename MeshDependentDataType::IndexType;
 
-    void bind( const TNL::Pointers::SharedPointer< MeshType > & mesh,
-               TNL::Pointers::SharedPointer< MeshDependentDataType > & mdd );
-
     __cuda_callable__
     IndexType getLinearSystemRowLength( const MeshType & mesh,
-                                        const IndexType & indexEntity,
-                                        const typename MeshType::Face & entity,
-                                        const int & i ) const;
+                                        const IndexType E,
+                                        const int i ) const;
 
-    template< typename Vector, typename Matrix >
+    template< typename Matrix, typename Vector >
     __cuda_callable__
-    void setMatrixElements( const typename MeshType::Face & entity,
-                            const RealType & time,
-                            const RealType & tau,
-                            const int & i,
+    void setMatrixElements( const MeshType & mesh,
+                            const MeshDependentDataType & mdd,
+                            const IndexType E,
+                            const int i,
+                            const RealType time,
+                            const RealType tau,
                             Matrix & matrix,
                             Vector & b ) const;
 
 protected:
-    TNL::Pointers::SharedPointer< MeshType > mesh;
-    TNL::Pointers::SharedPointer< MeshDependentDataType > mdd;
     using coeff = SecondaryCoefficients< MeshDependentDataType >;
 };
 
@@ -148,14 +110,6 @@ template< typename MeshReal,
           typename MeshIndex,
           typename MeshDependentData >
 class DifferentialOperator< TNL::Meshes::Grid< 3, MeshReal, Device, MeshIndex >, MeshDependentData >
-    : public TNL::Operators::Operator< TNL::Meshes::Grid< 1, MeshReal, Device, MeshIndex >,
-                                       TNL::Functions::MeshInteriorDomain,
-                                       TNL::Meshes::Grid< 1, MeshReal, Device, MeshIndex >::getMeshDimension() - 1,
-                                       TNL::Meshes::Grid< 1, MeshReal, Device, MeshIndex >::getMeshDimension() - 1,
-                                       typename MeshDependentData::RealType,
-                                       typename MeshDependentData::IndexType,
-                                       MeshDependentData::NumberOfEquations,
-                                       MeshDependentData::NumberOfEquations >
 {
 public:
     using MeshType = TNL::Meshes::Grid< 3, MeshReal, Device, MeshIndex >;
@@ -164,27 +118,23 @@ public:
     using RealType = typename MeshDependentDataType::RealType;
     using IndexType = typename MeshDependentDataType::IndexType;
 
-    void bind( const TNL::Pointers::SharedPointer< MeshType > & mesh,
-               TNL::Pointers::SharedPointer< MeshDependentDataType > & mdd );
-
     __cuda_callable__
     IndexType getLinearSystemRowLength( const MeshType & mesh,
-                                        const IndexType & indexEntity,
-                                        const typename MeshType::Face & entity,
-                                        const int & i ) const;
+                                        const IndexType E,
+                                        const int i ) const;
 
-    template< typename Vector, typename Matrix >
+    template< typename Matrix, typename Vector >
     __cuda_callable__
-    void setMatrixElements( const typename MeshType::Face & entity,
-                            const RealType & time,
-                            const RealType & tau,
-                            const int & i,
+    void setMatrixElements( const MeshType & mesh,
+                            const MeshDependentDataType & mdd,
+                            const IndexType E,
+                            const int i,
+                            const RealType time,
+                            const RealType tau,
                             Matrix & matrix,
                             Vector & b ) const;
 
 protected:
-    TNL::Pointers::SharedPointer< MeshType > mesh;
-    TNL::Pointers::SharedPointer< MeshDependentDataType > mdd;
     using coeff = SecondaryCoefficients< MeshDependentDataType >;
 };
 
