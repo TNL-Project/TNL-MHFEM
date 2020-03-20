@@ -115,7 +115,7 @@ setInitialCondition( const TNL::Config::ParameterContainer & parameters )
     if( ! boundaryConditionsPointer->init( parameters, *meshPointer ) )
         return false;
 
-    if( ! mdd->init( parameters, meshPointer ) )
+    if( ! mdd->init( parameters, *meshPointer ) )
         return false;
 
     if( doMeshOrdering ) {
