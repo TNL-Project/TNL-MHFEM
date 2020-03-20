@@ -79,7 +79,7 @@ public:
                                                   HostPermutation,
                                                   TNL::Devices::Host >;
 
-    // main dofs (allocated as ND array, the TNL's DofVector is bound to the underlying 1D array)
+    // main dofs
     NDArray< TNL::Containers::SizesHolder< IndexType, NumberOfEquations, 0 >,  // i, F
              std::index_sequence< 0, 1 >,   // i, F  (host)
              std::index_sequence< 0, 1 > >  // i, F  (cuda)

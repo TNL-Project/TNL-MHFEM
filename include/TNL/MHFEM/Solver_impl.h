@@ -246,14 +246,6 @@ makeSnapshot( const RealType & time,
     if( doMeshOrdering )
         mdd->reorderDofs( meshOrdering, false );
 
-    // FIXME: TwoPhaseModel::makeSnapshotOnFaces does not work in 2D
-//    if( ! mdd->makeSnapshotOnFaces( time, step, mesh, dofVector, outputDirectory + "/" ) )
-//        return false;
-
-//    std::cout << "solution (Z_iE): " << std::endl << mdd->Z_iF.getStorageArray() << std::endl;
-//    std::cout << "solution (Z_iK): " << std::endl << mdd->Z_iK.getStorageArray() << std::endl;
-//    std::cout << "mobility (m_iK): " << std::endl << mdd->m << std::endl;
-
     return true;
 }
 
@@ -566,7 +558,7 @@ assembleLinearSystem( const RealType & time,
 //    TNL::String dofFileName = outputDirectory + "/dof.vec.tnl";
 //    TNL::String rhsFileName = outputDirectory + "/rhs.vec.tnl";
 //    if( iter == 10 ) {
-//        saveLinearSystem( *matrixPointer, *dofVectorPointer, rhsVector );
+//        saveLinearSystem( *matrixPointer, mdd->Z_iF.getStorageArray().getView(), rhsVector );
 //    }
 //    iter++;
 }
@@ -665,7 +657,7 @@ postIterate( const RealType & time,
 
     timer_postIterate.stop();
 
-//    std::cout << "solution (Z_iE): " << std::endl << *dofVectorPointer << std::endl;
+//    std::cout << "solution (Z_iE): " << std::endl << mdd->Z_iF.getStorageArray() << std::endl;
 //    std::cout << "solution (Z_iK): " << std::endl << mdd->Z_iK.getStorageArray() << std::endl;
 //    std::cin.get();
 }
