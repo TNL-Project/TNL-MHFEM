@@ -91,8 +91,7 @@ void solve( Problem& problem,
     std::size_t allSteps = std::ceil( ( finalTime - initialTime ) / snapshotPeriod );
 
     ioTimer.start();
-    if( ! problem.makeSnapshot( t, step ) )
-        throw std::runtime_error( "Failed to make the snapshot." );
+    problem.makeSnapshot( t, step );
     ioTimer.stop();
     computeTimer.start();
 
@@ -108,8 +107,7 @@ void solve( Problem& problem,
             solverMonitor->setTime( t );
             solverMonitor->setStage( "Making snapshot" );
         }
-        if( ! problem.makeSnapshot( t, step ) )
-            throw std::runtime_error( "Failed to make the snapshot." );
+        problem.makeSnapshot( t, step );
         ioTimer.stop();
         computeTimer.start();
     }

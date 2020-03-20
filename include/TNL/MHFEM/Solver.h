@@ -51,18 +51,18 @@ public:
 
     void setupLinearSystem();
 
-    bool makeSnapshot( const RealType & time,
-                       const IndexType & step );
+    void makeSnapshot( const RealType time,
+                       const IndexType step );
 
     IndexType getDofs() const;
 
     MeshDependentDataPointer& getMeshDependentData();
 
-    void preIterate( const RealType & time,
-                     const RealType & tau );
+    void preIterate( const RealType time,
+                     const RealType tau );
 
-    void assembleLinearSystem( const RealType & time,
-                               const RealType & tau );
+    void assembleLinearSystem( const RealType time,
+                               const RealType tau );
 
     void solveLinearSystem( TNL::Solvers::IterativeSolverMonitor< RealType, IndexType >* solverMonitor = nullptr );
 
@@ -70,8 +70,8 @@ public:
                            DofViewType dofs,
                            DofViewType rhs ) const;
 
-    void postIterate( const RealType & time,
-                      const RealType & tau );
+    void postIterate( const RealType time,
+                      const RealType tau );
 
     void writeEpilog( TNL::Logger & logger ) const;
 

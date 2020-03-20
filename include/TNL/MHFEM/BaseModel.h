@@ -45,8 +45,8 @@ public:
 //                          const IndexType & K,
 //                          const CoordinatesType & coordinates );
 //
-//    bool makeSnapshot( const RealType & time,
-//                       const IndexType & step,
+//    bool makeSnapshot( const RealType time,
+//                       const IndexType step,
 //                       const MeshType & mesh,
 //                       const TNL::String & outputPrefix ) const
 

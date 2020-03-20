@@ -227,10 +227,10 @@ template< typename Mesh,
           typename MeshDependentData,
           typename BoundaryConditions,
           typename Matrix >
-bool
+void
 Solver< Mesh, MeshDependentData, BoundaryConditions, Matrix >::
-makeSnapshot( const RealType & time,
-              const IndexType & step )
+makeSnapshot( const RealType time,
+              const IndexType step )
 {
     // TODO: write only into the log file
 //    std::cout << std::endl << "Writing output at time " << time << " step " << step << std::endl;
@@ -239,14 +239,11 @@ makeSnapshot( const RealType & time,
     if( doMeshOrdering )
         mdd->reorderDofs( meshOrdering, true );
 
-    if( ! mdd->makeSnapshot( time, step, *meshPointer, outputDirectory + "/" ) )
-        return false;
+    mdd->makeSnapshot( time, step, *meshPointer, outputDirectory + "/" );
 
     // reorder DOFs back to the special numbering after snapshot
     if( doMeshOrdering )
         mdd->reorderDofs( meshOrdering, false );
-
-    return true;
 }
 
 template< typename Mesh,
@@ -255,8 +252,8 @@ template< typename Mesh,
           typename Matrix >
 void
 Solver< Mesh, MeshDependentData, BoundaryConditions, Matrix >::
-preIterate( const RealType & time,
-            const RealType & tau )
+preIterate( const RealType time,
+            const RealType tau )
 {
     timer_preIterate.start();
 
@@ -523,8 +520,8 @@ template< typename Mesh,
           typename Matrix >
 void
 Solver< Mesh, MeshDependentData, BoundaryConditions, Matrix >::
-assembleLinearSystem( const RealType & time,
-                      const RealType & tau )
+assembleLinearSystem( const RealType time,
+                      const RealType tau )
 {
     timer_assembleLinearSystem.start();
 
@@ -616,8 +613,8 @@ template< typename Mesh,
           typename Matrix >
 void
 Solver< Mesh, MeshDependentData, BoundaryConditions, Matrix >::
-postIterate( const RealType & time,
-             const RealType & tau )
+postIterate( const RealType time,
+             const RealType tau )
 {
     timer_postIterate.start();
 
