@@ -1,6 +1,5 @@
 #pragma once
 
-#include <TNL/Object.h>
 #include <TNL/Containers/NDArray.h>
 
 #include "MassMatrix.h"
@@ -14,8 +13,7 @@ template< typename Mesh,
           int NumberOfEquations,
           // this is not a non-typename parameter due to deficiency in TypeResolver
           typename MassLumpingTag = MassLumpingEnabledTag >
-class BaseModel :
-    public TNL::Object
+class BaseModel
 {
 public:
     using MeshType = Mesh;
@@ -51,7 +49,7 @@ public:
 
     // indexing wrapper method
     __cuda_callable__
-    IndexType getDofIndex( const int & i, const IndexType & indexFace ) const
+    IndexType getDofIndex( const int i, const IndexType indexFace ) const
     {
         return Z_iF.getStorageIndex( i, indexFace );
     }

@@ -18,10 +18,10 @@ struct AdvectiveRowSetter
     static void setRow( MatrixRow & matrixRow,
                         const MeshDependentData & mdd,
                         const FaceIndexes & faceIndexes,
-                        const int & i,
-                        const IndexType & K,
-                        const IndexType & E,
-                        const int & e )
+                        const int i,
+                        const IndexType K,
+                        const IndexType E,
+                        const int e )
     {
         using coeff = SecondaryCoefficients< MeshDependentData >;
         using LocalIndex = typename Mesh::LocalIndexType;
@@ -85,10 +85,10 @@ struct AdvectiveRowSetter< TNL::Meshes::Grid< Dimension, MeshReal, Device, MeshI
     static void setRow( MatrixRow & matrixRow,
                         const MeshDependentData & mdd,
                         const FaceIndexes & faceIndexes,
-                        const int & i,
-                        const IndexType & K,
-                        const IndexType & E,
-                        const int & e )
+                        const int i,
+                        const IndexType K,
+                        const IndexType E,
+                        const int e )
     {
         using coeff = SecondaryCoefficients< MeshDependentData >;
 
@@ -111,10 +111,10 @@ struct FluxRowSetter
     static void setRow( MatrixRow & matrixRow,
                         const MeshDependentData & mdd,
                         const FaceIndexes & faceIndexes,
-                        const int & i,
-                        const IndexType & K,
-                        const IndexType & E,
-                        const int & e )
+                        const int i,
+                        const IndexType K,
+                        const IndexType E,
+                        const int e )
     {
         AdvectiveRowSetter< Mesh, MeshDependentData >::setRow( matrixRow, mdd, faceIndexes, i, K, E, e );
 
