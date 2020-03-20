@@ -9,15 +9,15 @@
 #include <TNL/Communicators/NoDistrCommunicator.h>
 
 #include "DifferentialOperator.h"
+#include "BoundaryConditions.h"
 #include "RightHandSide.h"
 #include "../lib_general/MeshOrdering.h"
 
 namespace mhfem
 {
 
-template< typename Mesh,
-          typename MeshDependentData,
-          typename BoundaryConditions,
+template< typename MeshDependentData,
+          typename BoundaryModel,
           typename Matrix >
 class Solver
 {
@@ -26,7 +26,7 @@ public:
     using DeviceType = typename MeshDependentData::DeviceType;
     using IndexType = typename MeshDependentData::IndexType;
 
-    using MeshType = Mesh;
+    using MeshType = typename MeshDependentData::MeshType;
     using MeshPointer = TNL::Pointers::SharedPointer< MeshType, DeviceType >;
     using MeshDependentDataType = MeshDependentData;
     using MeshDependentDataPointer = TNL::Pointers::SharedPointer< MeshDependentDataType, DeviceType >;
@@ -34,8 +34,9 @@ public:
     using DofViewType = TNL::Containers::VectorView< RealType, DeviceType, IndexType >;
     using DifferentialOperator = mhfem::DifferentialOperator< MeshType, MeshDependentDataType >;
     using DifferentialOperatorPointer = TNL::Pointers::SharedPointer< DifferentialOperator >;
+    using BoundaryConditions = mhfem::BoundaryConditions< MeshDependentDataType, BoundaryModel >;
     using BoundaryConditionsPointer = TNL::Pointers::SharedPointer< BoundaryConditions >;
-    using RightHandSide = mhfem::RightHandSide< MeshType, MeshDependentDataType >;
+    using RightHandSide = mhfem::RightHandSide< MeshDependentDataType >;
     using RightHandSidePointer = TNL::Pointers::SharedPointer< RightHandSide, DeviceType >;
     using MatrixType = Matrix;
     using MatrixPointer = TNL::Pointers::SharedPointer< MatrixType >;
@@ -90,7 +91,7 @@ protected:
 
     MeshPointer meshPointer = nullptr;
     // holder for mesh ordering permutations
-    MeshOrdering< Mesh > meshOrdering;
+    MeshOrdering< MeshType > meshOrdering;
     MeshDependentDataPointer mdd;
 
     DifferentialOperatorPointer differentialOperatorPointer;

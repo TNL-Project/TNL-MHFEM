@@ -11,23 +11,17 @@ namespace mhfem
 
 template< typename Mesh,
           typename Real,
-          typename Index,
-          // This can't be taken from ModelImplementation as a compile-time constant,
-          // because it inherits from BaseModel so it is not known at this time.
           int NumberOfEquations,
-          typename ModelImplementation,
           // this is not a non-typename parameter due to deficiency in TypeResolver
           typename MassLumpingTag = MassLumpingEnabledTag >
 class BaseModel :
     public TNL::Object
 {
 public:
-    // TODO: for some arcane reason 'using ModelImplementation::MeshType' does not work, but 'IndexType n = ModelImplementation::NumberOfEquations' does
-    // (using typedefs from children would greatly simplify the parametrization of BaseModel)
     using MeshType = Mesh;
     using RealType = Real;
     using DeviceType = typename MeshType::DeviceType;
-    using IndexType = Index;
+    using IndexType = typename MeshType::GlobalIndexType;
     using DofVectorType = TNL::Containers::Vector< RealType, DeviceType, IndexType >;
 
     using MassMatrix = mhfem::MassMatrix< typename MeshType::Cell, MassLumpingTag::lumping >;
@@ -35,7 +29,7 @@ public:
     using FPC = ::FacesPerCell< typename MeshType::Cell >;
     static constexpr int FacesPerCell = FPC::value;
 
-    // NOTE: children of BaseModel (i.e. ModelImplementation) must implement these methods
+    // NOTE: children of BaseModel must implement these methods
 //    bool init( const tnlParameterContainer & parameters,
 //               const MeshType & mesh );
 //

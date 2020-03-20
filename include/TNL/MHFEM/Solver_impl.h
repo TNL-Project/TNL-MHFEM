@@ -10,35 +10,32 @@
 namespace mhfem
 {
 
-template< typename Mesh,
-          typename MeshDependentData,
-          typename BoundaryConditions,
+template< typename MeshDependentData,
+          typename BoundaryModel,
           typename Matrix >
 TNL::String
-Solver< Mesh, MeshDependentData, BoundaryConditions, Matrix >::
+Solver< MeshDependentData, BoundaryModel, Matrix >::
 getPrologHeader()
 {
     return TNL::String( "NumDwarf solver" );
 }
 
-template< typename Mesh,
-          typename MeshDependentData,
-          typename BoundaryConditions,
+template< typename MeshDependentData,
+          typename BoundaryModel,
           typename Matrix >
 void
-Solver< Mesh, MeshDependentData, BoundaryConditions, Matrix >::
+Solver< MeshDependentData, BoundaryModel, Matrix >::
 setMesh( MeshPointer & meshPointer )
 {
     this->meshPointer = meshPointer;
     mdd->allocate( *meshPointer );
 }
 
-template< typename Mesh,
-          typename MeshDependentData,
-          typename BoundaryConditions,
+template< typename MeshDependentData,
+          typename BoundaryModel,
           typename Matrix >
 bool
-Solver< Mesh, MeshDependentData, BoundaryConditions, Matrix >::
+Solver< MeshDependentData, BoundaryModel, Matrix >::
 setup( const TNL::Config::ParameterContainer & parameters,
        const TNL::String & prefix )
 {
@@ -81,35 +78,32 @@ setup( const TNL::Config::ParameterContainer & parameters,
     return true;
 }
 
-template< typename Mesh,
-          typename MeshDependentData,
-          typename BoundaryConditions,
+template< typename MeshDependentData,
+          typename BoundaryModel,
           typename Matrix >
-typename Solver< Mesh, MeshDependentData, BoundaryConditions, Matrix >::IndexType
-Solver< Mesh, MeshDependentData, BoundaryConditions, Matrix >::
+typename Solver< MeshDependentData, BoundaryModel, Matrix >::IndexType
+Solver< MeshDependentData, BoundaryModel, Matrix >::
 getDofs() const
 {
     return MeshDependentDataType::NumberOfEquations * meshPointer->template getEntitiesCount< typename MeshType::Face >();
 }
 
-template< typename Mesh,
-          typename MeshDependentData,
-          typename BoundaryConditions,
+template< typename MeshDependentData,
+          typename BoundaryModel,
           typename Matrix >
-typename Solver< Mesh, MeshDependentData, BoundaryConditions, Matrix >::MeshDependentDataPointer&
-Solver< Mesh, MeshDependentData, BoundaryConditions, Matrix >::
+typename Solver< MeshDependentData, BoundaryModel, Matrix >::MeshDependentDataPointer&
+Solver< MeshDependentData, BoundaryModel, Matrix >::
 getMeshDependentData()
 {
     return mdd;
 }
 
 
-template< typename Mesh,
-          typename MeshDependentData,
-          typename BoundaryConditions,
+template< typename MeshDependentData,
+          typename BoundaryModel,
           typename Matrix >
 bool
-Solver< Mesh, MeshDependentData, BoundaryConditions, Matrix >::
+Solver< MeshDependentData, BoundaryModel, Matrix >::
 setInitialCondition( const TNL::Config::ParameterContainer & parameters )
 {
     if( ! boundaryConditionsPointer->init( parameters, *meshPointer ) )
@@ -133,7 +127,7 @@ setInitialCondition( const TNL::Config::ParameterContainer & parameters )
     // initialize mdd->Z_iF as an average of mdd->Z on neighbouring cells
     // (this is not strictly necessary, we just provide an initial guess for
     // the iterative linear solver)
-    const Mesh* _mesh = &meshPointer.template getData< DeviceType >();
+    const MeshType* _mesh = &meshPointer.template getData< DeviceType >();
     MeshDependentDataType* _mdd = &mdd.template modifyData< DeviceType >();
     auto faceAverageKernel = [_mesh, _mdd] __cuda_callable__ ( int i, IndexType E )
     {
@@ -168,12 +162,11 @@ setInitialCondition( const TNL::Config::ParameterContainer & parameters )
     return true;
 }
 
-template< typename Mesh,
-          typename MeshDependentData,
-          typename BoundaryConditions,
+template< typename MeshDependentData,
+          typename BoundaryModel,
           typename Matrix >
 void
-Solver< Mesh, MeshDependentData, BoundaryConditions, Matrix >::
+Solver< MeshDependentData, BoundaryModel, Matrix >::
 setupLinearSystem()
 {
     using CompressedRowLengths =
@@ -183,12 +176,12 @@ setupLinearSystem()
                                   DeviceType >;
 
     CompressedRowLengths rowLengths;
-    const IndexType faces = meshPointer->template getEntitiesCount< typename Mesh::Face >();
+    const IndexType faces = meshPointer->template getEntitiesCount< typename MeshType::Face >();
     rowLengths.setSizes( 0, faces );
     rowLengths.setValue( -1 );
 
     auto rowLengths_view = rowLengths.getView();
-    const Mesh* _mesh = &meshPointer.template getData< DeviceType >();
+    const MeshType* _mesh = &meshPointer.template getData< DeviceType >();
     const auto* _op = &differentialOperatorPointer.template getData< DeviceType >();
     const auto* _bc = &boundaryConditionsPointer.template getData< DeviceType >();
     auto kernel = [rowLengths_view, _mesh, _op, _bc] __cuda_callable__ ( int i, IndexType E ) mutable
@@ -223,12 +216,11 @@ setupLinearSystem()
     linearSystemSolver->setMatrix( matrixPointer );
 }
 
-template< typename Mesh,
-          typename MeshDependentData,
-          typename BoundaryConditions,
+template< typename MeshDependentData,
+          typename BoundaryModel,
           typename Matrix >
 void
-Solver< Mesh, MeshDependentData, BoundaryConditions, Matrix >::
+Solver< MeshDependentData, BoundaryModel, Matrix >::
 makeSnapshot( const RealType time,
               const IndexType step )
 {
@@ -246,12 +238,11 @@ makeSnapshot( const RealType time,
         mdd->reorderDofs( meshOrdering, false );
 }
 
-template< typename Mesh,
-          typename MeshDependentData,
-          typename BoundaryConditions,
+template< typename MeshDependentData,
+          typename BoundaryModel,
           typename Matrix >
 void
-Solver< Mesh, MeshDependentData, BoundaryConditions, Matrix >::
+Solver< MeshDependentData, BoundaryModel, Matrix >::
 preIterate( const RealType time,
             const RealType tau )
 {
@@ -263,9 +254,9 @@ preIterate( const RealType time,
     #endif
 
     using coeff = SecondaryCoefficients< MeshDependentDataType >;
-    const Mesh* _mesh = &meshPointer.template getData< DeviceType >();
+    const MeshType* _mesh = &meshPointer.template getData< DeviceType >();
     MeshDependentDataType* _mdd = &mdd.template modifyData< DeviceType >();
-    const IndexType cells = meshPointer->template getEntitiesCount< typename Mesh::Cell >();
+    const IndexType cells = meshPointer->template getEntitiesCount< typename MeshType::Cell >();
 
     // update non-linear terms
     timer_nonlinear.start();
@@ -313,7 +304,7 @@ preIterate( const RealType time,
     timer_upwind.start();
     {
         const auto* _bc = &boundaryConditionsPointer.template getData< DeviceType >();
-        const IndexType faces = meshPointer->template getEntitiesCount< typename Mesh::Face >();
+        const IndexType faces = meshPointer->template getEntitiesCount< typename MeshType::Face >();
 
         auto kernel_m_iE = [_mdd, _mesh, _bc, time, tau] __cuda_callable__ ( int i, IndexType E ) mutable
         {
@@ -514,12 +505,11 @@ preIterate( const RealType time,
 //    std::cout << "R_iK = " << mdd->R2 << std::endl;
 }
 
-template< typename Mesh,
-          typename MeshDependentData,
-          typename BoundaryConditions,
+template< typename MeshDependentData,
+          typename BoundaryModel,
           typename Matrix >
 void
-Solver< Mesh, MeshDependentData, BoundaryConditions, Matrix >::
+Solver< MeshDependentData, BoundaryModel, Matrix >::
 assembleLinearSystem( const RealType time,
                       const RealType tau )
 {
@@ -560,12 +550,11 @@ assembleLinearSystem( const RealType time,
 //    iter++;
 }
 
-template< typename Mesh,
-          typename MeshDependentData,
-          typename BoundaryConditions,
+template< typename MeshDependentData,
+          typename BoundaryModel,
           typename Matrix >
 void
-Solver< Mesh, MeshDependentData, BoundaryConditions, Matrix >::
+Solver< MeshDependentData, BoundaryModel, Matrix >::
 saveLinearSystem( const Matrix & matrix,
                   DofViewType dofs,
                   DofViewType rhs ) const
@@ -576,12 +565,11 @@ saveLinearSystem( const Matrix & matrix,
     std::cerr << "The linear system has been saved to " << outputDirectory << "/{matrix,dof.vec,rhs.vec}.tnl" << std::endl;
 }
 
-template< typename Mesh,
-          typename MeshDependentData,
-          typename BoundaryConditions,
+template< typename MeshDependentData,
+          typename BoundaryModel,
           typename Matrix >
 void
-Solver< Mesh, MeshDependentData, BoundaryConditions, Matrix >::
+Solver< MeshDependentData, BoundaryModel, Matrix >::
 solveLinearSystem( TNL::Solvers::IterativeSolverMonitor< RealType, IndexType >* solverMonitor )
 {
     if( solverMonitor )
@@ -607,21 +595,20 @@ solveLinearSystem( TNL::Solvers::IterativeSolverMonitor< RealType, IndexType >* 
     }
 }
 
-template< typename Mesh,
-          typename MeshDependentData,
-          typename BoundaryConditions,
+template< typename MeshDependentData,
+          typename BoundaryModel,
           typename Matrix >
 void
-Solver< Mesh, MeshDependentData, BoundaryConditions, Matrix >::
+Solver< MeshDependentData, BoundaryModel, Matrix >::
 postIterate( const RealType time,
              const RealType tau )
 {
     timer_postIterate.start();
 
     using coeff = SecondaryCoefficients< MeshDependentDataType >;
-    const Mesh* _mesh = &meshPointer.template getData< DeviceType >();
+    const MeshType* _mesh = &meshPointer.template getData< DeviceType >();
     MeshDependentDataType* _mdd = &mdd.template modifyData< DeviceType >();
-    const IndexType cells = meshPointer->template getEntitiesCount< typename Mesh::Cell >();
+    const IndexType cells = meshPointer->template getEntitiesCount< typename MeshType::Cell >();
 
     timer_explicit.start();
     {
@@ -659,12 +646,11 @@ postIterate( const RealType time,
 //    std::cin.get();
 }
 
-template< typename Mesh,
-          typename MeshDependentData,
-          typename BoundaryConditions,
+template< typename MeshDependentData,
+          typename BoundaryModel,
           typename Matrix >
 void
-Solver< Mesh, MeshDependentData, BoundaryConditions, Matrix >::
+Solver< MeshDependentData, BoundaryModel, Matrix >::
 writeEpilog( TNL::Logger & logger ) const
 {
     logger.writeParameter< long long int >( "Total count of linear solver iterations:", allIterations );

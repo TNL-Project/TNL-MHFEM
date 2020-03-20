@@ -130,15 +130,14 @@ struct FluxRowSetter
 };
 
 
-template< typename Mesh,
-          typename MeshDependentData,
-          typename ModelImplementation >
+template< typename MeshDependentData,
+          typename BoundaryModel >
 bool
-BoundaryConditions< Mesh, MeshDependentData, ModelImplementation >::
+BoundaryConditions< MeshDependentData, BoundaryModel >::
 init( const TNL::Config::ParameterContainer & parameters,
       const MeshType & mesh )
 {
-    const IndexType numberOfFaces = mesh.template getEntitiesCount< typename Mesh::Face >();
+    const IndexType numberOfFaces = mesh.template getEntitiesCount< typename MeshType::Face >();
 
     const TNL::String fname = parameters.getParameter< TNL::String >( "boundary-conditions-file" );
 
@@ -158,12 +157,11 @@ init( const TNL::Config::ParameterContainer & parameters,
     return true;
 }
 
-template< typename Mesh,
-          typename MeshDependentData,
-          typename ModelImplementation >
+template< typename MeshDependentData,
+          typename BoundaryModel >
     template< typename MeshOrdering >
 void
-BoundaryConditions< Mesh, MeshDependentData, ModelImplementation >::
+BoundaryConditions< MeshDependentData, BoundaryModel >::
 reorderBoundaryConditions( const MeshOrdering & meshOrdering )
 {
     TagArrayType aux_tags;
@@ -174,38 +172,36 @@ reorderBoundaryConditions( const MeshOrdering & meshOrdering )
         aux_tags.bind( tags.getData() + i * faces, faces );
         aux_values.bind( values.getData() + i * faces, faces );
         aux_dirValues.bind( dirichletValues.getData() + i * faces, faces );
-        meshOrdering.template reorderVector< Mesh::getMeshDimension() - 1 >( aux_tags );
-        meshOrdering.template reorderVector< Mesh::getMeshDimension() - 1 >( aux_values );
-        meshOrdering.template reorderVector< Mesh::getMeshDimension() - 1 >( aux_dirValues );
+        meshOrdering.template reorderVector< MeshType::getMeshDimension() - 1 >( aux_tags );
+        meshOrdering.template reorderVector< MeshType::getMeshDimension() - 1 >( aux_values );
+        meshOrdering.template reorderVector< MeshType::getMeshDimension() - 1 >( aux_dirValues );
     }
 }
 
-template< typename Mesh,
-          typename MeshDependentData,
-          typename ModelImplementation >
+template< typename MeshDependentData,
+          typename BoundaryModel >
 __cuda_callable__
 typename MeshDependentData::IndexType
-BoundaryConditions< Mesh, MeshDependentData, ModelImplementation >::
+BoundaryConditions< MeshDependentData, BoundaryModel >::
 getLinearSystemRowLength( const MeshType & mesh,
                           const IndexType E,
                           const int i ) const
 {
     TNL_ASSERT_TRUE( isBoundaryFace( mesh, E ), "" );
 
-    const IndexType faces = mesh.template getEntitiesCount< typename Mesh::Face >();
+    const IndexType faces = mesh.template getEntitiesCount< typename MeshType::Face >();
     const BoundaryConditionsType type = tags[ i * faces + E ];
     if( type == BoundaryConditionsType::FixedValue )
         return 1;
     return MeshDependentDataType::FacesPerCell * MeshDependentDataType::NumberOfEquations;
 }
 
-template< typename Mesh,
-          typename MeshDependentData,
-          typename ModelImplementation >
+template< typename MeshDependentData,
+          typename BoundaryModel >
     template< typename Matrix, typename Vector >
 __cuda_callable__
 void
-BoundaryConditions< Mesh, MeshDependentData, ModelImplementation >::
+BoundaryConditions< MeshDependentData, BoundaryModel >::
 setMatrixElements( const MeshType & mesh,
                    const MeshDependentDataType & mdd,
                    const IndexType E,
@@ -221,14 +217,14 @@ setMatrixElements( const MeshType & mesh,
 
     typename Matrix::MatrixRow matrixRow = matrix.getRow( indexRow );
 
-    const IndexType faces = mesh.template getEntitiesCount< typename Mesh::Face >();
+    const IndexType faces = mesh.template getEntitiesCount< typename MeshType::Face >();
     const BoundaryConditionsType type = tags[ i * faces + E ];
 
     switch( type ) {
         // fixed-value (Dirichlet) boundary condition
         case BoundaryConditionsType::FixedValue:
             matrixRow.setElement( 0, indexRow, 1.0 );
-            b[ indexRow ] = static_cast<const ModelImplementation*>(this)->getDirichletValue( mesh, i, E, time, tau );
+            b[ indexRow ] = getDirichletValue( mesh, i, E, time, tau );
             break;
 
         // fixed-flux (Neumann) boundary condition
@@ -251,7 +247,7 @@ setMatrixElements( const MeshType & mesh,
 
             // set right hand side value
             const auto& entity = mesh.template getEntity< typename MeshType::Face >( E );
-            RealType bValue = - static_cast<const ModelImplementation*>(this)->getNeumannValue( mesh, i, E, time, tau ) * getEntityMeasure( mesh, entity );
+            RealType bValue = - getNeumannValue( mesh, i, E, time, tau ) * getEntityMeasure( mesh, entity );
 
             bValue += mdd.w_iKe( i, K, e );
             for( int j = 0; j < MeshDependentDataType::NumberOfEquations; j++ ) {

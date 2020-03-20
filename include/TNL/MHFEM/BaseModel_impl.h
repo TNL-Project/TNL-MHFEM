@@ -8,12 +8,10 @@ namespace mhfem
 
 template< typename Mesh,
           typename Real,
-          typename Index,
           int NumberOfEquations,
-          typename ModelImplementation,
           typename MassMatrix >
 void
-BaseModel< Mesh, Real, Index, NumberOfEquations, ModelImplementation, MassMatrix >::
+BaseModel< Mesh, Real, NumberOfEquations, MassMatrix >::
 allocate( const MeshType & mesh )
 {
     numberOfCells = mesh.template getEntitiesCount< typename Mesh::Cell >();
@@ -44,13 +42,11 @@ allocate( const MeshType & mesh )
 
 template< typename Mesh,
           typename Real,
-          typename Index,
           int NumberOfEquations,
-          typename ModelImplementation,
           typename MassMatrix >
     template< typename MeshOrdering >
 void
-BaseModel< Mesh, Real, Index, NumberOfEquations, ModelImplementation, MassMatrix >::
+BaseModel< Mesh, Real, NumberOfEquations, MassMatrix >::
 reorderDofs( const MeshOrdering & meshOrdering, bool inverse )
 {
     DofVectorType Z;

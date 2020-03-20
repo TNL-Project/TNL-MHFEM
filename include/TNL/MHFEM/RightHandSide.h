@@ -5,12 +5,11 @@
 namespace mhfem
 {
 
-template< typename Mesh,
-          typename MeshDependentData >
+template< typename MeshDependentData >
 class RightHandSide
 {
 public:
-    using MeshType = Mesh;
+    using MeshType = typename MeshDependentData::MeshType;
     using MeshDependentDataType = MeshDependentData;
     using DeviceType = typename MeshType::DeviceType;
     using RealType = typename MeshDependentDataType::RealType;
