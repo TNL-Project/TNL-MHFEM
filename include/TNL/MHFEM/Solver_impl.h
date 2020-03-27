@@ -227,15 +227,7 @@ makeSnapshot( const RealType time,
     // TODO: write only into the log file
 //    std::cout << std::endl << "Writing output at time " << time << " step " << step << std::endl;
 
-    // reorder DOFs back to original numbering before snapshot
-    if( doMeshOrdering )
-        mdd->reorderDofs( meshOrdering, true );
-
     mdd->makeSnapshot( time, step, *meshPointer, outputDirectory + "/" );
-
-    // reorder DOFs back to the special numbering after snapshot
-    if( doMeshOrdering )
-        mdd->reorderDofs( meshOrdering, false );
 }
 
 template< typename MeshDependentData,
