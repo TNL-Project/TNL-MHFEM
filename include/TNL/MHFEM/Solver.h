@@ -21,6 +21,8 @@ template< typename MeshDependentData,
           typename Matrix >
 class Solver
 {
+    static_assert( std::is_same< typename Matrix::DeviceType, typename MeshDependentData::DeviceType >::value,
+                   "Matrix::DeviceType does not match MeshDependentData::DeviceType" );
 public:
     using RealType = typename MeshDependentData::RealType;
     using DeviceType = typename MeshDependentData::DeviceType;
