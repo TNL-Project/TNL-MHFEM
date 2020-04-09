@@ -20,7 +20,6 @@ public:
     using RealType = Real;
     using DeviceType = typename MeshType::DeviceType;
     using IndexType = typename MeshType::GlobalIndexType;
-    using DofVectorType = TNL::Containers::Vector< RealType, DeviceType, IndexType >;
 
     using MassMatrix = mhfem::MassMatrix< typename MeshType::Cell, MassLumpingTag::lumping >;
 

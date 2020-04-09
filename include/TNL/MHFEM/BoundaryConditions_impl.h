@@ -164,8 +164,8 @@ void
 BoundaryConditions< MeshDependentData, BoundaryModel >::
 reorderBoundaryConditions( const MeshOrdering & meshOrdering )
 {
-    TagArrayType aux_tags;
-    ValueArrayType aux_values, aux_dirValues;
+    typename TagArrayType::ViewType aux_tags;
+    typename ValueArrayType::ViewType aux_values, aux_dirValues;
     const IndexType faces = tags.getSize() / MeshDependentData::NumberOfEquations;
     for( int i = 0; i < MeshDependentData::NumberOfEquations; i++ ) {
         // TODO: this depends on the specific layout of dofs, general reordering of NDArray is needed
