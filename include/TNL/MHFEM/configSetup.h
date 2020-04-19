@@ -14,6 +14,11 @@ configSetup( TNL::Config::ConfigDescription& config,
 
     config.addDelimiter( sectionPrefix + " space discretisation" );
     config.addEntry< TNL::String >( "mesh", "A file which contains the numerical mesh. You may create it with tools like tnl-grid-setup or tnl-mesh-convert.", "mesh.tnl" );
+    config.addEntry< TNL::String >( "mesh-format", "Input mesh file format.", "auto" );
+        config.addEntryEnum( "auto" );
+        config.addEntryEnum( "vtk" );
+        config.addEntryEnum( "vtu" );
+        config.addEntryEnum( "ng" );
     config.addEntry< bool >( "reorder-mesh", "Whether the mesh entities should be reordered.", true );
     config.addEntry< TNL::String >( "boundary-conditions-file", "Path to the boundary conditions file." );
 

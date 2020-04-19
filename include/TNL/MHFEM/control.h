@@ -205,7 +205,8 @@ bool execute( const TNL::Config::ParameterContainer& controlParameters,
     {
         stage = "Loading mesh";
         const TNL::String meshFile = solverParameters.getParameter< TNL::String >( "mesh" );
-        if( ! TNL::Meshes::loadMesh( meshFile, *meshPointer ) )
+        const TNL::String meshFileFormat = solverParameters.getParameter< TNL::String >( "mesh-format" );
+        if( ! TNL::Meshes::loadMesh( *meshPointer, meshFile, meshFileFormat ) )
             throw std::runtime_error( "failed to load the mesh from file " + meshFile );
 
         stage = "MHFEM initialization";
