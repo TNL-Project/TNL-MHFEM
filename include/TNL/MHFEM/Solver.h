@@ -87,9 +87,9 @@ protected:
     long long int allIterations = 0;
     TNL::Timer timer_preIterate, timer_assembleLinearSystem, timer_linearPreconditioner, timer_linearSolver, timer_postIterate,
                // preIterate
-               timer_b, timer_R, timer_Q, timer_nonlinear, timer_upwind,
+               timer_b, timer_R, timer_Q, timer_nonlinear, timer_upwind, timer_model_preIterate,
                // postIterate
-               timer_explicit, timer_velocities;
+               timer_explicit, timer_velocities, timer_model_postIterate;
 
     MeshPointer meshPointer = nullptr;
     // holder for mesh ordering permutations

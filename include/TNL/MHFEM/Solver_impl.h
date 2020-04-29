@@ -151,13 +151,19 @@ setInitialCondition( const TNL::Config::ParameterContainer & parameters )
     // reset output/profiling variables
     allIterations = 0;
     timer_preIterate.reset();
+    timer_assembleLinearSystem.reset();
+    timer_linearPreconditioner.reset();
+    timer_linearSolver.reset();
+    timer_postIterate.reset();
     timer_b.reset();
     timer_R.reset();
     timer_Q.reset();
-    timer_explicit.reset();
     timer_nonlinear.reset();
-    timer_velocities.reset();
     timer_upwind.reset();
+    timer_model_preIterate.reset();
+    timer_explicit.reset();
+    timer_velocities.reset();
+    timer_model_postIterate.reset();
 
     return true;
 }
@@ -480,6 +486,10 @@ preIterate( const RealType time,
     }
     timer_Q.stop();
 
+    timer_model_preIterate.start();
+    mdd->preIterate( time, tau );
+    timer_model_preIterate.stop();
+
     timer_preIterate.stop();
 
 //    std::cout << "N = " << mdd->N << std::endl;
@@ -631,6 +641,10 @@ postIterate( const RealType time,
     }
     timer_velocities.stop();
 
+    timer_model_postIterate.start();
+    mdd->postIterate( time, tau );
+    timer_model_postIterate.stop();
+
     timer_postIterate.stop();
 
 //    std::cout << "solution (Z_iE): " << std::endl << mdd->Z_iF.getStorageArray() << std::endl;
@@ -652,12 +666,14 @@ writeEpilog( TNL::Logger & logger ) const
     logger.writeParameter< double >( "  upwind update time:", timer_upwind.getRealTime() );
     logger.writeParameter< double >( "  update_R time:", timer_R.getRealTime() );
     logger.writeParameter< double >( "  update_Q time:", timer_Q.getRealTime() );
+    logger.writeParameter< double >( "  model pre-iterate time:", timer_model_preIterate.getRealTime() );
     logger.writeParameter< double >( "Linear system assembler time:", timer_assembleLinearSystem.getRealTime() );
     logger.writeParameter< double >( "Linear preconditioner update time:", timer_linearPreconditioner.getRealTime() );
     logger.writeParameter< double >( "Linear system solver time:", timer_linearSolver.getRealTime() );
     logger.writeParameter< double >( "Post-iterate time:", timer_postIterate.getRealTime() );
     logger.writeParameter< double >( "  Z_iF -> Z_iK update time:", timer_explicit.getRealTime() );
     logger.writeParameter< double >( "  velocities update time:", timer_velocities.getRealTime() );
+    logger.writeParameter< double >( "  model post-iterate time:", timer_model_postIterate.getRealTime() );
 }
 
 } // namespace mhfem

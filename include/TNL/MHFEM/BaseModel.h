@@ -46,6 +46,10 @@ public:
     template< typename MeshOrdering >
     void reorderDofs( const MeshOrdering & meshOrdering, bool inverse );
 
+    // hooks
+    virtual void preIterate( const RealType time, const RealType tau ) {}
+    virtual void postIterate( const RealType time, const RealType tau ) {}
+
     // indexing wrapper method
     __cuda_callable__
     IndexType getDofIndex( const int i, const IndexType indexFace ) const
