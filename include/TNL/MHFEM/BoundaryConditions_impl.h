@@ -61,7 +61,7 @@ struct AdvectiveRowSetter
 #ifndef NDEBUG
     int errors = 0;
     for( int c = 1; c < MeshDependentData::FacesPerCell * MeshDependentData::NumberOfEquations; c++ )
-        if( matrixRow.getElementColumn( c - 1 ) >= matrixRow.getElementColumn( c ) ) {
+        if( matrixRow.getColumnIndex( c - 1 ) >= matrixRow.getColumnIndex( c ) ) {
 #ifndef __CUDA_ARCH__
             std::cerr << "error: E = " << E << ", c = " << c << ", row = " << matrixRow << std::endl;
 #endif
@@ -121,7 +121,7 @@ struct FluxRowSetter
         // modify the diagonal elements in each j-block
         // TODO: the effect of u_ij and a_ij in boundary conditions is still very experimental!
         for( int j = 0; j < MeshDependentData::NumberOfEquations; j++ ) {
-            const auto value = matrixRow.getElementValue( j * MeshDependentData::FacesPerCell + e );
+            const auto value = matrixRow.getValue( j * MeshDependentData::FacesPerCell + e );
             matrixRow.setElement( j * MeshDependentData::FacesPerCell + e,
                                   mdd.getDofIndex( j, E ),
                                   value - mdd.u_ijKe( i, j, K, e ) - mdd.a_ijKe( i, j, K, e ) );
@@ -215,7 +215,7 @@ setMatrixElements( const MeshType & mesh,
 
     const IndexType indexRow = mdd.getDofIndex( i, E );
 
-    typename Matrix::MatrixRow matrixRow = matrix.getRow( indexRow );
+    auto matrixRow = matrix.getRow( indexRow );
 
     const IndexType faces = mesh.template getEntitiesCount< typename MeshType::Face >();
     const BoundaryConditionsType type = tags[ i * faces + E ];

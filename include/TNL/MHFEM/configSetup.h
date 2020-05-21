@@ -37,7 +37,7 @@ configSetup( TNL::Config::ConfigDescription& config,
     for( auto o : TNL::Solvers::getPreconditionerOptions() )
         config.addEntryEnum( TNL::String( o ) );
     TNL::Solvers::IterativeSolver< double, int >::configSetup( config );
-    using MatrixType = TNL::Matrices::Legacy::CSR< double, TNL::Devices::Host, int >;
+    using MatrixType = TNL::Matrices::SparseMatrix< double >;
     TNL::Solvers::Linear::CG< MatrixType >::configSetup( config );
     TNL::Solvers::Linear::BICGStab< MatrixType >::configSetup( config );
     TNL::Solvers::Linear::BICGStabL< MatrixType >::configSetup( config );

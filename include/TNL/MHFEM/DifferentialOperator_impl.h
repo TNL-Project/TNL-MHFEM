@@ -39,7 +39,7 @@ setMatrixElements( const MeshType & mesh,
 
     const IndexType indexRow = mdd.getDofIndex( i, E );
 
-    typename Matrix::MatrixRow matrixRow = matrix.getRow( indexRow );
+    auto matrixRow = matrix.getRow( indexRow );
 
     // indexes of the right (cellIndexes[0]) and left (cellIndexes[1]) cells
     IndexType cellIndexes[ 2 ];
@@ -157,7 +157,7 @@ setMatrixElements( const MeshType & mesh,
 #ifndef NDEBUG
     int errors = 0;
     for( int c = 1; c < rowElements; c++ )
-        if( matrixRow.getElementColumn( c - 1 ) >= matrixRow.getElementColumn( c ) ) {
+        if( matrixRow.getColumnIndex( c - 1 ) >= matrixRow.getColumnIndex( c ) ) {
 #ifndef __CUDA_ARCH__
             std::cerr << "error: E = " << E << ", c = " << c << ", row = " << matrixRow << std::endl;
 #endif
@@ -205,7 +205,7 @@ setMatrixElements( const MeshType & mesh,
 
     const IndexType indexRow = mdd.getDofIndex( i, E );
 
-    typename Matrix::MatrixRow matrixRow = matrix.getRow( indexRow );
+    auto matrixRow = matrix.getRow( indexRow );
 
     // indexes of the right (cellIndexes[0]) and left (cellIndexes[1]) cells
     IndexType cellIndexes[ 2 ];
@@ -266,7 +266,7 @@ setMatrixElements( const MeshType & mesh,
 
     const IndexType indexRow = mdd.getDofIndex( i, E );
 
-    typename Matrix::MatrixRow matrixRow = matrix.getRow( indexRow );
+    auto matrixRow = matrix.getRow( indexRow );
 
     // indexes of the right/top (cellIndexes[0]) and left/bottom (cellIndexes[1]) cells
     IndexType cellIndexes[ 2 ];
@@ -356,7 +356,7 @@ setMatrixElements( const MeshType & mesh,
 
     const IndexType indexRow = mdd.getDofIndex( i, E );
 
-    typename Matrix::MatrixRow matrixRow = matrix.getRow( indexRow );
+    auto matrixRow = matrix.getRow( indexRow );
 
     // indexes of the right/top (cellIndexes[0]) and left/bottom (cellIndexes[1]) cells
     IndexType cellIndexes[ 2 ];
