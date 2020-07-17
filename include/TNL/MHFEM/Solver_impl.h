@@ -213,7 +213,7 @@ setupLinearSystem()
     // initialize matrix
     const IndexType dofs = this->getDofs();
     matrixPointer->setDimensions( dofs, dofs );
-    matrixPointer->setCompressedRowLengths( rowLengths_vector );
+    matrixPointer->setRowCapacities( rowLengths_vector );
 
     // initialize the right hand side vector
     rhsVector.setSize( dofs );
