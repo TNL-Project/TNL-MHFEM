@@ -302,7 +302,6 @@ preIterate( const RealType time,
     timer_upwind.start();
     {
         const auto* _bc = &boundaryConditionsPointer.template getData< DeviceType >();
-        const IndexType faces = meshPointer->template getEntitiesCount< typename MeshType::Face >();
 
         auto kernel_m_iE = [_mdd, _mesh, _bc, time, tau] __cuda_callable__ ( int i, IndexType E ) mutable
         {

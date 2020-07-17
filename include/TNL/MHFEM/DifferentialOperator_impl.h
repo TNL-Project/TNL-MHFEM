@@ -45,8 +45,8 @@ setMatrixElements( const MeshType & mesh,
     IndexType cellIndexes[ 2 ];
     const int numCells = getCellsForFace( mesh, E, cellIndexes );
 
-    TNL_ASSERT( numCells == 2,
-                std::cerr << "assertion numCells == 2 failed" << std::endl; );
+    TNL_ASSERT_EQ( numCells, 2, "assertion numCells == 2 failed" );
+    (void) numCells;  // silence unused-variable warning for Release build
 
     // face indexes are ordered in this way:
     //      0   1|2   3
@@ -211,8 +211,8 @@ setMatrixElements( const MeshType & mesh,
     IndexType cellIndexes[ 2 ];
     const int numCells = getCellsForFace( mesh, E, cellIndexes );
 
-    TNL_ASSERT( numCells == 2,
-                std::cerr << "assertion numCells == 2 failed" << std::endl; );
+    TNL_ASSERT_EQ( numCells, 2, "assertion numCells == 2 failed" );
+    (void) numCells;  // silence unused-variable warning for Release build
 
     // face indexes are ordered in this way:
     //      0   1|2   3
@@ -272,8 +272,8 @@ setMatrixElements( const MeshType & mesh,
     IndexType cellIndexes[ 2 ];
     const int numCells = getCellsForFace( mesh, E, cellIndexes );
 
-    TNL_ASSERT( numCells == 2,
-                std::cerr << "assertion numCells == 2 failed" << std::endl; );
+    TNL_ASSERT_EQ( numCells, 2, "assertion numCells == 2 failed" );
+    (void) numCells;  // silence unused-variable warning for Release build
 
     // face indexes for both cells
     const auto faceIndexesK0 = getFacesForCell( mesh, cellIndexes[ 0 ] );
@@ -362,8 +362,8 @@ setMatrixElements( const MeshType & mesh,
     IndexType cellIndexes[ 2 ];
     const int numCells = getCellsForFace( mesh, E, cellIndexes );
 
-    TNL_ASSERT( numCells == 2,
-                std::cerr << "assertion numCells == 2 failed" << std::endl; );
+    TNL_ASSERT_EQ( numCells, 2, "assertion numCells == 2 failed" );
+    (void) numCells;  // silence unused-variable warning for Release build
 
     // face indexes for both cells
     const auto faceIndexesK0 = getFacesForCell( mesh, cellIndexes[ 0 ] );

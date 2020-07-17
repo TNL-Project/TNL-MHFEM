@@ -240,6 +240,7 @@ setMatrixElements( const MeshType & mesh,
                                   << "E = " << E << std::endl
                                   << "K0 = " << cellIndexes[ 0 ] << std::endl
                                   << "K1 = " << cellIndexes[ 1 ] << std::endl; );
+            (void) numCells;  // silence unused-variable warning for Release build
 
             // prepare face indexes
             const auto faceIndexes = getFacesForCell( mesh, K );
@@ -277,6 +278,7 @@ setMatrixElements( const MeshType & mesh,
                                   << "E = " << E << std::endl
                                   << "K0 = " << cellIndexes[ 0 ] << std::endl
                                   << "K1 = " << cellIndexes[ 1 ] << std::endl; );
+            (void) numCells;  // silence unused-variable warning for Release build
 
             // prepare face indexes
             const auto faceIndexes = getFacesForCell( mesh, K );
