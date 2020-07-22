@@ -40,12 +40,11 @@ struct RTN0< TNL::Meshes::MeshEntity< MeshConfig, Device, CellTopology > >
         PointType point( 0.0 );
         static constexpr int d = PointType::getSize();
         const auto cellSize = getEntityMeasure( mesh, entity );
+        const CoordinatesType constTerm = coordinates / ( d * cellSize );
         for( typename MeshConfig::LocalIndexType e = 0; e < FacesPerCell< CellType >::value; e++ ) {
             const auto& v_e = mesh.template getEntity< 0 >( entity.template getSubentityIndex< 0 >( e ) );
-            const auto x_minus_v_e = x - v_e.getPoint();
-            const auto constTerm = coordinates[ e ] / ( d * cellSize );
-            for( int i = 0; i < d; i++ )
-                point[ i ] += constTerm * x_minus_v_e[ i ];
+            const PointType x_minus_v_e = x - v_e.getPoint();
+            point += constTerm[ e ] * x_minus_v_e;
         }
         return point;
     }
@@ -107,7 +106,7 @@ struct RTN0< TNL::Meshes::GridEntity< Grid, 2, Config > >
         // left bottom vertex
         const PointType v_0 = getEntityCenter( mesh, entity ) - PointType( 0.5 * h_x, 0.5 * h_y );
 
-        CoordinatesType constTerm = coordinates * ( 1.0 / ( h_x * h_y ) );
+        const CoordinatesType constTerm = coordinates * ( 1.0 / ( h_x * h_y ) );
 
         const auto x_minus_v_0 = x.x() - v_0.x() - h_x;
         point[ 0 ] += constTerm[ 0 ] * x_minus_v_0;
@@ -148,7 +147,7 @@ struct RTN0< TNL::Meshes::GridEntity< Grid, 3, Config > >
         // left bottom vertex
         const PointType v_0 = getEntityCenter( mesh, entity ) - PointType( 0.5 * h_x, 0.5 * h_y, 0.5 * h_z );
 
-        CoordinatesType constTerm = coordinates * ( 1.0 / ( h_x * h_y * h_z ) );
+        const CoordinatesType constTerm = coordinates * ( 1.0 / ( h_x * h_y * h_z ) );
 
         const auto x_minus_v_0 = x.x() - v_0.x() - h_x;
         point[ 0 ] += constTerm[ 0 ] * x_minus_v_0;
