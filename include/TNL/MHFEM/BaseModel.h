@@ -43,9 +43,6 @@ public:
 
     void allocate( const MeshType & mesh );
 
-    template< typename MeshOrdering >
-    void reorderDofs( const MeshOrdering & meshOrdering, bool inverse );
-
     // hooks
     virtual void preIterate( const RealType time, const RealType tau ) {}
     virtual void postIterate( const RealType time, const RealType tau ) {}

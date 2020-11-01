@@ -40,22 +40,4 @@ allocate( const MeshType & mesh )
     R_iK.setSizes( 0, numberOfCells );
 }
 
-template< typename Mesh,
-          typename Real,
-          int NumberOfEquations,
-          typename MassMatrix >
-    template< typename MeshOrdering >
-void
-BaseModel< Mesh, Real, NumberOfEquations, MassMatrix >::
-reorderDofs( const MeshOrdering & meshOrdering, bool inverse )
-{
-    using DofVectorView = TNL::Containers::VectorView< RealType, DeviceType, IndexType >;
-    DofVectorView Z;
-    for( int i = 0; i < NumberOfEquations; i++ ) {
-        // TODO: this depends on the specific layout of Z_iK, general reordering of NDArray is needed
-        Z.bind( Z_iK.getStorageArray().getData() + i * numberOfCells, numberOfCells );
-        meshOrdering.template reorderVector< Mesh::getMeshDimension() >( Z, inverse );
-    }
-}
-
 } // namespace mhfem

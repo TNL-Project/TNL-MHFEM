@@ -19,7 +19,6 @@ configSetup( TNL::Config::ConfigDescription& config,
         config.addEntryEnum( "vtk" );
         config.addEntryEnum( "vtu" );
         config.addEntryEnum( "ng" );
-    config.addEntry< bool >( "reorder-mesh", "Whether the mesh entities should be reordered.", true );
     config.addEntry< TNL::String >( "boundary-conditions-file", "Path to the boundary conditions file." );
 
     config.addDelimiter( sectionPrefix + " time discretisation" );

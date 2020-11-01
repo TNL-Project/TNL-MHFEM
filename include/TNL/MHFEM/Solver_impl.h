@@ -46,7 +46,6 @@ setup( const TNL::Config::ParameterContainer & parameters,
 
     // prefix for snapshots
     outputDirectory = parameters.getParameter< TNL::String >( "output-directory" );
-    doMeshOrdering = parameters.getParameter< bool >( "reorder-mesh" );
 
     // set up the linear solver
     const TNL::String& linearSolverName = parameters.getParameter< TNL::String >( "linear-solver" );
@@ -71,9 +70,6 @@ setup( const TNL::Config::ParameterContainer & parameters,
 #ifdef HAVE_CUDA
     cudaDeviceSetCacheConfig( cudaFuncCachePreferL1 );
 #endif
-
-    if( doMeshOrdering )
-        meshOrdering.reorder( *meshPointer );
 
     return true;
 }
@@ -111,13 +107,6 @@ setInitialCondition( const TNL::Config::ParameterContainer & parameters )
 
     if( ! mdd->init( parameters, *meshPointer ) )
         return false;
-
-    if( doMeshOrdering ) {
-        boundaryConditionsPointer->reorderBoundaryConditions( meshOrdering );
-        mdd->reorderDofs( meshOrdering, false );
-        meshOrdering.reset_vertices();
-        meshOrdering.reset_faces();
-    }
 
     #ifdef HAVE_CUDA
     // make sure that meshPointer and mdd are synchronized

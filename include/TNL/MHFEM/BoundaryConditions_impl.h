@@ -159,27 +159,6 @@ init( const TNL::Config::ParameterContainer & parameters,
 
 template< typename MeshDependentData,
           typename BoundaryModel >
-    template< typename MeshOrdering >
-void
-BoundaryConditions< MeshDependentData, BoundaryModel >::
-reorderBoundaryConditions( const MeshOrdering & meshOrdering )
-{
-    typename TagArrayType::ViewType aux_tags;
-    typename ValueArrayType::ViewType aux_values, aux_dirValues;
-    const IndexType faces = tags.getSize() / MeshDependentData::NumberOfEquations;
-    for( int i = 0; i < MeshDependentData::NumberOfEquations; i++ ) {
-        // TODO: this depends on the specific layout of dofs, general reordering of NDArray is needed
-        aux_tags.bind( tags.getData() + i * faces, faces );
-        aux_values.bind( values.getData() + i * faces, faces );
-        aux_dirValues.bind( dirichletValues.getData() + i * faces, faces );
-        meshOrdering.template reorderVector< MeshType::getMeshDimension() - 1 >( aux_tags );
-        meshOrdering.template reorderVector< MeshType::getMeshDimension() - 1 >( aux_values );
-        meshOrdering.template reorderVector< MeshType::getMeshDimension() - 1 >( aux_dirValues );
-    }
-}
-
-template< typename MeshDependentData,
-          typename BoundaryModel >
 __cuda_callable__
 typename MeshDependentData::IndexType
 BoundaryConditions< MeshDependentData, BoundaryModel >::

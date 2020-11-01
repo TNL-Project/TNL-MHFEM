@@ -23,9 +23,6 @@ public:
     bool init( const TNL::Config::ParameterContainer & parameters,
                const MeshType & mesh );
 
-    template< typename MeshOrdering >
-    void reorderBoundaryConditions( const MeshOrdering & meshOrdering );
-
     __cuda_callable__
     IndexType getLinearSystemRowLength( const MeshType & mesh,
                                         const IndexType E,

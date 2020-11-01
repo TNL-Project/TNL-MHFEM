@@ -11,7 +11,6 @@
 #include "DifferentialOperator.h"
 #include "BoundaryConditions.h"
 #include "RightHandSide.h"
-#include "../lib_general/MeshOrdering.h"
 
 namespace mhfem
 {
