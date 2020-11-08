@@ -28,6 +28,7 @@ public:
     __cuda_callable__
     void setMatrixElements( const MeshType & mesh,
                             const MeshDependentDataType & mdd,
+                            const IndexType rowIndex,
                             const IndexType E,
                             const int i,
                             const RealType time,
@@ -61,6 +62,7 @@ public:
     __cuda_callable__
     void setMatrixElements( const MeshType & mesh,
                             const MeshDependentDataType & mdd,
+                            const IndexType rowIndex,
                             const IndexType E,
                             const int i,
                             const RealType time,
@@ -94,6 +96,7 @@ public:
     __cuda_callable__
     void setMatrixElements( const MeshType & mesh,
                             const MeshDependentDataType & mdd,
+                            const IndexType rowIndex,
                             const IndexType E,
                             const int i,
                             const RealType time,
@@ -127,6 +130,7 @@ public:
     __cuda_callable__
     void setMatrixElements( const MeshType & mesh,
                             const MeshDependentDataType & mdd,
+                            const IndexType rowIndex,
                             const IndexType E,
                             const int i,
                             const RealType time,

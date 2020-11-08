@@ -48,7 +48,6 @@ struct AdvectiveRowSetter
                 if( ! comparator( localFaceIndexes[ k2 ], localFaceIndexes[ k2+1 ] ) )
                     TNL::swap( localFaceIndexes[ k2 ], localFaceIndexes[ k2+1 ] );
 
-
         for( LocalIndex j = 0; j < MeshDependentData::NumberOfEquations; j++ ) {
             for( LocalIndex g = 0; g < MeshDependentData::FacesPerCell; g++ ) {
                 const LocalIndex f = localFaceIndexes[ g ];
@@ -57,19 +56,6 @@ struct AdvectiveRowSetter
                                       coeff::A_ijKEF( mdd, i, j, K, E, e, faceIndexes[ f ], f ) );
             }
         }
-
-#ifndef NDEBUG
-    int errors = 0;
-    for( int c = 1; c < MeshDependentData::FacesPerCell * MeshDependentData::NumberOfEquations; c++ )
-        if( matrixRow.getColumnIndex( c - 1 ) >= matrixRow.getColumnIndex( c ) ) {
-#ifndef __CUDA_ARCH__
-            std::cerr << "error: E = " << E << ", c = " << c << ", row = " << matrixRow << std::endl;
-#endif
-            errors += 1;
-        }
-    TNL_ASSERT( errors == 0,
-                std::cerr << "count of wrong rows: " << errors << std::endl; );
-#endif
     }
 };
 
@@ -179,6 +165,7 @@ void
 BoundaryConditions< MeshDependentData, BoundaryModel >::
 setMatrixElements( const MeshType & mesh,
                    const MeshDependentDataType & mdd,
+                   const IndexType rowIndex,
                    const IndexType E,
                    const int i,
                    const RealType time,
@@ -188,9 +175,9 @@ setMatrixElements( const MeshType & mesh,
 {
     TNL_ASSERT_TRUE( isBoundaryFace( mesh, E ), "" );
 
-    const IndexType indexRow = mdd.getDofIndex( i, E );
+    auto matrixRow = matrix.getRow( rowIndex );
 
-    auto matrixRow = matrix.getRow( indexRow );
+    TNL_ASSERT_GE( matrixRow.getSize(), getLinearSystemRowLength( mesh, E, i ), "matrix row is too small" );
 
     const IndexType faces = mesh.template getEntitiesCount< typename MeshType::Face >();
     const BoundaryConditionsType type = tags[ i * faces + E ];
@@ -198,8 +185,8 @@ setMatrixElements( const MeshType & mesh,
     switch( type ) {
         // fixed-value (Dirichlet) boundary condition
         case BoundaryConditionsType::FixedValue:
-            matrixRow.setElement( 0, indexRow, 1.0 );
-            b[ indexRow ] = getDirichletValue( mesh, i, E, time, tau );
+            matrixRow.setElement( 0, mdd.getDofIndex( i, E ), 1.0 );
+            b[ rowIndex ] = getDirichletValue( mesh, i, E, time, tau );
             break;
 
         // fixed-flux (Neumann) boundary condition
@@ -229,7 +216,7 @@ setMatrixElements( const MeshType & mesh,
             for( int j = 0; j < MeshDependentDataType::NumberOfEquations; j++ ) {
                 bValue += MeshDependentDataType::MassMatrix::b_ijKe( mdd, i, j, K, e ) * mdd.R_iK( j, K );
             }
-            b[ indexRow ] = bValue;
+            b[ rowIndex ] = bValue;
 
             // set non-zero elements
             FluxRowSetter< MeshType, MeshDependentDataType >::
@@ -266,7 +253,7 @@ setMatrixElements( const MeshType & mesh,
             for( int j = 0; j < MeshDependentDataType::NumberOfEquations; j++ ) {
                 bValue += MeshDependentDataType::MassMatrix::b_ijKe( mdd, i, j, K, e ) * mdd.R_iK( j, K );
             }
-            b[ indexRow ] = bValue;
+            b[ rowIndex ] = bValue;
 
             // set non-zero elements
             AdvectiveRowSetter< MeshType, MeshDependentDataType >::
@@ -281,6 +268,20 @@ setMatrixElements( const MeshType & mesh,
             TNL_ASSERT_TRUE( false, "unknown boundary condition type was encountered" );
             break;
     }
+
+#ifndef NDEBUG
+    // the diagonal element should be positive
+    if( matrix.getElement( rowIndex, mdd.getDofIndex( i, E ) ) <= 0 ) {
+#ifndef __CUDA_ARCH__
+        const auto center = getEntityCenter( mesh, mesh.template getEntity< typename MeshType::Face >( E ) );
+        std::cerr << "error BC (type = " << (int) type << "): E = " << E << ", rowIndex = " << rowIndex << ", dofIndex = " << mdd.getDofIndex( i, E )
+                  << "\nrow:  " << matrixRow
+                  << "\nface center = " << center
+                  << std::endl;
+#endif
+        TNL_ASSERT_TRUE( false, "the diagonal matrix element is not positive" );
+    }
+#endif
 }
 
 } // namespace mhfem

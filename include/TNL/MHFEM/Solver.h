@@ -3,10 +3,13 @@
 #include <TNL/Logger.h>
 #include <TNL/Containers/Vector.h>
 #include <TNL/Pointers/SharedPointer.h>
+#include <TNL/Pointers/DevicePointer.h>
 #include <TNL/Solvers/Linear/LinearSolver.h>
 #include <TNL/Solvers/LinearSolverTypeResolver.h>
 #include <TNL/Timer.h>
-#include <TNL/Communicators/NoDistrCommunicator.h>
+#include <TNL/Meshes/DistributedMeshes/DistributedMesh.h>
+#include <TNL/Meshes/DistributedMeshes/DistributedMeshSynchronizer.h>
+#include <TNL/Matrices/DistributedMatrix.h>
 
 #include "DifferentialOperator.h"
 #include "BoundaryConditions.h"
@@ -28,7 +31,13 @@ public:
     using IndexType = typename MeshDependentData::IndexType;
 
     using MeshType = typename MeshDependentData::MeshType;
-    using MeshPointer = TNL::Pointers::SharedPointer< MeshType, DeviceType >;
+    using HostMeshType = typename HostMesh< MeshType >::type;
+    using DistributedMeshType = TNL::Meshes::DistributedMeshes::DistributedMesh< MeshType >;
+    using DistributedHostMeshType = TNL::Meshes::DistributedMeshes::DistributedMesh< HostMeshType >;
+    using DistributedMeshPointer = std::shared_ptr< DistributedMeshType >;
+    using DistributedHostMeshPointer = std::shared_ptr< DistributedHostMeshType >;
+
+    // TODO: avoid as many smart pointers as possible
     using MeshDependentDataType = MeshDependentData;
     using MeshDependentDataPointer = TNL::Pointers::SharedPointer< MeshDependentDataType, DeviceType >;
     using DofVectorType = TNL::Containers::Vector< RealType, DeviceType, IndexType >;
@@ -39,12 +48,14 @@ public:
     using BoundaryConditionsPointer = TNL::Pointers::SharedPointer< BoundaryConditions >;
     using RightHandSide = mhfem::RightHandSide< MeshDependentDataType >;
     using RightHandSidePointer = TNL::Pointers::SharedPointer< RightHandSide, DeviceType >;
+
     using MatrixType = Matrix;
-    using MatrixPointer = TNL::Pointers::SharedPointer< MatrixType >;
+    using DistributedMatrixType = TNL::Matrices::DistributedMatrix< Matrix >;
+    using DistributedMatrixPointer = TNL::Pointers::SharedPointer< DistributedMatrixType >;
 
     static TNL::String getPrologHeader();
 
-    void setMesh( MeshPointer & meshPointer );
+    void setMesh( DistributedHostMeshPointer & meshPointer );
 
     bool setup( const TNL::Config::ParameterContainer & parameters,
                 const TNL::String & prefix = "" );
@@ -56,7 +67,11 @@ public:
     void makeSnapshot( const RealType time,
                        const IndexType step );
 
-    IndexType getDofs() const;
+    IndexType getDofsOffset() const;
+
+    IndexType getLocalDofs() const;
+
+    IndexType getGlobalDofs() const;
 
     MeshDependentDataPointer& getMeshDependentData();
 
@@ -80,7 +95,12 @@ public:
 protected:
     // prefix for snapshots
     TNL::String outputDirectory;
-    bool doMeshOrdering;
+    IndexType facesOffset = 0;
+    IndexType globalFaces = 0;
+    IndexType globalCells = 0;
+    // counts without ghost entities
+    IndexType localFaces = 0;
+    IndexType localCells = 0;
 
     // output/profiling variables
     long long int allIterations = 0;
@@ -88,11 +108,12 @@ protected:
                // preIterate
                timer_b, timer_R, timer_Q, timer_nonlinear, timer_upwind, timer_model_preIterate,
                // postIterate
-               timer_explicit, timer_velocities, timer_model_postIterate;
+               timer_explicit, timer_velocities, timer_model_postIterate,
+               // MPI synchronization
+               timer_mpi_upwind, timer_mpi;
 
-    MeshPointer meshPointer = nullptr;
-    // holder for mesh ordering permutations
-    MeshOrdering< MeshType > meshOrdering;
+    DistributedHostMeshPointer distributedHostMeshPointer = nullptr;
+    DistributedMeshPointer distributedMeshPointer = nullptr;
     MeshDependentDataPointer mdd;
 
     DifferentialOperatorPointer differentialOperatorPointer;
@@ -100,7 +121,7 @@ protected:
     RightHandSidePointer rightHandSidePointer;
 
     // linear system preconditioner and solver
-    using LinearSolverType = TNL::Solvers::Linear::LinearSolver< MatrixType >;
+    using LinearSolverType = TNL::Solvers::Linear::LinearSolver< DistributedMatrixType >;
     using LinearSolverPointer = std::shared_ptr< LinearSolverType >;
     using PreconditionerType = typename LinearSolverType::PreconditionerType;
     using PreconditionerPointer = std::shared_ptr< PreconditionerType >;
@@ -109,8 +130,16 @@ protected:
     PreconditionerPointer preconditioner = nullptr;
 
     // matrix and right hand side vector for the linear system
-    MatrixPointer matrixPointer;
+    DistributedMatrixPointer distributedMatrixPointer;
     DofVectorType rhsVector;
+
+    // device pointers to local stuff for passing to CUDA kernels
+    using LocalMeshPointer = TNL::Pointers::DevicePointer< MeshType >;
+    using LocalMatrixPointer = TNL::Pointers::DevicePointer< MatrixType >;
+    LocalMeshPointer localMeshPointer = nullptr;
+    LocalMatrixPointer localMatrixPointer = nullptr;
+
+    TNL::Meshes::DistributedMeshes::DistributedMeshSynchronizer< DistributedMeshType, MeshType::getMeshDimension() - 1 > faceSynchronizer;
 };
 
 } // namespace mhfem

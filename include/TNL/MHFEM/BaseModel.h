@@ -21,6 +21,9 @@ public:
     using DeviceType = typename MeshType::DeviceType;
     using IndexType = typename MeshType::GlobalIndexType;
 
+    // FIXME: only temporary
+    using GlobalIndexArrayView = typename MeshType::GlobalIndexArray::ConstViewType;
+
     using MassMatrix = mhfem::MassMatrix< typename MeshType::Cell, MassLumpingTag::lumping >;
 
     using FPC = ::FacesPerCell< typename MeshType::Cell >;
@@ -41,7 +44,9 @@ public:
 //                       const MeshType & mesh,
 //                       const TNL::String & outputPrefix ) const
 
-    void allocate( const MeshType & mesh );
+    // FIXME only temporary
+//    void allocate( const MeshType & mesh );
+    void allocate( const MeshType & mesh, const GlobalIndexArrayView & globalFaceIndices );
 
     template< typename StdVector >
     void setInitialCondition( const int i, const StdVector & vector );
@@ -54,7 +59,19 @@ public:
     __cuda_callable__
     IndexType getDofIndex( const int i, const IndexType indexFace ) const
     {
-        return Z_iF.getStorageIndex( i, indexFace );
+//        return Z_iF.getStorageIndex( i, indexFace );
+        // TODO: redesign DistributedMatrix to avoid global column indices in the distributed matrix
+#ifdef HAVE_MPI
+        return i + globalFaceIndices[ indexFace ] * NumberOfEquations;
+#else
+        return i + indexFace * NumberOfEquations;
+#endif
+    }
+
+    __cuda_callable__
+    IndexType getRowIndex( const int i, const IndexType indexFace ) const
+    {
+        return i + indexFace * NumberOfEquations;
     }
 
     template< typename SizesHolder,
@@ -76,8 +93,9 @@ public:
 
     // main dofs
     NDArray< TNL::Containers::SizesHolder< IndexType, NumberOfEquations, 0 >,  // i, F
-             std::index_sequence< 0, 1 >,   // i, F  (host)
-             std::index_sequence< 0, 1 > >  // i, F  (cuda)
+             // NOTE: order enforced by the DistributedMeshSynchronizer
+             std::index_sequence< 1, 0 >,   // F, i  (host)
+             std::index_sequence< 1, 0 > >  // F, i  (cuda)
         Z_iF;
 
     // accessor for auxiliary dofs
@@ -139,14 +157,15 @@ public:
         v_iKe;
 
     NDArray< TNL::Containers::SizesHolder< IndexType, NumberOfEquations, 0 >,  // i, E
-             std::index_sequence< 0, 1 >,   // i, E  (host)
-             std::index_sequence< 0, 1 > >  // i, E  (cuda)
+             // NOTE: order enforced by the DistributedMeshSynchronizer
+             std::index_sequence< 1, 0 >,   // E, i  (host)
+             std::index_sequence< 1, 0 > >  // E, i  (cuda)
         m_iE_upw;
 
     NDArray< TNL::Containers::SizesHolder< IndexType, NumberOfEquations, NumberOfEquations, 0 >,  // i, j, E
-             // NOTE: this must match the manual indexing in the UpwindZ class
-             std::index_sequence< 0, 1, 2 >,   // i, j, E  (host)
-             std::index_sequence< 0, 1, 2 > >  // i, j, E  (cuda)
+             // NOTE: order enforced by the DistributedMeshSynchronizer
+             std::index_sequence< 2, 1, 0 >,   // E, j, i  (host)
+             std::index_sequence< 2, 1, 0 > >  // E, j, i  (cuda)
         Z_ijE_upw;
 
     // values with different 's' represent the local matrix b_ijK
@@ -169,6 +188,8 @@ protected:
     // number of entities of the mesh for which the vectors are allocated
     IndexType numberOfCells = 0;
     IndexType numberOfFaces = 0;
+    // FIXME only temporary
+    GlobalIndexArrayView globalFaceIndices;
 };
 
 } // namespace mhfem

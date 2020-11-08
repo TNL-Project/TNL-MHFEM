@@ -28,6 +28,7 @@ void
 DifferentialOperator< Mesh, MeshDependentData >::
 setMatrixElements( const MeshType & mesh,
                    const MeshDependentDataType & mdd,
+                   const IndexType rowIndex,
                    const IndexType E,
                    const int i,
                    const RealType time,
@@ -37,9 +38,9 @@ setMatrixElements( const MeshType & mesh,
 {
     TNL_ASSERT_TRUE( ! isBoundaryFace( mesh, E ), "" );
 
-    const IndexType indexRow = mdd.getDofIndex( i, E );
+    auto matrixRow = matrix.getRow( rowIndex );
 
-    auto matrixRow = matrix.getRow( indexRow );
+    TNL_ASSERT_GE( matrixRow.getSize(), getLinearSystemRowLength( mesh, E, i ), "matrix row is too small" );
 
     // indexes of the right (cellIndexes[0]) and left (cellIndexes[1]) cells
     IndexType cellIndexes[ 2 ];
@@ -48,10 +49,6 @@ setMatrixElements( const MeshType & mesh,
     TNL_ASSERT_EQ( numCells, 2, "assertion numCells == 2 failed" );
     (void) numCells;  // silence unused-variable warning for Release build
 
-    // face indexes are ordered in this way:
-    //      0   1|2   3
-    //      |____|____|
-    //        K1   K0
     const auto faceIndexesK0 = getFacesForCell( mesh, cellIndexes[ 0 ] );
     const auto faceIndexesK1 = getFacesForCell( mesh, cellIndexes[ 1 ] );
 
@@ -155,16 +152,15 @@ setMatrixElements( const MeshType & mesh,
                           << ( 2 * MeshDependentDataType::FacesPerCell - 1 ) * MeshDependentDataType::NumberOfEquations
                           << std::endl; );
 #ifndef NDEBUG
-    int errors = 0;
-    for( int c = 1; c < rowElements; c++ )
-        if( matrixRow.getColumnIndex( c - 1 ) >= matrixRow.getColumnIndex( c ) ) {
+    // the diagonal element should be positive
+    if( matrix.getElement( rowIndex, mdd.getDofIndex( i, E ) ) <= 0 ) {
 #ifndef __CUDA_ARCH__
-            std::cerr << "error: E = " << E << ", c = " << c << ", row = " << matrixRow << std::endl;
+        std::cerr << "error: E = " << E << ", rowIndex = " << rowIndex << ", dofIndex = " << mdd.getDofIndex( i, E );
+        std::cerr << ",\nrow:  " << matrixRow;
+        std::cerr << std::endl;
 #endif
-            errors += 1;
-        }
-    TNL_ASSERT( errors == 0,
-                std::cerr << "count of wrong rows: " << errors << std::endl; );
+        TNL_ASSERT_TRUE( false, "the diagonal matrix element is not positive" );
+    }
 #endif
 }
 
@@ -194,6 +190,7 @@ void
 DifferentialOperator< TNL::Meshes::Grid< 1, MeshReal, Device, MeshIndex >, MeshDependentData >::
 setMatrixElements( const MeshType & mesh,
                    const MeshDependentDataType & mdd,
+                   const IndexType rowIndex,
                    const IndexType E,
                    const int i,
                    const RealType time,
@@ -203,9 +200,7 @@ setMatrixElements( const MeshType & mesh,
 {
     TNL_ASSERT_TRUE( ! isBoundaryFace( mesh, E ), "" );
 
-    const IndexType indexRow = mdd.getDofIndex( i, E );
-
-    auto matrixRow = matrix.getRow( indexRow );
+    auto matrixRow = matrix.getRow( rowIndex );
 
     // indexes of the right (cellIndexes[0]) and left (cellIndexes[1]) cells
     IndexType cellIndexes[ 2 ];
@@ -255,6 +250,7 @@ void
 DifferentialOperator< TNL::Meshes::Grid< 2, MeshReal, Device, MeshIndex >, MeshDependentData >::
 setMatrixElements( const MeshType & mesh,
                    const MeshDependentDataType & mdd,
+                   const IndexType rowIndex,
                    const IndexType E,
                    const int i,
                    const RealType time,
@@ -264,9 +260,7 @@ setMatrixElements( const MeshType & mesh,
 {
     TNL_ASSERT_TRUE( ! isBoundaryFace( mesh, E ), "" );
 
-    const IndexType indexRow = mdd.getDofIndex( i, E );
-
-    auto matrixRow = matrix.getRow( indexRow );
+    auto matrixRow = matrix.getRow( rowIndex );
 
     // indexes of the right/top (cellIndexes[0]) and left/bottom (cellIndexes[1]) cells
     IndexType cellIndexes[ 2 ];
@@ -345,6 +339,7 @@ void
 DifferentialOperator< TNL::Meshes::Grid< 3, MeshReal, Device, MeshIndex >, MeshDependentData >::
 setMatrixElements( const MeshType & mesh,
                    const MeshDependentDataType & mdd,
+                   const IndexType rowIndex,
                    const IndexType E,
                    const int i,
                    const RealType time,
@@ -354,9 +349,7 @@ setMatrixElements( const MeshType & mesh,
 {
     TNL_ASSERT_TRUE( ! isBoundaryFace( mesh, E ), "" );
 
-    const IndexType indexRow = mdd.getDofIndex( i, E );
-
-    auto matrixRow = matrix.getRow( indexRow );
+    auto matrixRow = matrix.getRow( rowIndex );
 
     // indexes of the right/top (cellIndexes[0]) and left/bottom (cellIndexes[1]) cells
     IndexType cellIndexes[ 2 ];

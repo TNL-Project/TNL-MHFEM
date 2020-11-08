@@ -5,6 +5,10 @@
 #include <TNL/Solvers/IterativeSolverMonitor.h>
 #include <TNL/Pointers/SmartPointersRegister.h>
 #include <TNL/Meshes/TypeResolver/TypeResolver.h>
+#ifdef HAVE_MPI
+#include <TNL/Meshes/DistributedMeshes/loadDistributedMesh.h>
+#include <TNL/Meshes/DistributedMeshes/distributeSubentities.h>
+#endif
 
 #include "MassMatrix.h"
 
@@ -12,9 +16,23 @@ namespace mhfem {
 
 template< typename Problem >
 void init( Problem& problem,
-           typename Problem::MeshPointer& meshPointer,
+           typename Problem::DistributedHostMeshPointer& meshPointer,
            const TNL::Config::ParameterContainer& parameters )
 {
+    const TNL::String meshFile = parameters.getParameter< TNL::String >( "mesh" );
+    const TNL::String meshFileFormat = parameters.getParameter< TNL::String >( "mesh-format" );
+#ifdef HAVE_MPI
+    if( ! TNL::Meshes::loadDistributedMesh< typename Problem::DistributedHostMeshType::CommunicatorType >
+            ( meshPointer->getLocalMesh(), *meshPointer, meshFile, meshFileFormat ) )
+        throw std::runtime_error( "failed to load the distributed mesh from file " + meshFile );
+
+    // distribute faces
+    TNL::Meshes::DistributedMeshes::distributeSubentities< Problem::DistributedMeshType::getMeshDimension() - 1 >( *meshPointer );
+#else
+    if( ! TNL::Meshes::loadMesh( meshPointer->getLocalMesh(), meshFile, meshFileFormat ) )
+        throw std::runtime_error( "failed to load the mesh from file " + meshFile );
+#endif
+
     problem.setMesh( meshPointer );
 
     if( ! problem.setup( parameters ) )
@@ -198,17 +216,11 @@ bool execute( const TNL::Config::ParameterContainer& controlParameters,
     TNL::Logger logger( logWidth, logFile );
 
     Problem problem;
-    typename Problem::MeshPointer meshPointer;
+    auto meshPointer = std::make_shared< typename Problem::DistributedHostMeshType >();
     TNL::String stage;
 
     auto run = [&] ()
     {
-        stage = "Loading mesh";
-        const TNL::String meshFile = solverParameters.getParameter< TNL::String >( "mesh" );
-        const TNL::String meshFileFormat = solverParameters.getParameter< TNL::String >( "mesh-format" );
-        if( ! TNL::Meshes::loadMesh( *meshPointer, meshFile, meshFileFormat ) )
-            throw std::runtime_error( "failed to load the mesh from file " + meshFile );
-
         stage = "MHFEM initialization";
         mhfem::init( problem, meshPointer, solverParameters );
 
@@ -216,6 +228,10 @@ bool execute( const TNL::Config::ParameterContainer& controlParameters,
         if( verbose )
             writeProlog< Problem >( verboseLogger, solverParameters, solverConfigDescription );
         writeProlog< Problem >( logger, solverParameters, solverConfigDescription );
+
+        // make sure that only the master rank has enabled monitor thread
+        if( TNL::Communicators::MpiCommunicator::isDistributed() && TNL::Communicators::MpiCommunicator::GetRank() > 0 )
+            solverMonitor.stopMainLoop();
 
         // create solver monitor thread
         TNL::Solvers::SolverMonitorThread t( solverMonitor );

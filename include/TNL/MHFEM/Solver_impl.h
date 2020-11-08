@@ -2,8 +2,6 @@
 
 #include <experimental/filesystem>
 
-#include <TNL/FileName.h>
-#include <TNL/Matrices/MatrixSetter.h>
 #include <TNL/Meshes/Readers/getMeshReader.h>
 
 #include "../lib_general/mesh_helpers.h"
@@ -27,10 +25,48 @@ template< typename MeshDependentData,
           typename Matrix >
 void
 Solver< MeshDependentData, BoundaryModel, Matrix >::
-setMesh( MeshPointer & meshPointer )
+setMesh( DistributedHostMeshPointer & meshPointer )
 {
-    this->meshPointer = meshPointer;
-    mdd->allocate( *meshPointer );
+    // copy to device, initialize other mesh pointers
+    this->distributedHostMeshPointer = meshPointer;
+    if( std::is_same< MeshType, HostMeshType >::value ) {
+        // in C++17 we would use constexpr if, before that we have to hack with static_cast
+        //this->distributedMeshPointer = this->distributedHostMeshPointer;
+        this->distributedMeshPointer = *(DistributedMeshPointer*)&this->distributedHostMeshPointer;
+    }
+    else {
+        this->distributedMeshPointer = std::make_shared< DistributedMeshType >();
+        *this->distributedMeshPointer = *this->distributedHostMeshPointer;
+    }
+    this->localMeshPointer = LocalMeshPointer( distributedMeshPointer->getLocalMesh() );
+
+    // allocate mesh dependent data
+//    mdd->allocate( *localMeshPointer );
+    // FIXME: this is only temporary
+    mdd->allocate( *localMeshPointer, distributedMeshPointer->template getGlobalIndices< MeshType::getMeshDimension() - 1 >().getConstView() );
+
+    localFaces = localMeshPointer->template getGhostEntitiesOffset< MeshType::getMeshDimension() - 1 >();
+    localCells = localMeshPointer->template getGhostEntitiesOffset< MeshType::getMeshDimension() >();
+
+    if( DistributedMeshType::CommunicatorType::isDistributed() ) {
+        // initialize the synchronizer
+        faceSynchronizer.initialize( *distributedMeshPointer );
+
+        facesOffset = distributedMeshPointer->template getGlobalIndices< MeshType::getMeshDimension() - 1 >().getElement( 0 );
+
+        const IndexType maxFaceIndex = distributedMeshPointer->template getGlobalIndices< MeshType::getMeshDimension() - 1 >().getElement( localMeshPointer->template getGhostEntitiesOffset< MeshType::getMeshDimension() - 1 >() - 1 );
+        DistributedMeshType::CommunicatorType::Allreduce( &maxFaceIndex, &this->globalFaces, 1, MPI_MAX, distributedMeshPointer->getCommunicationGroup() );
+        ++this->globalFaces;
+
+        const IndexType maxCellIndex = distributedMeshPointer->template getGlobalIndices< MeshType::getMeshDimension() >().getElement( localMeshPointer->template getGhostEntitiesOffset< MeshType::getMeshDimension() >() - 1 );
+        DistributedMeshType::CommunicatorType::Allreduce( &maxCellIndex, &this->globalCells, 1, MPI_MAX, distributedMeshPointer->getCommunicationGroup() );
+        ++this->globalCells;
+    }
+    else {
+        facesOffset = 0;
+        globalFaces = localFaces;
+        globalCells = localCells;
+    }
 }
 
 template< typename MeshDependentData,
@@ -41,8 +77,8 @@ Solver< MeshDependentData, BoundaryModel, Matrix >::
 setup( const TNL::Config::ParameterContainer & parameters,
        const TNL::String & prefix )
 {
-    if( ! meshPointer ) {
-        std::cerr << "The meshPointer is NULL, the setMesh method must be called first." << std::endl;
+    if( ! distributedMeshPointer ) {
+        std::cerr << "The distributedMeshPointer is NULL, the setMesh method must be called first." << std::endl;
         return false;
     }
 
@@ -51,7 +87,7 @@ setup( const TNL::Config::ParameterContainer & parameters,
 
     // set up the linear solver
     const TNL::String& linearSolverName = parameters.getParameter< TNL::String >( "linear-solver" );
-    linearSystemSolver = TNL::Solvers::getLinearSolver< MatrixType >( linearSolverName );
+    linearSystemSolver = TNL::Solvers::getLinearSolver< DistributedMatrixType >( linearSolverName );
     if( ! linearSystemSolver )
         return false;
     if( ! linearSystemSolver->setup( parameters ) )
@@ -59,7 +95,7 @@ setup( const TNL::Config::ParameterContainer & parameters,
 
     // set up the preconditioner
     const TNL::String& preconditionerName = parameters.getParameter< TNL::String >( "preconditioner" );
-    preconditioner = TNL::Solvers::getPreconditioner< MatrixType >( preconditionerName );
+    preconditioner = TNL::Solvers::getPreconditioner< DistributedMatrixType >( preconditionerName );
     if( preconditioner ) {
         linearSystemSolver->setPreconditioner( preconditioner );
         if( ! preconditioner->setup( parameters ) )
@@ -73,6 +109,25 @@ setup( const TNL::Config::ParameterContainer & parameters,
     cudaDeviceSetCacheConfig( cudaFuncCachePreferL1 );
 #endif
 
+    // reset output/profiling variables
+    allIterations = 0;
+    timer_preIterate.reset();
+    timer_assembleLinearSystem.reset();
+    timer_linearPreconditioner.reset();
+    timer_linearSolver.reset();
+    timer_postIterate.reset();
+    timer_b.reset();
+    timer_R.reset();
+    timer_Q.reset();
+    timer_nonlinear.reset();
+    timer_upwind.reset();
+    timer_model_preIterate.reset();
+    timer_explicit.reset();
+    timer_velocities.reset();
+    timer_model_postIterate.reset();
+    timer_mpi_upwind.reset();
+    timer_mpi.reset();
+
     return true;
 }
 
@@ -81,9 +136,31 @@ template< typename MeshDependentData,
           typename Matrix >
 typename Solver< MeshDependentData, BoundaryModel, Matrix >::IndexType
 Solver< MeshDependentData, BoundaryModel, Matrix >::
-getDofs() const
+getDofsOffset() const
 {
-    return MeshDependentDataType::NumberOfEquations * meshPointer->template getEntitiesCount< typename MeshType::Face >();
+    return MeshDependentDataType::NumberOfEquations * facesOffset;
+}
+
+template< typename MeshDependentData,
+          typename BoundaryModel,
+          typename Matrix >
+typename Solver< MeshDependentData, BoundaryModel, Matrix >::IndexType
+Solver< MeshDependentData, BoundaryModel, Matrix >::
+getLocalDofs() const
+{
+//    return MeshDependentDataType::NumberOfEquations * localMeshPointer->template getEntitiesCount< typename MeshType::Face >();
+    // exclude ghost entities
+    return MeshDependentDataType::NumberOfEquations * localFaces;
+}
+
+template< typename MeshDependentData,
+          typename BoundaryModel,
+          typename Matrix >
+typename Solver< MeshDependentData, BoundaryModel, Matrix >::IndexType
+Solver< MeshDependentData, BoundaryModel, Matrix >::
+getGlobalDofs() const
+{
+    return MeshDependentDataType::NumberOfEquations * globalFaces;
 }
 
 template< typename MeshDependentData,
@@ -104,7 +181,15 @@ bool
 Solver< MeshDependentData, BoundaryModel, Matrix >::
 setInitialCondition( const TNL::Config::ParameterContainer & parameters )
 {
-    const std::string boundaryConditionsFile = parameters.getParameter< std::string >( "boundary-conditions-file" );
+    std::string boundaryConditionsFile = parameters.getParameter< std::string >( "boundary-conditions-file" );
+    if( DistributedMeshType::CommunicatorType::GetSize() > 1 ) {
+        namespace fs = std::experimental::filesystem;
+        fs::path path( boundaryConditionsFile );
+        std::string ext = path.extension();
+        ext = "." + std::to_string( DistributedMeshType::CommunicatorType::GetRank() ) + ext;
+        path.replace_extension(ext);
+        boundaryConditionsFile = path.string();
+    }
     if( ! boundaryConditionsPointer->init( localMeshPointer->template getEntitiesCount< typename MeshType::Face >(), boundaryConditionsFile ) )
         return false;
 
@@ -127,14 +212,14 @@ setInitialCondition( const TNL::Config::ParameterContainer & parameters )
         return false;
 
     #ifdef HAVE_CUDA
-    // make sure that meshPointer and mdd are synchronized
+    // make sure that TNL smart pointers are synchronized
     TNL::Pointers::synchronizeSmartPointersOnDevice< DeviceType >();
     #endif
 
     // initialize mdd->Z_iF as an average of mdd->Z on neighbouring cells
     // (this is not strictly necessary, we just provide an initial guess for
     // the iterative linear solver)
-    const MeshType* _mesh = &meshPointer.template getData< DeviceType >();
+    const MeshType* _mesh = &localMeshPointer.template getData< DeviceType >();
     MeshDependentDataType* _mdd = &mdd.template modifyData< DeviceType >();
     auto faceAverageKernel = [_mesh, _mdd] __cuda_callable__ ( int i, IndexType E )
     {
@@ -155,23 +240,6 @@ setInitialCondition( const TNL::Config::ParameterContainer & parameters )
 
     mdd->v_iKe.setValue( 0.0 );
 
-    // reset output/profiling variables
-    allIterations = 0;
-    timer_preIterate.reset();
-    timer_assembleLinearSystem.reset();
-    timer_linearPreconditioner.reset();
-    timer_linearSolver.reset();
-    timer_postIterate.reset();
-    timer_b.reset();
-    timer_R.reset();
-    timer_Q.reset();
-    timer_nonlinear.reset();
-    timer_upwind.reset();
-    timer_model_preIterate.reset();
-    timer_explicit.reset();
-    timer_velocities.reset();
-    timer_model_postIterate.reset();
-
     return true;
 }
 
@@ -185,16 +253,15 @@ setupLinearSystem()
     using CompressedRowLengths =
         TNL::Containers::NDArray< IndexType,
                                   TNL::Containers::SizesHolder< IndexType, MeshDependentDataType::NumberOfEquations, 0 >,  // i, F
-                                  std::index_sequence< 0, 1 >,  // i, F  (must match the permutation for mdd.Z_iF for all devices
+                                  std::index_sequence< 1, 0 >,  // F, i  (must match the permutation for mdd.Z_iF for all devices
                                   DeviceType >;
 
     CompressedRowLengths rowLengths;
-    const IndexType faces = meshPointer->template getEntitiesCount< typename MeshType::Face >();
-    rowLengths.setSizes( 0, faces );
+    rowLengths.setSizes( 0, localFaces );
     rowLengths.setValue( -1 );
 
     auto rowLengths_view = rowLengths.getView();
-    const MeshType* _mesh = &meshPointer.template getData< DeviceType >();
+    const MeshType* _mesh = &localMeshPointer.template getData< DeviceType >();
     const auto* _op = &differentialOperatorPointer.template getData< DeviceType >();
     const auto* _bc = &boundaryConditionsPointer.template getData< DeviceType >();
     auto kernel = [rowLengths_view, _mesh, _op, _bc] __cuda_callable__ ( int i, IndexType E ) mutable
@@ -218,15 +285,21 @@ setupLinearSystem()
     }
 
     // initialize matrix
-    const IndexType dofs = this->getDofs();
-    matrixPointer->setDimensions( dofs, dofs );
-    matrixPointer->setRowCapacities( rowLengths_vector );
+    const IndexType offset = this->getDofsOffset();
+    const IndexType localDofs = this->getLocalDofs();
+    const IndexType globalDofs = this->getGlobalDofs();
+    distributedMatrixPointer->setDistribution( {offset, offset + localDofs}, globalDofs, globalDofs );
+    TNL::Containers::DistributedVectorView< IndexType, DeviceType, IndexType > dist_rowLengths( {offset, offset + localDofs}, globalDofs, distributedMatrixPointer->getCommunicationGroup(), rowLengths_vector );
+    distributedMatrixPointer->setRowCapacities( dist_rowLengths );
 
     // initialize the right hand side vector
-    rhsVector.setSize( dofs );
+    rhsVector.setSize( localDofs );
 
     // set the matrix for the linear solver
-    linearSystemSolver->setMatrix( matrixPointer );
+    linearSystemSolver->setMatrix( distributedMatrixPointer );
+
+    // bind device pointer to the local matrix
+    this->localMatrixPointer = LocalMatrixPointer( distributedMatrixPointer->getLocalMatrix() );
 }
 
 template< typename MeshDependentData,
@@ -240,7 +313,7 @@ makeSnapshot( const RealType time,
     // TODO: write only into the log file
 //    std::cout << std::endl << "Writing output at time " << time << " step " << step << std::endl;
 
-    mdd->makeSnapshot( time, step, *meshPointer, outputDirectory + "/" );
+    mdd->makeSnapshot( time, step, *distributedHostMeshPointer, outputDirectory + "/" );
 }
 
 template< typename MeshDependentData,
@@ -259,9 +332,9 @@ preIterate( const RealType time,
     #endif
 
     using coeff = SecondaryCoefficients< MeshDependentDataType >;
-    const MeshType* _mesh = &meshPointer.template getData< DeviceType >();
+    const MeshType* _mesh = &localMeshPointer.template getData< DeviceType >();
     MeshDependentDataType* _mdd = &mdd.template modifyData< DeviceType >();
-    const IndexType cells = meshPointer->template getEntitiesCount< typename MeshType::Cell >();
+    const IndexType cells = localMeshPointer->template getEntitiesCount< typename MeshType::Cell >();
 
     // update non-linear terms
     timer_nonlinear.start();
@@ -310,7 +383,7 @@ preIterate( const RealType time,
     {
         const auto* _bc = &boundaryConditionsPointer.template getData< DeviceType >();
 
-        auto kernel_m_iE = [_mdd, _mesh, _bc, time, tau] __cuda_callable__ ( int i, IndexType E ) mutable
+        auto kernel_m_iE = [_mdd, _mesh, _bc, time, tau] __cuda_callable__ ( IndexType E, int i ) mutable
         {
             IndexType cellIndexes[ 2 ];
             const int numCells = getCellsForFace( *_mesh, E, cellIndexes );
@@ -362,9 +435,12 @@ preIterate( const RealType time,
             // write into the global memory after all branches have converged
             _mdd->m_iE_upw( i, E ) = m_iE_upw;
         };
-        mdd->m_iE_upw.forAll( kernel_m_iE );
+        // mdd->m_iE_upw.forAll does not skip ghosts, so we use ParallelFor2D manually for the specific permutation of indices
+        TNL::Algorithms::ParallelFor2D< DeviceType >::exec( (IndexType) 0, (IndexType) 0,
+                                                            localFaces, MeshDependentDataType::NumberOfEquations,
+                                                            kernel_m_iE );
 
-        auto kernel_Z_ijE = [_mdd, _mesh] __cuda_callable__ ( int i, int j, IndexType E ) mutable
+        auto kernel_Z_ijE = [_mdd, _mesh] __cuda_callable__ ( IndexType E, int j, int i ) mutable
         {
             IndexType cellIndexes[ 2 ];
             const int numCells = getCellsForFace( *_mesh, E, cellIndexes );
@@ -397,9 +473,27 @@ preIterate( const RealType time,
             // write into the global memory after all branches have converged
             _mdd->Z_ijE_upw( i, j, E ) = Z_ijE_upw;
         };
-        mdd->Z_ijE_upw.forAll( kernel_Z_ijE );
+        // mdd->Z_ijE_upw.forAll does not skip ghosts, so we use ParallelFor2D manually for the specific permutation of indices
+        TNL::Algorithms::ParallelFor3D< DeviceType >::exec( (IndexType) 0, (IndexType) 0, (IndexType) 0,
+                                                            localFaces, MeshDependentDataType::NumberOfEquations, MeshDependentDataType::NumberOfEquations,
+                                                            kernel_Z_ijE );
     }
     timer_upwind.stop();
+
+    // synchronize the upwinded quantities
+    if( DistributedMeshType::CommunicatorType::isDistributed() )
+    {
+        timer_mpi_upwind.start();
+
+        // NOTE: this is specific to how the ndarrays are ordered
+        auto m_upw_view = mdd->m_iE_upw.getStorageArray().getView();
+        faceSynchronizer.synchronizeArray( m_upw_view, MeshDependentDataType::NumberOfEquations );
+
+        auto Z_upw_view = mdd->Z_ijE_upw.getStorageArray().getView();
+        faceSynchronizer.synchronizeArray( Z_upw_view, MeshDependentDataType::NumberOfEquations * MeshDependentDataType::NumberOfEquations );
+
+        timer_mpi_upwind.stop();
+    }
 
     timer_R.start();
     {
@@ -523,39 +617,33 @@ assembleLinearSystem( const RealType time,
 {
     timer_assembleLinearSystem.start();
 
-    const auto* _mesh = &meshPointer.template getData< DeviceType >();
+    const auto* _mesh = &localMeshPointer.template getData< DeviceType >();
     const auto* _mdd = &mdd.template modifyData< DeviceType >();
     const auto* _op = &differentialOperatorPointer.template getData< DeviceType >();
     const auto* _bc = &boundaryConditionsPointer.template getData< DeviceType >();
     const auto* _rhs = &rightHandSidePointer.template getData< DeviceType >();
-    auto* _matrix = &matrixPointer.template modifyData< DeviceType >();
+    auto* _matrix = &localMatrixPointer.template modifyData< DeviceType >();
     auto _b = rhsVector.getView();
-    auto kernel = [_mesh, _mdd, _op, _bc, _rhs, _matrix, _b, time, tau] __cuda_callable__ ( int i, IndexType E ) mutable
+    auto kernel = [_mesh, _mdd, _op, _bc, _rhs, _matrix, _b, time, tau] __cuda_callable__ ( IndexType E, int i ) mutable
     {
+        TNL_ASSERT_FALSE( _mesh->template isGhostEntity< MeshType::getMeshDimension() - 1 >( E ),
+                          "A ghost face encountered while assembling the linear system." );
+        const IndexType rowIndex = _mdd->getRowIndex( i, E );
+        TNL_ASSERT_LT( rowIndex, _matrix->getRows(), "bug in getRowIndex" );
         if( isBoundaryFace( *_mesh, E ) )
-            _bc->setMatrixElements( *_mesh, *_mdd, E, i, time + tau, tau, *_matrix, _b );
+            _bc->setMatrixElements( *_mesh, *_mdd, rowIndex, E, i, time + tau, tau, *_matrix, _b );
         else {
-            _op->setMatrixElements( *_mesh, *_mdd, E, i, time + tau, tau, *_matrix, _b );
-            _b[ _mdd->getDofIndex( i, E ) ] = (*_rhs)( *_mesh, *_mdd, E, i );
+            _op->setMatrixElements( *_mesh, *_mdd, rowIndex, E, i, time + tau, tau, *_matrix, _b );
+            _b[ rowIndex ] = (*_rhs)( *_mesh, *_mdd, E, i );
         }
     };
-    mdd->Z_iF.forAll( kernel );
+    TNL_ASSERT_EQ( localMatrixPointer->getRows(), MeshDependentDataType::NumberOfEquations * localFaces, "BUG: wrong matrix size" );
+    // mdd->Z_iF.forAll does not skip ghosts, so we use ParallelFor2D manually for the specific permutation of indices
+    TNL::Algorithms::ParallelFor2D< DeviceType >::exec( (IndexType) 0, (IndexType) 0,
+                                                        localFaces, MeshDependentDataType::NumberOfEquations,
+                                                        kernel );
 
     timer_assembleLinearSystem.stop();
-
-//    (*matrixPointer).print( std::cout );
-//    std::cout << rhsVector << std::endl;
-//    if( time > tau )
-//        abort();
-
-//    static IndexType iter = 0;
-//    TNL::String matrixFileName = outputDirectory + "/matrix.tnl";
-//    TNL::String dofFileName = outputDirectory + "/dof.vec.tnl";
-//    TNL::String rhsFileName = outputDirectory + "/rhs.vec.tnl";
-//    if( iter == 10 ) {
-//        saveLinearSystem( *matrixPointer, mdd->Z_iF.getStorageArray().getView(), rhsVector );
-//    }
-//    iter++;
 }
 
 template< typename MeshDependentData,
@@ -586,20 +674,42 @@ solveLinearSystem( TNL::Solvers::IterativeSolverMonitor< RealType, IndexType >* 
     if( preconditioner )
     {
         timer_linearPreconditioner.start();
-        preconditioner->update( matrixPointer );
+        preconditioner->update( distributedMatrixPointer );
         timer_linearPreconditioner.stop();
     }
 
     timer_linearSolver.start();
-    DofViewType dofs = mdd->Z_iF.getStorageArray().getView();
-    const bool converged = linearSystemSolver->solve( rhsVector, dofs );
+    const IndexType offset = this->getDofsOffset();
+    const IndexType localDofs = this->getLocalDofs();
+    const IndexType globalDofs = this->getGlobalDofs();
+
+    DofViewType _dofs = mdd->Z_iF.getStorageArray().getView();
+    DofViewType dofs( _dofs.getData(), localDofs );
+
+    TNL::Containers::DistributedVectorView< RealType, DeviceType, IndexType > dist_dofs( {offset, offset + localDofs}, globalDofs, distributedMatrixPointer->getCommunicationGroup(), dofs );
+    TNL::Containers::DistributedVectorView< RealType, DeviceType, IndexType > dist_rhs( {offset, offset + localDofs}, globalDofs, distributedMatrixPointer->getCommunicationGroup(), rhsVector.getView() );
+
+    const bool converged = linearSystemSolver->solve( dist_rhs, dist_dofs );
     allIterations += linearSystemSolver->getIterations();
     timer_linearSolver.stop();
 
     if( ! converged ) {
         // save the linear system for debugging
-        saveLinearSystem( *matrixPointer, dofs, rhsVector );
-        throw std::runtime_error( "MHFEM error: the linear system solver did not converge." );
+        // TODO: save the distributed system
+        saveLinearSystem( distributedMatrixPointer->getLocalMatrix(), dofs, rhsVector );
+        throw std::runtime_error( "MHFEM error: the linear system solver did not converge (" + std::to_string(linearSystemSolver->getIterations()) + " iterations)." );
+    }
+
+    // synchronize the result
+    if( DistributedMeshType::CommunicatorType::isDistributed() )
+    {
+        timer_mpi.start();
+
+        // NOTE: this is specific to the dofs ordering
+        auto dofs_view = mdd->Z_iF.getStorageArray().getView();
+        faceSynchronizer.synchronizeArray( dofs_view, MeshDependentDataType::NumberOfEquations );
+
+        timer_mpi.stop();
     }
 }
 
@@ -614,9 +724,9 @@ postIterate( const RealType time,
     timer_postIterate.start();
 
     using coeff = SecondaryCoefficients< MeshDependentDataType >;
-    const MeshType* _mesh = &meshPointer.template getData< DeviceType >();
+    const MeshType* _mesh = &localMeshPointer.template getData< DeviceType >();
     MeshDependentDataType* _mdd = &mdd.template modifyData< DeviceType >();
-    const IndexType cells = meshPointer->template getEntitiesCount< typename MeshType::Cell >();
+    const IndexType cells = localMeshPointer->template getEntitiesCount< typename MeshType::Cell >();
 
     timer_explicit.start();
     {
@@ -670,12 +780,14 @@ writeEpilog( TNL::Logger & logger ) const
     logger.writeParameter< double >( "  nonlinear update time:", timer_nonlinear.getRealTime() );
     logger.writeParameter< double >( "  update_b time:", timer_b.getRealTime() );
     logger.writeParameter< double >( "  upwind update time:", timer_upwind.getRealTime() );
+    logger.writeParameter< double >( "  upwind MPI synchronization time:", timer_mpi_upwind.getRealTime() );
     logger.writeParameter< double >( "  update_R time:", timer_R.getRealTime() );
     logger.writeParameter< double >( "  update_Q time:", timer_Q.getRealTime() );
     logger.writeParameter< double >( "  model pre-iterate time:", timer_model_preIterate.getRealTime() );
     logger.writeParameter< double >( "Linear system assembler time:", timer_assembleLinearSystem.getRealTime() );
     logger.writeParameter< double >( "Linear preconditioner update time:", timer_linearPreconditioner.getRealTime() );
     logger.writeParameter< double >( "Linear system solver time:", timer_linearSolver.getRealTime() );
+    logger.writeParameter< double >( "MPI synchronization time:", timer_mpi.getRealTime() );
     logger.writeParameter< double >( "Post-iterate time:", timer_postIterate.getRealTime() );
     logger.writeParameter< double >( "  Z_iF -> Z_iK update time:", timer_explicit.getRealTime() );
     logger.writeParameter< double >( "  velocities update time:", timer_velocities.getRealTime() );

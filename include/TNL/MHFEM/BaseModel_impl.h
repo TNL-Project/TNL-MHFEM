@@ -12,10 +12,11 @@ template< typename Mesh,
           typename MassMatrix >
 void
 BaseModel< Mesh, Real, NumberOfEquations, MassMatrix >::
-allocate( const MeshType & mesh )
+allocate( const MeshType & mesh, const GlobalIndexArrayView & globalFaceIndices )
 {
     numberOfCells = mesh.template getEntitiesCount< typename Mesh::Cell >();
     numberOfFaces = mesh.template getEntitiesCount< typename Mesh::Face >();
+    this->globalFaceIndices.bind( globalFaceIndices );
 
     Z_iF.setSizes( 0, numberOfFaces );
     Z_iK.setSizes( 0, numberOfCells );
