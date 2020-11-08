@@ -134,18 +134,14 @@ template< typename MeshDependentData,
           typename BoundaryModel >
 bool
 BoundaryConditions< MeshDependentData, BoundaryModel >::
-init( const TNL::Config::ParameterContainer & parameters,
-      const MeshType & mesh )
+init( const IndexType numberOfFaces,
+      const TNL::String & fileName )
 {
-    const IndexType numberOfFaces = mesh.template getEntitiesCount< typename MeshType::Face >();
-
-    const TNL::String fname = parameters.getParameter< TNL::String >( "boundary-conditions-file" );
-
     BoundaryConditionsStorage< RealType > storage;
-    storage.load( fname );
+    storage.load( fileName );
 
     if( MeshDependentDataType::NumberOfEquations * numberOfFaces != storage.dofSize ) {
-        std::cerr << "Wrong dofSize in BoundaryConditionsStorage loaded from file " << fname << ". Expected " << numberOfFaces
+        std::cerr << "Wrong dofSize in BoundaryConditionsStorage loaded from file " << fileName << ". Expected " << numberOfFaces
              << " elements, got " << storage.dofSize << "." << std::endl;
         return false;
     }

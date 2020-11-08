@@ -1,5 +1,7 @@
 #pragma once
 
+#include <experimental/filesystem>
+
 #include <TNL/FileName.h>
 #include <TNL/Matrices/MatrixSetter.h>
 #include <TNL/Meshes/Readers/getMeshReader.h>
@@ -102,7 +104,8 @@ bool
 Solver< MeshDependentData, BoundaryModel, Matrix >::
 setInitialCondition( const TNL::Config::ParameterContainer & parameters )
 {
-    if( ! boundaryConditionsPointer->init( parameters, *meshPointer ) )
+    const std::string boundaryConditionsFile = parameters.getParameter< std::string >( "boundary-conditions-file" );
+    if( ! boundaryConditionsPointer->init( localMeshPointer->template getEntitiesCount< typename MeshType::Face >(), boundaryConditionsFile ) )
         return false;
 
     if( parameters.checkParameter( "initial-condition" ) ) {
