@@ -43,6 +43,9 @@ public:
 
     void allocate( const MeshType & mesh );
 
+    template< typename StdVector >
+    void setInitialCondition( const int i, const StdVector & vector );
+
     // hooks
     virtual void preIterate( const RealType time, const RealType tau ) {}
     virtual void postIterate( const RealType time, const RealType tau ) {}

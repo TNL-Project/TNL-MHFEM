@@ -2,9 +2,9 @@
 
 #include <TNL/FileName.h>
 #include <TNL/Matrices/MatrixSetter.h>
+#include <TNL/Meshes/Readers/getMeshReader.h>
 
 #include "../lib_general/mesh_helpers.h"
-
 #include "Solver.h"
 
 namespace mhfem
@@ -105,7 +105,22 @@ setInitialCondition( const TNL::Config::ParameterContainer & parameters )
     if( ! boundaryConditionsPointer->init( parameters, *meshPointer ) )
         return false;
 
-    if( ! mdd->init( parameters, *meshPointer ) )
+    if( parameters.checkParameter( "initial-condition" ) ) {
+        const TNL::String & initialConditionFile = parameters.getParameter< TNL::String >( "initial-condition" );
+        auto reader = TNL::Meshes::Readers::getMeshReader( initialConditionFile, "auto" );
+        reader->detectMesh();
+        for( int i = 0; i < MeshDependentDataType::NumberOfEquations; i++ ) {
+            const std::string name = "InitialCondition[Z" + std::to_string(i) + "]";
+            const auto variant_vec = reader->readCellData( name );
+            using mpark::visit;
+            visit( [this, i](auto&& vector) { this->mdd->setInitialCondition( i, vector ); }, variant_vec );
+        }
+    }
+    else {
+        mdd->Z_iK.setValue( 0 );
+    }
+
+    if( ! mdd->init( parameters ) )
         return false;
 
     #ifdef HAVE_CUDA

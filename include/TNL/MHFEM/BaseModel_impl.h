@@ -40,4 +40,36 @@ allocate( const MeshType & mesh )
     R_iK.setSizes( 0, numberOfCells );
 }
 
+template< typename Array, typename NDArray >
+void
+setInitialCondition_fuck_you_nvcc( const int i, const Array & sourceArray, NDArray & localArray )
+{
+    using IndexType = typename Array::IndexType;
+    using DeviceType = typename Array::DeviceType;
+
+    const auto source_view = sourceArray.getConstView();
+    auto view = localArray.getView();
+
+    TNL::Algorithms::ParallelFor< DeviceType >::exec( (IndexType) 0, source_view.getSize(),
+        [=] __cuda_callable__ ( IndexType K ) mutable {
+            view( i, K ) = source_view[ K ];
+    });
+}
+template< typename Mesh,
+          typename Real,
+          int NumberOfEquations,
+          typename MassMatrix >
+    template< typename StdVector >
+void
+BaseModel< Mesh, Real, NumberOfEquations, MassMatrix >::
+setInitialCondition( const int i, const StdVector & vector )
+{
+    if( (IndexType) vector.size() != numberOfCells )
+        throw std::length_error( "wrong vector length for the initial condition: expected " + std::to_string(numberOfCells) + " elements, got "
+                                 + std::to_string(vector.size()));
+    using Array = TNL::Containers::Array< RealType, DeviceType, IndexType >;
+    Array deviceArray( vector );
+    setInitialCondition_fuck_you_nvcc( i, deviceArray, this->Z_iK );
+}
+
 } // namespace mhfem
