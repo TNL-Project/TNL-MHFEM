@@ -133,9 +133,7 @@ void solve( Problem& problem,
 }
 
 template< typename Problem >
-void writeProlog( TNL::Logger& logger,
-                  const TNL::Config::ParameterContainer& parameters,
-                  const TNL::Config::ConfigDescription& description )
+void writeProlog( TNL::Logger& logger, bool writeSystemInformation = true )
 {
     const bool printGPUs = std::is_same< typename Problem::DeviceType, TNL::Devices::Cuda >::value;
 
@@ -159,13 +157,14 @@ void writeProlog( TNL::Logger& logger,
     else
         massLumping = "disabled";
     logger.writeParameter< TNL::String >( "Mass lumping:", massLumping );
+    Problem::MeshDependentDataType::writeProlog( logger );
     logger.writeSeparator();
-    // TODO: log all parameters (not important, they are stored in the config file anyway...)
-    //logger.writeSeparator();
-    logger.writeSystemInformation( printGPUs );
-    logger.writeSeparator();
-    logger.writeCurrentTime( "Started at:" );
-    logger.writeSeparator();
+    if( writeSystemInformation ) {
+        logger.writeSystemInformation( printGPUs );
+        logger.writeSeparator();
+        logger.writeCurrentTime( "Started at:" );
+        logger.writeSeparator();
+    }
 }
 
 template< typename Problem >
@@ -212,7 +211,7 @@ bool execute( const TNL::Config::ParameterContainer& controlParameters,
 
     // create loggers
     const int logWidth = controlParameters.getParameter< int >( "log-width" );
-    TNL::Logger verboseLogger( logWidth, std::cout );
+    TNL::Logger consoleLogger( logWidth, std::cout );
     TNL::Logger logger( logWidth, logFile );
 
     Problem problem;
@@ -226,8 +225,8 @@ bool execute( const TNL::Config::ParameterContainer& controlParameters,
 
         // write a prolog
         if( verbose )
-            writeProlog< Problem >( verboseLogger, solverParameters, solverConfigDescription );
-        writeProlog< Problem >( logger, solverParameters, solverConfigDescription );
+            writeProlog< Problem >( consoleLogger );
+        writeProlog< Problem >( logger );
 
         // make sure that only the master rank has enabled monitor thread
         if( TNL::Communicators::MpiCommunicator::isDistributed() && TNL::Communicators::MpiCommunicator::GetRank() > 0 )
@@ -248,7 +247,7 @@ bool execute( const TNL::Config::ParameterContainer& controlParameters,
 
         // write an epilog
         if( verbose )
-            writeEpilog( verboseLogger, problem, computeTimer, ioTimer, totalTimer );
+            writeEpilog( consoleLogger, problem, computeTimer, ioTimer, totalTimer );
         writeEpilog( logger, problem, computeTimer, ioTimer, totalTimer );
         logFile.close();
     };

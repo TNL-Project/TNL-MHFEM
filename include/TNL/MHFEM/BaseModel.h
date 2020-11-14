@@ -1,6 +1,7 @@
 #pragma once
 
 #include <TNL/Containers/NDArray.h>
+#include <TNL/Logger.h>
 
 #include "MassMatrix.h"
 #include "../lib_general/FacesPerCell.h"
@@ -43,6 +44,9 @@ public:
 //                       const IndexType step,
 //                       const MeshType & mesh,
 //                       const TNL::String & outputPrefix ) const
+
+    // this can be overridden in child classes
+    static void writeProlog( TNL::Logger& logger ) {}
 
     // FIXME only temporary
 //    void allocate( const MeshType & mesh );
