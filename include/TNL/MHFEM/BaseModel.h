@@ -22,9 +22,6 @@ public:
     using DeviceType = typename MeshType::DeviceType;
     using IndexType = typename MeshType::GlobalIndexType;
 
-    // FIXME: only temporary
-    using GlobalIndexArrayView = typename MeshType::GlobalIndexArray::ConstViewType;
-
     using MassMatrix = mhfem::MassMatrix< typename MeshType::Cell, MassLumpingTag::lumping >;
 
     using FPC = ::FacesPerCell< typename MeshType::Cell >;
@@ -48,9 +45,7 @@ public:
     // this can be overridden in child classes
     static void writeProlog( TNL::Logger& logger ) {}
 
-    // FIXME only temporary
-//    void allocate( const MeshType & mesh );
-    void allocate( const MeshType & mesh, const GlobalIndexArrayView & globalFaceIndices );
+    void allocate( const MeshType & mesh );
 
     template< typename StdVector >
     void setInitialCondition( const int i, const StdVector & vector );
@@ -63,19 +58,13 @@ public:
     __cuda_callable__
     IndexType getDofIndex( const int i, const IndexType indexFace ) const
     {
-//        return Z_iF.getStorageIndex( i, indexFace );
-        // TODO: redesign DistributedMatrix to avoid global column indices in the distributed matrix
-#ifdef HAVE_MPI
-        return i + globalFaceIndices[ indexFace ] * NumberOfEquations;
-#else
-        return i + indexFace * NumberOfEquations;
-#endif
+        return Z_iF.getStorageIndex( i, indexFace );
     }
 
     __cuda_callable__
     IndexType getRowIndex( const int i, const IndexType indexFace ) const
     {
-        return i + indexFace * NumberOfEquations;
+        return Z_iF.getStorageIndex( i, indexFace );
     }
 
     template< typename SizesHolder,
@@ -192,8 +181,6 @@ protected:
     // number of entities of the mesh for which the vectors are allocated
     IndexType numberOfCells = 0;
     IndexType numberOfFaces = 0;
-    // FIXME only temporary
-    GlobalIndexArrayView globalFaceIndices;
 };
 
 } // namespace mhfem

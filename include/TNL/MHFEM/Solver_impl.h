@@ -41,16 +41,15 @@ setMesh( DistributedHostMeshPointer & meshPointer )
     this->localMeshPointer = LocalMeshPointer( distributedMeshPointer->getLocalMesh() );
 
     // allocate mesh dependent data
-//    mdd->allocate( *localMeshPointer );
-    // FIXME: this is only temporary
-    mdd->allocate( *localMeshPointer, distributedMeshPointer->template getGlobalIndices< MeshType::getMeshDimension() - 1 >().getConstView() );
+    mdd->allocate( *localMeshPointer );
 
     localFaces = localMeshPointer->template getGhostEntitiesOffset< MeshType::getMeshDimension() - 1 >();
     localCells = localMeshPointer->template getGhostEntitiesOffset< MeshType::getMeshDimension() >();
 
     if( DistributedMeshType::CommunicatorType::isDistributed() ) {
         // initialize the synchronizer
-        faceSynchronizer.initialize( *distributedMeshPointer );
+        faceSynchronizer = std::make_shared< FaceSynchronizerType >();
+        faceSynchronizer->initialize( *distributedMeshPointer );
 
         facesOffset = distributedMeshPointer->template getGlobalIndices< MeshType::getMeshDimension() - 1 >().getElement( 0 );
 
@@ -148,9 +147,19 @@ typename Solver< MeshDependentData, BoundaryModel, Matrix >::IndexType
 Solver< MeshDependentData, BoundaryModel, Matrix >::
 getLocalDofs() const
 {
-//    return MeshDependentDataType::NumberOfEquations * localMeshPointer->template getEntitiesCount< typename MeshType::Face >();
     // exclude ghost entities
     return MeshDependentDataType::NumberOfEquations * localFaces;
+}
+
+template< typename MeshDependentData,
+          typename BoundaryModel,
+          typename Matrix >
+typename Solver< MeshDependentData, BoundaryModel, Matrix >::IndexType
+Solver< MeshDependentData, BoundaryModel, Matrix >::
+getDofs() const
+{
+    // include ghost entities
+    return MeshDependentDataType::NumberOfEquations * localMeshPointer->template getEntitiesCount< typename MeshType::Face >();
 }
 
 template< typename MeshDependentData,
@@ -284,16 +293,17 @@ setupLinearSystem()
         throw std::runtime_error( ss.str() );
     }
 
-    // initialize matrix
+    // initialize the matrix
     const IndexType offset = this->getDofsOffset();
     const IndexType localDofs = this->getLocalDofs();
+    const IndexType dofs = this->getDofs();
     const IndexType globalDofs = this->getGlobalDofs();
-    distributedMatrixPointer->setDistribution( {offset, offset + localDofs}, globalDofs, globalDofs );
-    TNL::Containers::DistributedVectorView< IndexType, DeviceType, IndexType > dist_rowLengths( {offset, offset + localDofs}, globalDofs, distributedMatrixPointer->getCommunicationGroup(), rowLengths_vector );
+    distributedMatrixPointer->setDistribution( {offset, offset + localDofs}, globalDofs, dofs );
+    TNL::Containers::DistributedVectorView< IndexType, DeviceType, IndexType > dist_rowLengths( {offset, offset + localDofs}, 0, globalDofs, distributedMatrixPointer->getCommunicationGroup(), rowLengths_vector );
     distributedMatrixPointer->setRowCapacities( dist_rowLengths );
 
     // initialize the right hand side vector
-    rhsVector.setSize( localDofs );
+    rhsVector.setSize( dofs );
 
     // set the matrix for the linear solver
     linearSystemSolver->setMatrix( distributedMatrixPointer );
@@ -487,10 +497,10 @@ preIterate( const RealType time,
 
         // NOTE: this is specific to how the ndarrays are ordered
         auto m_upw_view = mdd->m_iE_upw.getStorageArray().getView();
-        faceSynchronizer.synchronizeArray( m_upw_view, MeshDependentDataType::NumberOfEquations );
+        faceSynchronizer->synchronizeArray( m_upw_view, MeshDependentDataType::NumberOfEquations );
 
         auto Z_upw_view = mdd->Z_ijE_upw.getStorageArray().getView();
-        faceSynchronizer.synchronizeArray( Z_upw_view, MeshDependentDataType::NumberOfEquations * MeshDependentDataType::NumberOfEquations );
+        faceSynchronizer->synchronizeArray( Z_upw_view, MeshDependentDataType::NumberOfEquations * MeshDependentDataType::NumberOfEquations );
 
         timer_mpi_upwind.stop();
     }
@@ -681,13 +691,15 @@ solveLinearSystem( TNL::Solvers::IterativeSolverMonitor< RealType, IndexType >* 
     timer_linearSolver.start();
     const IndexType offset = this->getDofsOffset();
     const IndexType localDofs = this->getLocalDofs();
+    const IndexType dofs = this->getDofs();
     const IndexType globalDofs = this->getGlobalDofs();
 
-    DofViewType _dofs = mdd->Z_iF.getStorageArray().getView();
-    DofViewType dofs( _dofs.getData(), localDofs );
-
-    TNL::Containers::DistributedVectorView< RealType, DeviceType, IndexType > dist_dofs( {offset, offset + localDofs}, globalDofs, distributedMatrixPointer->getCommunicationGroup(), dofs );
-    TNL::Containers::DistributedVectorView< RealType, DeviceType, IndexType > dist_rhs( {offset, offset + localDofs}, globalDofs, distributedMatrixPointer->getCommunicationGroup(), rhsVector.getView() );
+    DofViewType dofs_view = mdd->Z_iF.getStorageArray().getView();
+    TNL::Containers::DistributedVectorView< RealType, DeviceType, IndexType > dist_dofs( {offset, offset + localDofs}, dofs - localDofs, globalDofs, distributedMatrixPointer->getCommunicationGroup(), dofs_view );
+    TNL::Containers::DistributedVectorView< RealType, DeviceType, IndexType > dist_rhs( {offset, offset + localDofs}, dofs - localDofs, globalDofs, distributedMatrixPointer->getCommunicationGroup(), rhsVector.getView() );
+    dist_dofs.setSynchronizer( faceSynchronizer, MeshDependentDataType::NumberOfEquations );
+    dist_rhs.setSynchronizer( faceSynchronizer, MeshDependentDataType::NumberOfEquations );
+    dist_rhs.startSynchronization();
 
     const bool converged = linearSystemSolver->solve( dist_rhs, dist_dofs );
     allIterations += linearSystemSolver->getIterations();
@@ -696,7 +708,7 @@ solveLinearSystem( TNL::Solvers::IterativeSolverMonitor< RealType, IndexType >* 
     if( ! converged ) {
         // save the linear system for debugging
         // TODO: save the distributed system
-        saveLinearSystem( distributedMatrixPointer->getLocalMatrix(), dofs, rhsVector );
+        saveLinearSystem( distributedMatrixPointer->getLocalMatrix(), dofs_view, rhsVector );
         throw std::runtime_error( "MHFEM error: the linear system solver did not converge (" + std::to_string(linearSystemSolver->getIterations()) + " iterations)." );
     }
 
@@ -707,7 +719,7 @@ solveLinearSystem( TNL::Solvers::IterativeSolverMonitor< RealType, IndexType >* 
 
         // NOTE: this is specific to the dofs ordering
         auto dofs_view = mdd->Z_iF.getStorageArray().getView();
-        faceSynchronizer.synchronizeArray( dofs_view, MeshDependentDataType::NumberOfEquations );
+        faceSynchronizer->synchronizeArray( dofs_view, MeshDependentDataType::NumberOfEquations );
 
         timer_mpi.stop();
     }

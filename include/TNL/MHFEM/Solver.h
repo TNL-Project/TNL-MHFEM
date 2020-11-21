@@ -71,6 +71,8 @@ public:
 
     IndexType getLocalDofs() const;
 
+    IndexType getDofs() const;
+
     IndexType getGlobalDofs() const;
 
     MeshDependentDataPointer& getMeshDependentData();
@@ -139,7 +141,8 @@ protected:
     LocalMeshPointer localMeshPointer = nullptr;
     LocalMatrixPointer localMatrixPointer = nullptr;
 
-    TNL::Meshes::DistributedMeshes::DistributedMeshSynchronizer< DistributedMeshType, MeshType::getMeshDimension() - 1 > faceSynchronizer;
+    using FaceSynchronizerType = TNL::Meshes::DistributedMeshes::DistributedMeshSynchronizer< DistributedMeshType, MeshType::getMeshDimension() - 1 >;
+    std::shared_ptr< FaceSynchronizerType > faceSynchronizer;
 };
 
 } // namespace mhfem
