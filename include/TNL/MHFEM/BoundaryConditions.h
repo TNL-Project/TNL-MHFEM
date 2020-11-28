@@ -1,96 +1,75 @@
 #pragma once
 
-#include <TNL/Pointers/SharedPointer.h>
-#include <TNL/Containers/Vector.h>
-#include <TNL/Containers/StaticVector.h>
-#include <TNL/Operators/Operator.h>
+#include <TNL/Containers/Array.h>
+
+#include "BoundaryConditionsType.h"
 
 namespace mhfem
 {
 
-template< typename Mesh,
-          typename MeshDependentData,
-          typename ModelImplementation >
+template< typename MeshDependentData,
+          typename BoundaryModel >
 class BoundaryConditions
-    : public TNL::Operators::Operator< Mesh,
-                                       TNL::Functions::MeshInteriorDomain,
-                                       Mesh::getMeshDimension() - 1,
-                                       Mesh::getMeshDimension() - 1,
-                                       typename MeshDependentData::RealType,
-                                       typename MeshDependentData::IndexType,
-                                       MeshDependentData::NumberOfEquations,
-                                       MeshDependentData::NumberOfEquations >
 {
 public:
-    using MeshType = Mesh;
+    using MeshType = typename MeshDependentData::MeshType;
     using MeshDependentDataType = MeshDependentData;
     using DeviceType = typename MeshType::DeviceType;
     using RealType = typename MeshDependentDataType::RealType;
     using IndexType = typename MeshDependentDataType::IndexType;
-    using TagArrayType = TNL::Containers::Array< bool, DeviceType, IndexType >;
-    using DofVectorType = TNL::Containers::Vector< RealType, DeviceType, IndexType >;
+    using TagArrayType = TNL::Containers::Array< BoundaryConditionsType, DeviceType, IndexType >;
+    using ValueArrayType = TNL::Containers::Array< RealType, DeviceType, IndexType >;
 
-    // NOTE: children of BoundaryConditions (i.e. ModelImplementation) must implement these methods
-//    bool
-//    init( const tnlParameterContainer & parameters,
-//          const MeshType & mesh,
-//          const MeshDependentDataType & mdd );
-//
-//    __cuda_callable__
-//    typename MeshDependentData::RealType
-//    getNeumannValue( const MeshType & mesh,
-//                     const int & i,
-//                     const IndexType & E,
-//                     const RealType & time ) const;
-//
-//    __cuda_callable__
-//    typename MeshDependentData::RealType
-//    getDirichletValue( const MeshType & mesh,
-//                       const int & i,
-//                       const IndexType & E,
-//                       const RealType & time ) const;
-
-    bool init( const TNL::Config::ParameterContainer & parameters,
-               const MeshType & mesh );
-
-    template< typename MeshOrdering >
-    void reorderBoundaryConditions( const MeshOrdering & meshOrdering );
-
-    void bind( const TNL::Pointers::SharedPointer< MeshType > & mesh,
-               TNL::Pointers::SharedPointer< MeshDependentDataType > & mdd );
+    bool init( const IndexType numberOfFaces,
+               const TNL::String & fileName );
 
     __cuda_callable__
     IndexType getLinearSystemRowLength( const MeshType & mesh,
-                                        const IndexType & indexEntity,
-                                        const typename MeshType::Face & entity,
-                                        const int & i ) const;
+                                        const IndexType E,
+                                        const int i ) const;
 
-    template< typename DofFunctionPointer, typename Vector, typename Matrix >
+    template< typename Matrix, typename Vector >
     __cuda_callable__
-    void setMatrixElements( DofFunctionPointer & u,
-                            const typename MeshType::Face & entity,
-                            const RealType & time,
-                            const RealType & tau,
-                            const int & i,
+    void setMatrixElements( const MeshType & mesh,
+                            const MeshDependentDataType & mdd,
+                            const IndexType rowIndex,
+                            const IndexType E,
+                            const int i,
+                            const RealType time,
+                            const RealType tau,
                             Matrix & matrix,
                             Vector & b ) const;
 
-    __cuda_callable__
-    bool isNeumannBoundary( const MeshType & mesh, const int & i, const typename Mesh::Face & face ) const;
 
     __cuda_callable__
-    bool isDirichletBoundary( const MeshType & mesh, const int & i, const typename Mesh::Face & face ) const;
+    RealType
+    getNeumannValue( const MeshType & mesh,
+                     const int i,
+                     const IndexType E,
+                     const RealType time,
+                     const RealType tau ) const
+    {
+        return BoundaryModel::getNeumannValue( *this, mesh, i, E, time, tau );
+    }
 
-protected:
-    TNL::Pointers::SharedPointer< MeshType > mesh;
-    TNL::Pointers::SharedPointer< MeshDependentDataType > mdd;
+    __cuda_callable__
+    RealType
+    getDirichletValue( const MeshType & mesh,
+                       const int i,
+                       const IndexType E,
+                       const RealType time,
+                       const RealType tau ) const
+    {
+        return BoundaryModel::getDirichletValue( *this, mesh, i, E, time, tau );
+    }
 
-    // vector holding tags to differentiate the boundary condition based on the face index
-    // (true indicates Dirichlet boundary)
-    TagArrayType dirichletTags;
+    // array holding tags to differentiate the boundary condition based on the face index
+    TagArrayType tags;
 
-    // vectors holding the Dirichlet and Neumann values
-    DofVectorType dirichletValues, neumannValues;
+    // arrays holding the values to be interpreted by the boundary condition specified on each face
+    ValueArrayType values;
+    // Dirichlet values are "special" - boundary values may be necessary even for flux-based conditions (upwind on inflow)
+    ValueArrayType dirichletValues;
 };
 
 } // namespace mhfem

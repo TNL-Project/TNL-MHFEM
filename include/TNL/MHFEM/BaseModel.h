@@ -1,7 +1,7 @@
 #pragma once
 
-#include <TNL/Object.h>
 #include <TNL/Containers/NDArray.h>
+#include <TNL/Logger.h>
 
 #include "MassMatrix.h"
 #include "../lib_general/FacesPerCell.h"
@@ -11,31 +11,23 @@ namespace mhfem
 
 template< typename Mesh,
           typename Real,
-          typename Index,
-          // This can't be taken from ModelImplementation as a compile-time constant,
-          // because it inherits from BaseModel so it is not known at this time.
           int NumberOfEquations,
-          typename ModelImplementation,
           // this is not a non-typename parameter due to deficiency in TypeResolver
           typename MassLumpingTag = MassLumpingEnabledTag >
-class BaseModel :
-    public TNL::Object
+class BaseModel
 {
 public:
-    // TODO: for some arcane reason 'using ModelImplementation::MeshType' does not work, but 'IndexType n = ModelImplementation::NumberOfEquations' does
-    // (using typedefs from children would greatly simplify the parametrization of BaseModel)
     using MeshType = Mesh;
     using RealType = Real;
     using DeviceType = typename MeshType::DeviceType;
-    using IndexType = Index;
-    using DofVectorType = TNL::Containers::Vector< RealType, DeviceType, IndexType >;
+    using IndexType = typename MeshType::GlobalIndexType;
 
     using MassMatrix = mhfem::MassMatrix< typename MeshType::Cell, MassLumpingTag::lumping >;
 
     using FPC = ::FacesPerCell< typename MeshType::Cell >;
     static constexpr int FacesPerCell = FPC::value;
 
-    // NOTE: children of BaseModel (i.e. ModelImplementation) must implement these methods
+    // NOTE: children of BaseModel must implement these methods
 //    bool init( const tnlParameterContainer & parameters,
 //               const MeshType & mesh );
 //
@@ -45,19 +37,32 @@ public:
 //                          const IndexType & K,
 //                          const CoordinatesType & coordinates );
 //
-//    bool makeSnapshot( const RealType & time,
-//                       const IndexType & step,
+//    bool makeSnapshot( const RealType time,
+//                       const IndexType step,
 //                       const MeshType & mesh,
 //                       const TNL::String & outputPrefix ) const
 
+    // this can be overridden in child classes
+    static void writeProlog( TNL::Logger& logger ) {}
+
     void allocate( const MeshType & mesh );
 
-    template< typename MeshOrdering >
-    void reorderDofs( const MeshOrdering & meshOrdering, bool inverse );
+    template< typename StdVector >
+    void setInitialCondition( const int i, const StdVector & vector );
+
+    // hooks
+    virtual void preIterate( const RealType time, const RealType tau ) {}
+    virtual void postIterate( const RealType time, const RealType tau ) {}
 
     // indexing wrapper method
     __cuda_callable__
-    IndexType getDofIndex( const int & i, const IndexType & indexFace ) const
+    IndexType getDofIndex( const int i, const IndexType indexFace ) const
+    {
+        return Z_iF.getStorageIndex( i, indexFace );
+    }
+
+    __cuda_callable__
+    IndexType getRowIndex( const int i, const IndexType indexFace ) const
     {
         return Z_iF.getStorageIndex( i, indexFace );
     }
@@ -71,11 +76,19 @@ public:
                                                                   CudaPermutation,
                                                                   HostPermutation >,
                                               DeviceType >;
+    // host NDArray - intended for output/buffering only
+    template< typename SizesHolder,
+              typename HostPermutation >
+    using HostNDArray = TNL::Containers::NDArray< RealType,
+                                                  SizesHolder,
+                                                  HostPermutation,
+                                                  TNL::Devices::Host >;
 
-    // main dofs (allocated as ND array, the TNL's DofVector is bound to the underlying 1D array)
+    // main dofs
     NDArray< TNL::Containers::SizesHolder< IndexType, NumberOfEquations, 0 >,  // i, F
-             std::index_sequence< 0, 1 >,   // i, F  (host)
-             std::index_sequence< 0, 1 > >  // i, F  (cuda)
+             // NOTE: order enforced by the DistributedMeshSynchronizer
+             std::index_sequence< 1, 0 >,   // F, i  (host)
+             std::index_sequence< 1, 0 > >  // F, i  (cuda)
         Z_iF;
 
     // accessor for auxiliary dofs
@@ -137,14 +150,15 @@ public:
         v_iKe;
 
     NDArray< TNL::Containers::SizesHolder< IndexType, NumberOfEquations, 0 >,  // i, E
-             std::index_sequence< 0, 1 >,   // i, E  (host)
-             std::index_sequence< 0, 1 > >  // i, E  (cuda)
+             // NOTE: order enforced by the DistributedMeshSynchronizer
+             std::index_sequence< 1, 0 >,   // E, i  (host)
+             std::index_sequence< 1, 0 > >  // E, i  (cuda)
         m_iE_upw;
 
     NDArray< TNL::Containers::SizesHolder< IndexType, NumberOfEquations, NumberOfEquations, 0 >,  // i, j, E
-             // NOTE: this must match the manual indexing in the UpwindZ class
-             std::index_sequence< 0, 1, 2 >,   // i, j, E  (host)
-             std::index_sequence< 0, 1, 2 > >  // i, j, E  (cuda)
+             // NOTE: order enforced by the DistributedMeshSynchronizer
+             std::index_sequence< 2, 1, 0 >,   // E, j, i  (host)
+             std::index_sequence< 2, 1, 0 > >  // E, j, i  (cuda)
         Z_ijE_upw;
 
     // values with different 's' represent the local matrix b_ijK
@@ -162,13 +176,6 @@ public:
              std::index_sequence< 0, 1 >,   // i, K  (host)
              std::index_sequence< 0, 1 > >  // i, K  (cuda)
         R_iK;
-
-//protected:
-    
-    // FIXME: nasty hack to pass tau to LocalUpdaters
-    RealType current_tau;
-    // FIXME: nasty hack to pass time to CompositionalModel::r_X
-    RealType current_time;
 
 protected:
     // number of entities of the mesh for which the vectors are allocated

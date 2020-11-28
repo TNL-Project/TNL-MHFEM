@@ -1,5 +1,7 @@
 #pragma once
 
+// FIXME: Grid.h must be included before GridEntity.h - should be fixed in TNL
+#include <TNL/Meshes/Grid.h>
 #include <TNL/Meshes/GridEntity.h>
 #include <TNL/Meshes/MeshEntity.h>
 #include <TNL/Containers/NDArray.h>
@@ -50,9 +52,9 @@ public:
     static inline void
     update( const Grid & mesh,
             MeshDependentData & mdd,
-            const typename MeshDependentData::IndexType & K,
-            const int & i,
-            const int & j )
+            const typename MeshDependentData::IndexType K,
+            const int i,
+            const int j )
     {
         mdd.b_ijK_storage( i, j, K, 0 ) = 2 * mdd.D_ijK( i, j, K ) * mesh.template getSpaceStepsProducts< -1 >();  // h_x^-1
     }
@@ -61,11 +63,11 @@ public:
     __cuda_callable__
     static inline typename MeshDependentData::RealType
     b_ijKef( const MeshDependentData & mdd,
-             const int & i,
-             const int & j,
-             const typename MeshDependentData::IndexType & K,
-             const int & e,
-             const int & f )
+             const int i,
+             const int j,
+             const typename MeshDependentData::IndexType K,
+             const int e,
+             const int f )
     {
         TNL_ASSERT( e < FacesPerCell< MeshEntity >::value && f < FacesPerCell< MeshEntity >::value, );
 
@@ -78,10 +80,10 @@ public:
     __cuda_callable__
     static inline typename MeshDependentData::RealType
     b_ijKe( const MeshDependentData & mdd,
-            const int & i,
-            const int & j,
-            const typename MeshDependentData::IndexType & K,
-            const int & e )
+            const int i,
+            const int j,
+            const typename MeshDependentData::IndexType K,
+            const int e )
     {
         TNL_ASSERT( e < FacesPerCell< MeshEntity >::value, );
 
@@ -105,9 +107,9 @@ public:
     static inline void
     update( const Grid & mesh,
             MeshDependentData & mdd,
-            const typename MeshDependentData::IndexType & K,
-            const int & i,
-            const int & j )
+            const typename MeshDependentData::IndexType K,
+            const int i,
+            const int j )
     {
         mdd.b_ijK_storage( i, j, K, 0 ) = 2 * mdd.D_ijK( i, j, K ) * mesh.template getSpaceStepsProducts< -1 >();  // h_x^-1
     }
@@ -116,11 +118,11 @@ public:
     __cuda_callable__
     static inline typename MeshDependentData::RealType
     b_ijKef( const MeshDependentData & mdd,
-             const int & i,
-             const int & j,
-             const typename MeshDependentData::IndexType & K,
-             const int & e,
-             const int & f )
+             const int i,
+             const int j,
+             const typename MeshDependentData::IndexType K,
+             const int e,
+             const int f )
     {
         TNL_ASSERT( e < FacesPerCell< MeshEntity >::value && f < FacesPerCell< MeshEntity >::value, );
 
@@ -133,10 +135,10 @@ public:
     __cuda_callable__
     static inline typename MeshDependentData::RealType
     b_ijKe( const MeshDependentData & mdd,
-            const int & i,
-            const int & j,
-            const typename MeshDependentData::IndexType & K,
-            const int & e )
+            const int i,
+            const int j,
+            const typename MeshDependentData::IndexType K,
+            const int e )
     {
         TNL_ASSERT( e < FacesPerCell< MeshEntity >::value, );
 
@@ -161,9 +163,9 @@ public:
     static inline void
     update( const Grid & mesh,
             MeshDependentData & mdd,
-            const typename MeshDependentData::IndexType & K,
-            const int & i,
-            const int & j )
+            const typename MeshDependentData::IndexType K,
+            const int i,
+            const int j )
     {
         // value for vertical faces (e=0, e=1)
         mdd.b_ijK_storage( i, j, K, 0 ) = 2 * mdd.D_ijK( i, j, K ) * mesh.template getSpaceStepsProducts< -1, 1 >();  // h_y / h_x
@@ -175,11 +177,11 @@ public:
     __cuda_callable__
     static inline typename MeshDependentData::RealType
     b_ijKef( const MeshDependentData & mdd,
-             const int & i,
-             const int & j,
-             const typename MeshDependentData::IndexType & K,
-             const int & e,
-             const int & f )
+             const int i,
+             const int j,
+             const typename MeshDependentData::IndexType K,
+             const int e,
+             const int f )
     {
         TNL_ASSERT( e < FacesPerCell< MeshEntity >::value && f < FacesPerCell< MeshEntity >::value, );
 
@@ -197,10 +199,10 @@ public:
     __cuda_callable__
     static inline typename MeshDependentData::RealType
     b_ijKe( const MeshDependentData & mdd,
-            const int & i,
-            const int & j,
-            const typename MeshDependentData::IndexType & K,
-            const int & e )
+            const int i,
+            const int j,
+            const typename MeshDependentData::IndexType K,
+            const int e )
     {
         TNL_ASSERT( e < FacesPerCell< MeshEntity >::value, );
 
@@ -228,9 +230,9 @@ public:
     static inline void
     update( const Grid & mesh,
             MeshDependentData & mdd,
-            const typename MeshDependentData::IndexType & K,
-            const int & i,
-            const int & j )
+            const typename MeshDependentData::IndexType K,
+            const int i,
+            const int j )
     {
         // value for vertical faces (e=0, e=1)
         mdd.b_ijK_storage( i, j, K, 0 ) = 2 * mdd.D_ijK( i, j, K ) * mesh.template getSpaceStepsProducts< -1, 1 >();  // h_y / h_x
@@ -242,11 +244,11 @@ public:
     __cuda_callable__
     static inline typename MeshDependentData::RealType
     b_ijKef( const MeshDependentData & mdd,
-             const int & i,
-             const int & j,
-             const typename MeshDependentData::IndexType & K,
-             const int & e,
-             const int & f )
+             const int i,
+             const int j,
+             const typename MeshDependentData::IndexType K,
+             const int e,
+             const int f )
     {
         TNL_ASSERT( e < FacesPerCell< MeshEntity >::value && f < FacesPerCell< MeshEntity >::value, );
 
@@ -274,10 +276,10 @@ public:
     __cuda_callable__
     static inline typename MeshDependentData::RealType
     b_ijKe( const MeshDependentData & mdd,
-            const int & i,
-            const int & j,
-            const typename MeshDependentData::IndexType & K,
-            const int & e )
+            const int i,
+            const int j,
+            const typename MeshDependentData::IndexType K,
+            const int e )
     {
         TNL_ASSERT( e < FacesPerCell< MeshEntity >::value, );
 
@@ -306,9 +308,9 @@ public:
     static inline void
     update( const Grid & mesh,
             MeshDependentData & mdd,
-            const typename MeshDependentData::IndexType & K,
-            const int & i,
-            const int & j )
+            const typename MeshDependentData::IndexType K,
+            const int i,
+            const int j )
     {
         // value for n_x faces (e=0, e=1)
         mdd.b_ijK_storage( i, j, K, 0 ) = 2 * mdd.D_ijK( i, j, K ) * mesh.template getSpaceStepsProducts< -1, 1, 1 >();  // h_y * h_z / h_x
@@ -322,11 +324,11 @@ public:
     __cuda_callable__
     static inline typename MeshDependentData::RealType
     b_ijKef( const MeshDependentData & mdd,
-             const int & i,
-             const int & j,
-             const typename MeshDependentData::IndexType & K,
-             const int & e,
-             const int & f )
+             const int i,
+             const int j,
+             const typename MeshDependentData::IndexType K,
+             const int e,
+             const int f )
     {
         TNL_ASSERT( e < FacesPerCell< MeshEntity >::value && f < FacesPerCell< MeshEntity >::value, );
 
@@ -347,10 +349,10 @@ public:
     __cuda_callable__
     static inline typename MeshDependentData::RealType
     b_ijKe( const MeshDependentData & mdd,
-            const int & i,
-            const int & j,
-            const typename MeshDependentData::IndexType & K,
-            const int & e )
+            const int i,
+            const int j,
+            const typename MeshDependentData::IndexType K,
+            const int e )
     {
         TNL_ASSERT( e < FacesPerCell< MeshEntity >::value, );
 
@@ -381,9 +383,9 @@ public:
     static inline void
     update( const Grid & mesh,
             MeshDependentData & mdd,
-            const typename MeshDependentData::IndexType & K,
-            const int & i,
-            const int & j )
+            const typename MeshDependentData::IndexType K,
+            const int i,
+            const int j )
     {
         // value for n_x faces (e=0, e=1)
         mdd.b_ijK_storage( i, j, K, 0 ) = 2 * mdd.D_ijK( i, j, K ) * mesh.template getSpaceStepsProducts< -1, 1, 1 >();  // h_y * h_z / h_x
@@ -397,11 +399,11 @@ public:
     __cuda_callable__
     static inline typename MeshDependentData::RealType
     b_ijKef( const MeshDependentData & mdd,
-             const int & i,
-             const int & j,
-             const typename MeshDependentData::IndexType & K,
-             const int & e,
-             const int & f )
+             const int i,
+             const int j,
+             const typename MeshDependentData::IndexType K,
+             const int e,
+             const int f )
     {
         TNL_ASSERT( e < FacesPerCell< MeshEntity >::value && f < FacesPerCell< MeshEntity >::value, );
 
@@ -437,10 +439,10 @@ public:
     __cuda_callable__
     static inline typename MeshDependentData::RealType
     b_ijKe( const MeshDependentData & mdd,
-            const int & i,
-            const int & j,
-            const typename MeshDependentData::IndexType & K,
-            const int & e )
+            const int i,
+            const int j,
+            const typename MeshDependentData::IndexType K,
+            const int e )
     {
         TNL_ASSERT( e < FacesPerCell< MeshEntity >::value, );
 
@@ -473,7 +475,7 @@ public:
     static inline void
     update( const Mesh & mesh,
             MeshDependentData & mdd,
-            const typename MeshDependentData::IndexType & K,
+            const typename MeshDependentData::IndexType K,
             const LocalIndex i,
             const LocalIndex j )
     {
@@ -488,7 +490,7 @@ public:
     b_ijKef( const MeshDependentData & mdd,
              const LocalIndex i,
              const LocalIndex j,
-             const typename MeshDependentData::IndexType & K,
+             const typename MeshDependentData::IndexType K,
              const LocalIndex e,
              const LocalIndex f )
     {
@@ -505,7 +507,7 @@ public:
     b_ijKe( const MeshDependentData & mdd,
             const LocalIndex i,
             const LocalIndex j,
-            const typename MeshDependentData::IndexType & K,
+            const typename MeshDependentData::IndexType K,
             const LocalIndex e )
     {
         TNL_ASSERT( e < FacesPerCell< MeshEntity >::value, );
@@ -533,7 +535,7 @@ public:
     static inline void
     update( const Mesh & mesh,
             MeshDependentData & mdd,
-            const typename MeshDependentData::IndexType & K,
+            const typename MeshDependentData::IndexType K,
             const LocalIndex i,
             const LocalIndex j )
     {
@@ -606,7 +608,7 @@ public:
     b_ijKef( const MeshDependentData & mdd,
              const LocalIndex i,
              const LocalIndex j,
-             const typename MeshDependentData::IndexType & K,
+             const typename MeshDependentData::IndexType K,
              LocalIndex e,
              LocalIndex f )
     {
@@ -622,10 +624,10 @@ public:
     __cuda_callable__
     static inline typename MeshDependentData::RealType
     b_ijKe( const MeshDependentData & mdd,
-            const int & i,
-            const int & j,
-            const typename MeshDependentData::IndexType & K,
-            const int & e )
+            const int i,
+            const int j,
+            const typename MeshDependentData::IndexType K,
+            const int e )
     {
         TNL_ASSERT( e < FacesPerCell< MeshEntity >::value, );
 
@@ -652,7 +654,7 @@ public:
     static inline void
     update( const Mesh & mesh,
             MeshDependentData & mdd,
-            const typename MeshDependentData::IndexType & K,
+            const typename MeshDependentData::IndexType K,
             const LocalIndex i,
             const LocalIndex j )
     {
@@ -747,7 +749,7 @@ public:
     b_ijKef( const MeshDependentData & mdd,
              const LocalIndex i,
              const LocalIndex j,
-             const typename MeshDependentData::IndexType & K,
+             const typename MeshDependentData::IndexType K,
              LocalIndex e,
              LocalIndex f )
     {
@@ -763,10 +765,10 @@ public:
     __cuda_callable__
     static inline typename MeshDependentData::RealType
     b_ijKe( const MeshDependentData & mdd,
-            const int & i,
-            const int & j,
-            const typename MeshDependentData::IndexType & K,
-            const int & e )
+            const int i,
+            const int j,
+            const typename MeshDependentData::IndexType K,
+            const int e )
     {
         TNL_ASSERT( e < FacesPerCell< MeshEntity >::value, );
 

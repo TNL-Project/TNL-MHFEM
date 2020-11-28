@@ -1,26 +1,27 @@
 #pragma once
 
+#include <TNL/Containers/StaticArray.h>
+
 #include "BoundaryConditions.h"
 #include "../lib_general/mesh_helpers.h"
 #include "SecondaryCoefficients.h"
-// TODO: move this into the mhfem directory/namespace
-#include "../models/boundary/BoundaryConditionsStorage.h"
+#include "BoundaryConditionsStorage.h"
 
 namespace mhfem
 {
 
 template< typename Mesh, typename MeshDependentData >
-struct NeumannMatrixRowSetter
+struct AdvectiveRowSetter
 {
     template< typename MatrixRow, typename FaceIndexes, typename IndexType >
     __cuda_callable__
     static void setRow( MatrixRow & matrixRow,
                         const MeshDependentData & mdd,
                         const FaceIndexes & faceIndexes,
-                        const int & i,
-                        const IndexType & K,
-                        const IndexType & E,
-                        const int & e )
+                        const int i,
+                        const IndexType K,
+                        const IndexType E,
+                        const int e )
     {
         using coeff = SecondaryCoefficients< MeshDependentData >;
         using LocalIndex = typename Mesh::LocalIndexType;
@@ -47,7 +48,6 @@ struct NeumannMatrixRowSetter
                 if( ! comparator( localFaceIndexes[ k2 ], localFaceIndexes[ k2+1 ] ) )
                     TNL::swap( localFaceIndexes[ k2 ], localFaceIndexes[ k2+1 ] );
 
-
         for( LocalIndex j = 0; j < MeshDependentData::NumberOfEquations; j++ ) {
             for( LocalIndex g = 0; g < MeshDependentData::FacesPerCell; g++ ) {
                 const LocalIndex f = localFaceIndexes[ g ];
@@ -56,19 +56,6 @@ struct NeumannMatrixRowSetter
                                       coeff::A_ijKEF( mdd, i, j, K, E, e, faceIndexes[ f ], f ) );
             }
         }
-
-#ifndef NDEBUG
-    int errors = 0;
-    for( int c = 1; c < MeshDependentData::FacesPerCell * MeshDependentData::NumberOfEquations; c++ )
-        if( matrixRow.getElementColumn( c - 1 ) >= matrixRow.getElementColumn( c ) ) {
-#ifndef __CUDA_ARCH__
-            std::cerr << "error: E = " << E << ", c = " << c << ", row = " << matrixRow << std::endl;
-#endif
-            errors += 1;
-        }
-    TNL_ASSERT( errors == 0,
-                std::cerr << "count of wrong rows: " << errors << std::endl; );
-#endif
     }
 };
 
@@ -77,17 +64,17 @@ template< int Dimension,
           typename Device,
           typename MeshIndex,
           typename MeshDependentData >
-struct NeumannMatrixRowSetter< TNL::Meshes::Grid< Dimension, MeshReal, Device, MeshIndex >, MeshDependentData >
+struct AdvectiveRowSetter< TNL::Meshes::Grid< Dimension, MeshReal, Device, MeshIndex >, MeshDependentData >
 {
     template< typename MatrixRow, typename FaceIndexes, typename IndexType >
     __cuda_callable__
     static void setRow( MatrixRow & matrixRow,
                         const MeshDependentData & mdd,
                         const FaceIndexes & faceIndexes,
-                        const int & i,
-                        const IndexType & K,
-                        const IndexType & E,
-                        const int & e )
+                        const int i,
+                        const IndexType K,
+                        const IndexType E,
+                        const int e )
     {
         using coeff = SecondaryCoefficients< MeshDependentData >;
 
@@ -102,184 +89,199 @@ struct NeumannMatrixRowSetter< TNL::Meshes::Grid< Dimension, MeshReal, Device, M
 };
 
 
-template< typename Mesh,
-          typename MeshDependentData,
-          typename ModelImplementation >
-bool
-BoundaryConditions< Mesh, MeshDependentData, ModelImplementation >::
-init( const TNL::Config::ParameterContainer & parameters,
-      const MeshType & mesh )
+template< typename Mesh, typename MeshDependentData >
+struct FluxRowSetter
 {
-    const IndexType numberOfFaces = mesh.template getEntitiesCount< typename Mesh::Face >();
+    template< typename MatrixRow, typename FaceIndexes, typename IndexType >
+    __cuda_callable__
+    static void setRow( MatrixRow & matrixRow,
+                        const MeshDependentData & mdd,
+                        const FaceIndexes & faceIndexes,
+                        const int i,
+                        const IndexType K,
+                        const IndexType E,
+                        const int e )
+    {
+        AdvectiveRowSetter< Mesh, MeshDependentData >::setRow( matrixRow, mdd, faceIndexes, i, K, E, e );
 
-    if( ! parameters.checkParameter( "boundary-conditions-file" ) ) {
-        std::cerr << "Missing parameter: --boundary-conditions-file" << std::endl;
-        return false;
+        // modify the diagonal elements in each j-block
+        // TODO: the effect of u_ij and a_ij in boundary conditions is still very experimental!
+        for( int j = 0; j < MeshDependentData::NumberOfEquations; j++ ) {
+            const auto value = matrixRow.getValue( j * MeshDependentData::FacesPerCell + e );
+            matrixRow.setElement( j * MeshDependentData::FacesPerCell + e,
+                                  mdd.getDofIndex( j, E ),
+                                  value - mdd.u_ijKe( i, j, K, e ) - mdd.a_ijKe( i, j, K, e ) );
+        }
     }
-    const TNL::String fname = parameters.getParameter< TNL::String >( "boundary-conditions-file" );
+};
 
-    models::boundary::BoundaryConditionsStorage< RealType, IndexType > storage;
-    storage.load( fname );
+
+template< typename MeshDependentData,
+          typename BoundaryModel >
+bool
+BoundaryConditions< MeshDependentData, BoundaryModel >::
+init( const IndexType numberOfFaces,
+      const TNL::String & fileName )
+{
+    BoundaryConditionsStorage< RealType > storage;
+    storage.load( fileName );
 
     if( MeshDependentDataType::NumberOfEquations * numberOfFaces != storage.dofSize ) {
-        std::cerr << "Wrong dofSize in BoundaryConditionsStorage loaded from file " << fname << ". Expected " << numberOfFaces
+        std::cerr << "Wrong dofSize in BoundaryConditionsStorage loaded from file " << fileName << ". Expected " << numberOfFaces
              << " elements, got " << storage.dofSize << "." << std::endl;
         return false;
     }
 
-    dirichletTags.setSize( storage.dofSize );
-    dirichletValues.setSize( storage.dofSize );
-    neumannValues.setSize( storage.dofSize );
-
-    dirichletTags = storage.dirichletTags;
+    tags = storage.tags;
+    values = storage.values;
     dirichletValues = storage.dirichletValues;
-    neumannValues = storage.neumannValues;
 
     return true;
 }
 
-template< typename Mesh,
-          typename MeshDependentData,
-          typename ModelImplementation >
-    template< typename MeshOrdering >
-void
-BoundaryConditions< Mesh, MeshDependentData, ModelImplementation >::
-reorderBoundaryConditions( const MeshOrdering & meshOrdering )
-{
-    TagArrayType tags;
-    DofVectorType dir, neu;
-    const IndexType faces = dirichletTags.getSize() / MeshDependentData::NumberOfEquations;
-    for( int i = 0; i < MeshDependentData::NumberOfEquations; i++ ) {
-        // TODO: this depends on the specific layout of dofs, general reordering of NDArray is needed
-        tags.bind( dirichletTags.getData() + i * faces, faces );
-        dir.bind( dirichletValues.getData() + i * faces, faces );
-        neu.bind( neumannValues.getData() + i * faces, faces );
-        meshOrdering.template reorderVector< Mesh::getMeshDimension() - 1 >( tags );
-        meshOrdering.template reorderVector< Mesh::getMeshDimension() - 1 >( dir );
-        meshOrdering.template reorderVector< Mesh::getMeshDimension() - 1 >( neu );
-    }
-}
-
-template< typename Mesh,
-          typename MeshDependentData,
-          typename ModelImplementation >
-void
-BoundaryConditions< Mesh, MeshDependentData, ModelImplementation >::
-bind( const TNL::Pointers::SharedPointer< MeshType > & mesh,
-      TNL::Pointers::SharedPointer< MeshDependentDataType > & mdd )
-{
-    this->mesh = mesh;
-    this->mdd = mdd;
-}
-
-template< typename Mesh,
-          typename MeshDependentData,
-          typename ModelImplementation >
+template< typename MeshDependentData,
+          typename BoundaryModel >
 __cuda_callable__
 typename MeshDependentData::IndexType
-BoundaryConditions< Mesh, MeshDependentData, ModelImplementation >::
+BoundaryConditions< MeshDependentData, BoundaryModel >::
 getLinearSystemRowLength( const MeshType & mesh,
-                          const IndexType & E,
-                          const typename MeshType::Face & entity,
-                          const int & i ) const
+                          const IndexType E,
+                          const int i ) const
 {
-//    TNL_ASSERT( mesh.isBoundaryEntity( entity ), );
-    if( this->isDirichletBoundary( mesh, i, entity ) )
+    TNL_ASSERT_TRUE( isBoundaryFace( mesh, E ), "" );
+
+    const IndexType faces = mesh.template getEntitiesCount< typename MeshType::Face >();
+    const BoundaryConditionsType type = tags[ i * faces + E ];
+    if( type == BoundaryConditionsType::FixedValue )
         return 1;
     return MeshDependentDataType::FacesPerCell * MeshDependentDataType::NumberOfEquations;
 }
 
-template< typename Mesh,
-          typename MeshDependentData,
-          typename ModelImplementation >
-    template< typename DofVectorPointer, typename Vector, typename Matrix >
+template< typename MeshDependentData,
+          typename BoundaryModel >
+    template< typename Matrix, typename Vector >
 __cuda_callable__
 void
-BoundaryConditions< Mesh, MeshDependentData, ModelImplementation >::
-setMatrixElements( DofVectorPointer & u,
-                   const typename MeshType::Face & entity,
-                   const RealType & time,
-                   const RealType & tau,
-                   const int & i,
+BoundaryConditions< MeshDependentData, BoundaryModel >::
+setMatrixElements( const MeshType & mesh,
+                   const MeshDependentDataType & mdd,
+                   const IndexType rowIndex,
+                   const IndexType E,
+                   const int i,
+                   const RealType time,
+                   const RealType tau,
                    Matrix & matrix,
                    Vector & b ) const
 {
-    // dereference the smart pointer on device
-    const auto & mesh = this->mesh.template getData< DeviceType >();
-    const auto & mdd = this->mdd.template getData< DeviceType >();
+    TNL_ASSERT_TRUE( isBoundaryFace( mesh, E ), "" );
 
-//    TNL_ASSERT( mesh.isBoundaryEntity( entity ), );
+    auto matrixRow = matrix.getRow( rowIndex );
 
-    const IndexType E = entity.getIndex();
-    const IndexType indexRow = mdd.getDofIndex( i, E );
+    TNL_ASSERT_GE( matrixRow.getSize(), getLinearSystemRowLength( mesh, E, i ), "matrix row is too small" );
 
-    typename Matrix::MatrixRow matrixRow = matrix.getRow( indexRow );
+    const IndexType faces = mesh.template getEntitiesCount< typename MeshType::Face >();
+    const BoundaryConditionsType type = tags[ i * faces + E ];
 
-    // Dirichlet boundary
-    if( isDirichletBoundary( mesh, i, entity ) ) {
-        matrixRow.setElement( 0, indexRow, 1.0 );
-        b[ indexRow ] = static_cast<const ModelImplementation*>(this)->getDirichletValue( mesh, i, E, time );
-    }
-    // Neumann boundary
-    else {
-        // for boundary faces returns only one valid cell index
-        IndexType cellIndexes[ 2 ];
-        const int numCells = getCellsForFace( mesh, entity, cellIndexes );
-        const IndexType & K = cellIndexes[ 0 ];
+    switch( type ) {
+        // fixed-value (Dirichlet) boundary condition
+        case BoundaryConditionsType::FixedValue:
+            matrixRow.setElement( 0, mdd.getDofIndex( i, E ), 1.0 );
+            b[ rowIndex ] = getDirichletValue( mesh, i, E, time, tau );
+            break;
 
-        TNL_ASSERT( numCells == 1,
-                    std::cerr << "assertion numCells == 1 failed" << std::endl
-                              << "E = " << E << std::endl
-                              << "K0 = " << cellIndexes[ 0 ] << std::endl
-                              << "K1 = " << cellIndexes[ 1 ] << std::endl; );
+        // fixed-flux (Neumann) boundary condition
+        case BoundaryConditionsType::FixedFlux:
+        {
+            // for boundary faces returns only one valid cell index
+            IndexType cellIndexes[ 2 ];
+            const int numCells = getCellsForFace( mesh, E, cellIndexes );
+            const IndexType & K = cellIndexes[ 0 ];
 
-        // prepare face indexes
-        const auto faceIndexes = getFacesForCell( mesh, K );
-        const int e = getLocalIndex( faceIndexes, E );
+            TNL_ASSERT( numCells == 1,
+                        std::cerr << "assertion numCells == 1 failed" << std::endl
+                                  << "E = " << E << std::endl
+                                  << "K0 = " << cellIndexes[ 0 ] << std::endl
+                                  << "K1 = " << cellIndexes[ 1 ] << std::endl; );
+            (void) numCells;  // silence unused-variable warning for Release build
 
-        // set right hand side value
-        RealType bValue = - static_cast<const ModelImplementation*>(this)->getNeumannValue( mesh, i, E, time ) * getEntityMeasure( mesh, entity );
+            // prepare face indexes
+            const auto faceIndexes = getFacesForCell( mesh, K );
+            const int e = getLocalIndex( faceIndexes, E );
 
-        bValue += mdd.w_iKe( i, K, e );
-        for( int j = 0; j < MeshDependentDataType::NumberOfEquations; j++ ) {
-            bValue += MeshDependentDataType::MassMatrix::b_ijKe( mdd, i, j, K, e ) * mdd.R_iK( j, K );
+            // set right hand side value
+            const auto& entity = mesh.template getEntity< typename MeshType::Face >( E );
+            RealType bValue = - getNeumannValue( mesh, i, E, time, tau ) * getEntityMeasure( mesh, entity );
+
+            bValue += mdd.w_iKe( i, K, e );
+            for( int j = 0; j < MeshDependentDataType::NumberOfEquations; j++ ) {
+                bValue += MeshDependentDataType::MassMatrix::b_ijKe( mdd, i, j, K, e ) * mdd.R_iK( j, K );
+            }
+            b[ rowIndex ] = bValue;
+
+            // set non-zero elements
+            FluxRowSetter< MeshType, MeshDependentDataType >::
+                setRow( matrixRow,
+                        mdd,
+                        faceIndexes,
+                        i, K, E, e );
+            break;
         }
-        b[ indexRow ] = bValue;
 
-        // set non-zero elements
-        NeumannMatrixRowSetter< MeshType, MeshDependentDataType >::
-            setRow( matrixRow,
-                    mdd,
-                    faceIndexes,
-                    i, K, E, e );
+        // advective outflow boundary condition
+        case BoundaryConditionsType::AdvectiveOutflow:
+        {
+            // for boundary faces returns only one valid cell index
+            IndexType cellIndexes[ 2 ];
+            const int numCells = getCellsForFace( mesh, E, cellIndexes );
+            const IndexType & K = cellIndexes[ 0 ];
+
+            TNL_ASSERT( numCells == 1,
+                        std::cerr << "assertion numCells == 1 failed" << std::endl
+                                  << "E = " << E << std::endl
+                                  << "K0 = " << cellIndexes[ 0 ] << std::endl
+                                  << "K1 = " << cellIndexes[ 1 ] << std::endl; );
+            (void) numCells;  // silence unused-variable warning for Release build
+
+            // prepare face indexes
+            const auto faceIndexes = getFacesForCell( mesh, K );
+            const int e = getLocalIndex( faceIndexes, E );
+
+            // set right hand side value
+            RealType bValue = 0;
+
+            bValue += mdd.w_iKe( i, K, e );
+            for( int j = 0; j < MeshDependentDataType::NumberOfEquations; j++ ) {
+                bValue += MeshDependentDataType::MassMatrix::b_ijKe( mdd, i, j, K, e ) * mdd.R_iK( j, K );
+            }
+            b[ rowIndex ] = bValue;
+
+            // set non-zero elements
+            AdvectiveRowSetter< MeshType, MeshDependentDataType >::
+                setRow( matrixRow,
+                        mdd,
+                        faceIndexes,
+                        i, K, E, e );
+            break;
+        }
+
+        default:
+            TNL_ASSERT_TRUE( false, "unknown boundary condition type was encountered" );
+            break;
     }
-}
 
-template< typename Mesh,
-          typename MeshDependentData,
-          typename ModelImplementation >
-__cuda_callable__
-bool
-BoundaryConditions< Mesh, MeshDependentData, ModelImplementation >::
-isNeumannBoundary( const MeshType & mesh, const int & i, const typename Mesh::Face & face ) const
-{
-//    if( ! face.isBoundaryEntity() )
-//        return false;
-    return ! isDirichletBoundary( mesh, i, face );
-}
-
-template< typename Mesh,
-          typename MeshDependentData,
-          typename ModelImplementation >
-__cuda_callable__
-bool
-BoundaryConditions< Mesh, MeshDependentData, ModelImplementation >::
-isDirichletBoundary( const MeshType & mesh, const int & i, const typename Mesh::Face & face ) const
-{
-//    if( ! face.isBoundaryEntity() )
-//        return false;
-    const IndexType faces = mesh.template getEntitiesCount< typename Mesh::Face >();
-    return dirichletTags[ i * faces + face.getIndex() ];
+#ifndef NDEBUG
+    // the diagonal element should be positive
+    if( matrix.getElement( rowIndex, mdd.getDofIndex( i, E ) ) <= 0 ) {
+#ifndef __CUDA_ARCH__
+        const auto center = getEntityCenter( mesh, mesh.template getEntity< typename MeshType::Face >( E ) );
+        std::cerr << "error BC (type = " << (int) type << "): E = " << E << ", rowIndex = " << rowIndex << ", dofIndex = " << mdd.getDofIndex( i, E )
+                  << "\nrow:  " << matrixRow
+                  << "\nface center = " << center
+                  << std::endl;
+#endif
+        TNL_ASSERT_TRUE( false, "the diagonal matrix element is not positive" );
+    }
+#endif
 }
 
 } // namespace mhfem
