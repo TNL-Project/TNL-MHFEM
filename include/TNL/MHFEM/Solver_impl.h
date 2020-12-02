@@ -3,6 +3,7 @@
 #include <experimental/filesystem>
 
 #include <TNL/Meshes/Readers/getMeshReader.h>
+#include <TNL/Matrices/StaticMatrix.h>
 
 #include "../lib_general/mesh_helpers.h"
 #include "Solver.h"
@@ -535,7 +536,7 @@ preIterate( const RealType time,
             const auto faceIndexes = getFacesForCell( *_mesh, K );
             const auto& entity = _mesh->template getEntity< typename MeshType::Cell >( K );
 
-            using LocalMatrixType = TNL::Containers::StaticMatrix< RealType, MeshDependentDataType::NumberOfEquations, MeshDependentDataType::NumberOfEquations >;
+            using LocalMatrixType = TNL::Matrices::StaticMatrix< RealType, MeshDependentDataType::NumberOfEquations, MeshDependentDataType::NumberOfEquations >;
 #ifndef __CUDA_ARCH__
             LocalMatrixType Q;
 //            RealType rhs[ MeshDependentDataType::NumberOfEquations ];

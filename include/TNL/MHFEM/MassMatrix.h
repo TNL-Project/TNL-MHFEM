@@ -4,12 +4,10 @@
 #include <TNL/Meshes/Grid.h>
 #include <TNL/Meshes/GridEntity.h>
 #include <TNL/Meshes/MeshEntity.h>
-#include <TNL/Containers/NDArray.h>
+#include <TNL/Matrices/StaticMatrix.h>
 
 #include "../lib_general/mesh_helpers.h"
 #include "../lib_general/LU.h"
-
-// TODO: implement SlicedNDArray, write accessor classes for slices and use them in the update methods below
 
 namespace mhfem {
 
@@ -559,7 +557,7 @@ public:
         // LU decomposition is stable
         // TODO: use Cholesky instead
 
-        TNL::Containers::StaticMatrix< typename Mesh::RealType, 3, 3 > matrix;
+        TNL::Matrices::StaticMatrix< typename Mesh::RealType, 3, 3 > matrix;
         TNL::Containers::StaticVector< 3, typename Mesh::RealType > v;
 
         matrix( 0, 0 ) = ( 3 * P00 + P11 - 3 * P01 ) / denominator;
@@ -684,7 +682,7 @@ public:
         // LU decomposition is stable
         // TODO: use Cholesky instead
 
-        TNL::Containers::StaticMatrix< typename Mesh::RealType, 4, 4 > matrix;
+        TNL::Matrices::StaticMatrix< typename Mesh::RealType, 4, 4 > matrix;
         TNL::Containers::StaticVector< 4, typename Mesh::RealType > v;
 
         matrix( 0, 0 ) = ( 12 * P00 +  2 * P11 +  2 * P22 - 8 * P01 - 8 * P02 + 2 * P12 ) / denominator;
