@@ -5,11 +5,11 @@
 namespace mhfem
 {
 
-template< typename MeshDependentData, MassLumping = MeshDependentData::MassMatrix::lumping >
+template< typename MeshDependentData, bool = MeshDependentData::MassMatrix::is_diagonal >
 struct MassLumpingDependentCoefficients;
 
 template< typename MeshDependentData >
-struct MassLumpingDependentCoefficients< MeshDependentData, MassLumping::enabled >
+struct MassLumpingDependentCoefficients< MeshDependentData, true >
 {
     using RealType = typename MeshDependentData::RealType;
     using IndexType = typename MeshDependentData::IndexType;
@@ -55,7 +55,7 @@ struct MassLumpingDependentCoefficients< MeshDependentData, MassLumping::enabled
 };
 
 template< typename MeshDependentData >
-struct MassLumpingDependentCoefficients< MeshDependentData, MassLumping::disabled >
+struct MassLumpingDependentCoefficients< MeshDependentData, false >
 {
     using RealType = typename MeshDependentData::RealType;
     using IndexType = typename MeshDependentData::IndexType;
