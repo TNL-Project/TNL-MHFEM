@@ -8,7 +8,6 @@
 #include <TNL/Meshes/Topologies/Triangle.h>
 #include <TNL/Meshes/Topologies/Tetrahedron.h>
 
-#include "../lib_general/FacesPerCell.h"
 #include "../lib_general/mesh_helpers.h"
 
 namespace mhfem {

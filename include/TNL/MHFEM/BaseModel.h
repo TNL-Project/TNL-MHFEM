@@ -4,7 +4,7 @@
 #include <TNL/Logger.h>
 
 #include "MassMatrix.h"
-#include "../lib_general/FacesPerCell.h"
+#include "../lib_general/mesh_helpers.h"
 
 namespace mhfem
 {
