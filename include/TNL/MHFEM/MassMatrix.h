@@ -578,18 +578,18 @@ public:
 
         v.setValue( 0.0 );
         v[ 0 ] = 1.0;
-        LU_solve( matrix, v, v );
+        LU_solve_inplace( matrix, v );
         mdd.b_ijK_storage( i, j, K, 0 ) = v[ 0 ] * mdd.D_ijK( i, j, K );
 
         v.setValue( 0.0 );
         v[ 1 ] = 1.0;
-        LU_solve( matrix, v, v );
+        LU_solve_inplace( matrix, v );
         mdd.b_ijK_storage( i, j, K, 1 ) = v[ 0 ] * mdd.D_ijK( i, j, K );
         mdd.b_ijK_storage( i, j, K, 2 ) = v[ 1 ] * mdd.D_ijK( i, j, K );
 
         v.setValue( 0.0 );
         v[ 2 ] = 1.0;
-        LU_solve( matrix, v, v );
+        LU_solve_inplace( matrix, v );
         mdd.b_ijK_storage( i, j, K, 3 ) = v[ 0 ] * mdd.D_ijK( i, j, K );
         mdd.b_ijK_storage( i, j, K, 4 ) = v[ 1 ] * mdd.D_ijK( i, j, K );
         mdd.b_ijK_storage( i, j, K, 5 ) = v[ 2 ] * mdd.D_ijK( i, j, K );
@@ -710,25 +710,25 @@ public:
 
         v.setValue( 0.0 );
         v[ 0 ] = 1.0;
-        LU_solve( matrix, v, v );
+        LU_solve_inplace( matrix, v );
         mdd.b_ijK_storage( i, j, K, 0 ) = v[ 0 ] * D;
 
         v.setValue( 0.0 );
         v[ 1 ] = 1.0;
-        LU_solve( matrix, v, v );
+        LU_solve_inplace( matrix, v );
         mdd.b_ijK_storage( i, j, K, 1 ) = v[ 0 ] * D;
         mdd.b_ijK_storage( i, j, K, 2 ) = v[ 1 ] * D;
 
         v.setValue( 0.0 );
         v[ 2 ] = 1.0;
-        LU_solve( matrix, v, v );
+        LU_solve_inplace( matrix, v );
         mdd.b_ijK_storage( i, j, K, 3 ) = v[ 0 ] * D;
         mdd.b_ijK_storage( i, j, K, 4 ) = v[ 1 ] * D;
         mdd.b_ijK_storage( i, j, K, 5 ) = v[ 2 ] * D;
 
         v.setValue( 0.0 );
         v[ 3 ] = 1.0;
-        LU_solve( matrix, v, v );
+        LU_solve_inplace( matrix, v );
         mdd.b_ijK_storage( i, j, K, 6 ) = v[ 0 ] * D;
         mdd.b_ijK_storage( i, j, K, 7 ) = v[ 1 ] * D;
         mdd.b_ijK_storage( i, j, K, 8 ) = v[ 2 ] * D;
