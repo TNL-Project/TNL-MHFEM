@@ -1,12 +1,12 @@
 #pragma once
 
-#include <TNL/Meshes/Grid.h>
 #include <TNL/Meshes/Mesh.h>
 #include <TNL/Meshes/MeshEntity.h>
-#include <TNL/Meshes/Topologies/Vertex.h>
 #include <TNL/Meshes/Topologies/Edge.h>
 #include <TNL/Meshes/Topologies/Triangle.h>
+#include <TNL/Meshes/Topologies/Quadrangle.h>
 #include <TNL/Meshes/Topologies/Tetrahedron.h>
+#include <TNL/Meshes/Topologies/Hexahedron.h>
 
 #include "../lib_general/mesh_helpers.h"
 
@@ -49,15 +49,14 @@ struct RTN0< TNL::Meshes::MeshEntity< MeshConfig, Device, CellTopology > >
     }
 };
 
-template< typename Grid, typename Config >
-struct RTN0< TNL::Meshes::GridEntity< Grid, 1, Config > >
+// NOTE: this is *not* for a general quadrilateral, we assume a rectangle
+template< typename MeshConfig, typename Device >
+struct RTN0< TNL::Meshes::MeshEntity< MeshConfig, Device, TNL::Meshes::Topologies::Quadrangle > >
 {
-    using MeshType = Grid;
-    using CellType = TNL::Meshes::GridEntity< Grid, 1, Config >;
-    using PointType = typename Grid::PointType;
+    using MeshType = TNL::Meshes::Mesh< MeshConfig, Device >;
+    using CellType = TNL::Meshes::MeshEntity< MeshConfig, Device, TNL::Meshes::Topologies::Quadrangle >;
+    using PointType = typename TNL::Meshes::MeshTraits< MeshConfig >::PointType;
     using CoordinatesType = TNL::Containers::StaticVector< FacesPerCell< CellType >::value, typename PointType::RealType >;
-
-    static_assert( std::is_same< typename Grid::Cell, CellType >::value, "wrong entity" );
 
     __cuda_callable__
     static PointType
@@ -66,30 +65,31 @@ struct RTN0< TNL::Meshes::GridEntity< Grid, 1, Config > >
               const PointType & x,
               const CoordinatesType & coordinates )
     {
+        // left bottom vertex
+        const PointType v_0 = mesh.template getEntity< 0 >( entity.template getSubentityIndex< 0 >( 0 ) ).getPoint();
+        // right top vertex
+        const PointType v_2 = mesh.template getEntity< 0 >( entity.template getSubentityIndex< 0 >( 2 ) ).getPoint();
+
         PointType point( 0.0 );
+        const CoordinatesType constTerm = coordinates / getEntityMeasure( mesh, entity );
 
-        const auto h = mesh.template getSpaceStepsProducts< 1 >();
-        // left vertex
-        const auto v_0 = getEntityCenter( mesh, entity ).x() - 0.5 * h;
-
-        const auto x_minus_v_0 = x.x() - v_0 - h;
-        point[ 0 ] += coordinates[ 0 ] / h * x_minus_v_0;
-        const auto x_minus_v_1 = x.x() - v_0;
-        point[ 0 ] += coordinates[ 1 ] / h * x_minus_v_1;
+        point[ 1 ] += constTerm[ 0 ] * ( x.y() - v_2.y() );  // bottom
+        point[ 0 ] += constTerm[ 1 ] * ( x.x() - v_0.x() );  // right
+        point[ 1 ] += constTerm[ 2 ] * ( x.y() - v_0.y() );  // top
+        point[ 0 ] += constTerm[ 3 ] * ( x.x() - v_2.x() );  // left
 
         return point;
     }
 };
 
-template< typename Grid, typename Config >
-struct RTN0< TNL::Meshes::GridEntity< Grid, 2, Config > >
+// NOTE: this is *not* for a general hexahedron, we assume a voxel
+template< typename MeshConfig, typename Device >
+struct RTN0< TNL::Meshes::MeshEntity< MeshConfig, Device, TNL::Meshes::Topologies::Hexahedron > >
 {
-    using MeshType = Grid;
-    using CellType = TNL::Meshes::GridEntity< Grid, 2, Config >;
-    using PointType = typename Grid::PointType;
+    using MeshType = TNL::Meshes::Mesh< MeshConfig, Device >;
+    using CellType = TNL::Meshes::MeshEntity< MeshConfig, Device, TNL::Meshes::Topologies::Hexahedron >;
+    using PointType = typename TNL::Meshes::MeshTraits< MeshConfig >::PointType;
     using CoordinatesType = TNL::Containers::StaticVector< FacesPerCell< CellType >::value, typename PointType::RealType >;
-
-    static_assert( std::is_same< typename Grid::Cell, CellType >::value, "wrong entity" );
 
     __cuda_callable__
     static PointType
@@ -98,70 +98,20 @@ struct RTN0< TNL::Meshes::GridEntity< Grid, 2, Config > >
               const PointType & x,
               const CoordinatesType & coordinates )
     {
+        // left bottom front vertex
+        const PointType v_0 = mesh.template getEntity< 0 >( entity.template getSubentityIndex< 0 >( 0 ) ).getPoint();
+        // right top back vertex
+        const PointType v_6 = mesh.template getEntity< 0 >( entity.template getSubentityIndex< 0 >( 6 ) ).getPoint();
+
         PointType point( 0.0 );
+        const CoordinatesType constTerm = coordinates / getEntityMeasure( mesh, entity );
 
-        const auto h_x = mesh.template getSpaceStepsProducts< 1, 0 >();
-        const auto h_y = mesh.template getSpaceStepsProducts< 0, 1 >();
-        // left bottom vertex
-        const PointType v_0 = getEntityCenter( mesh, entity ) - PointType( 0.5 * h_x, 0.5 * h_y );
-
-        const CoordinatesType constTerm = coordinates * ( 1.0 / ( h_x * h_y ) );
-
-        const auto x_minus_v_0 = x.x() - v_0.x() - h_x;
-        point[ 0 ] += constTerm[ 0 ] * x_minus_v_0;
-        const auto x_minus_v_1 = x.x() - v_0.x();
-        point[ 0 ] += constTerm[ 1 ] * x_minus_v_1;
-
-        const auto y_minus_v_0 = x.y() - v_0.y() - h_y;
-        point[ 1 ] += constTerm[ 2 ] * y_minus_v_0;
-        const auto y_minus_v_3 = x.y() - v_0.y();
-        point[ 1 ] += constTerm[ 3 ] * y_minus_v_3;
-
-        return point;
-    }
-};
-
-template< typename Grid, typename Config >
-struct RTN0< TNL::Meshes::GridEntity< Grid, 3, Config > >
-{
-    using MeshType = Grid;
-    using CellType = TNL::Meshes::GridEntity< Grid, 3, Config >;
-    using PointType = typename Grid::PointType;
-    using CoordinatesType = TNL::Containers::StaticVector< FacesPerCell< CellType >::value, typename PointType::RealType >;
-
-    static_assert( std::is_same< typename Grid::Cell, CellType >::value, "wrong entity" );
-
-    __cuda_callable__
-    static PointType
-    evaluate( const MeshType & mesh,
-              const CellType & entity,
-              const PointType & x,
-              const CoordinatesType & coordinates )
-    {
-        PointType point( 0.0 );
-
-        const auto h_x = mesh.template getSpaceStepsProducts< 1, 0, 0 >();
-        const auto h_y = mesh.template getSpaceStepsProducts< 0, 1, 0 >();
-        const auto h_z = mesh.template getSpaceStepsProducts< 0, 0, 1 >();
-        // left bottom vertex
-        const PointType v_0 = getEntityCenter( mesh, entity ) - PointType( 0.5 * h_x, 0.5 * h_y, 0.5 * h_z );
-
-        const CoordinatesType constTerm = coordinates * ( 1.0 / ( h_x * h_y * h_z ) );
-
-        const auto x_minus_v_0 = x.x() - v_0.x() - h_x;
-        point[ 0 ] += constTerm[ 0 ] * x_minus_v_0;
-        const auto x_minus_v_1 = x.x() - v_0.x();
-        point[ 0 ] += constTerm[ 1 ] * x_minus_v_1;
-
-        const auto y_minus_v_0 = x.y() - v_0.y() - h_y;
-        point[ 1 ] += constTerm[ 2 ] * y_minus_v_0;
-        const auto y_minus_v_3 = x.y() - v_0.y();
-        point[ 1 ] += constTerm[ 3 ] * y_minus_v_3;
-
-        const auto z_minus_v_0 = x.z() - v_0.z() - h_z;
-        point[ 2 ] += constTerm[ 4 ] * z_minus_v_0;
-        const auto z_minus_v_4 = x.z() - v_0.z();
-        point[ 2 ] += constTerm[ 5 ] * z_minus_v_4;
+        point[ 2 ] += constTerm[ 4 ] * ( x.z() - v_6.z() );  // bottom
+        point[ 1 ] += constTerm[ 2 ] * ( x.y() - v_6.y() );  // front
+        point[ 0 ] += constTerm[ 1 ] * ( x.x() - v_0.x() );  // right
+        point[ 1 ] += constTerm[ 3 ] * ( x.y() - v_0.y() );  // back
+        point[ 0 ] += constTerm[ 0 ] * ( x.x() - v_6.x() );  // left
+        point[ 2 ] += constTerm[ 5 ] * ( x.z() - v_0.z() );  // top
 
         return point;
     }
