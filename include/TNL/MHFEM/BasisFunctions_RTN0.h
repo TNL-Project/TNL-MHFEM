@@ -41,9 +41,11 @@ struct RTN0< TNL::Meshes::MeshEntity< MeshConfig, Device, CellTopology > >
         const auto cellSize = getEntityMeasure( mesh, entity );
         const CoordinatesType constTerm = coordinates / ( d * cellSize );
         for( typename MeshConfig::LocalIndexType e = 0; e < FacesPerCell< CellType >::value; e++ ) {
-            const auto& v_e = mesh.template getEntity< 0 >( entity.template getSubentityIndex< 0 >( e ) );
-            const PointType x_minus_v_e = x - v_e.getPoint();
-            point += constTerm[ e ] * x_minus_v_e;
+            // In case of an edge cell, vertices and faces are the same, but by the general definition,
+            // here we need to get the *opposite vertex* of the e-th face.
+            const auto v = (MeshType::getMeshDimension() > 1) ? e : 1-e;
+            const auto& v_e = mesh.template getEntity< 0 >( entity.template getSubentityIndex< 0 >( v ) );
+            point += constTerm[ e ] * ( x - v_e.getPoint() );
         }
         return point;
     }
