@@ -89,8 +89,8 @@ setMatrixElements( const MeshType & mesh,
 
     LocalIndex rowElements = 0;
 
-    // TODO: this is divergent in principle, but might be improved
-    for( int j = 0; j < MeshDependentDataType::NumberOfEquations; j++ )
+    // NOTE: the placement of the j-loop depends on the DOF vector ordering
+    //for( int j = 0; j < MeshDependentDataType::NumberOfEquations; j++ )
     {
         LocalIndex g0 = 0;
         LocalIndex g1 = 0;
@@ -103,6 +103,7 @@ setMatrixElements( const MeshType & mesh,
             const LocalIndex f0 = localFaceIndexesK0[ g0 ];
             const LocalIndex f1 = localFaceIndexesK1[ g1 ];
             if( faceIndexesK0[ f0 ] < faceIndexesK1[ f1 ] ) {
+                for( int j = 0; j < MeshDependentDataType::NumberOfEquations; j++ )
                 matrixRow.setElement( rowElements++,
                                       mdd.getDofIndex( j, faceIndexesK0[ f0 ] ),
                                       coeff::A_ijKEF( mdd, i, j, cellIndexes[ 0 ], E, e0, faceIndexesK0[ f0 ], f0 ) );
@@ -110,6 +111,7 @@ setMatrixElements( const MeshType & mesh,
             }
             else if( faceIndexesK0[ f0 ] == faceIndexesK1[ f1 ] ) {
                 TNL_ASSERT( setDiag == false, );
+                for( int j = 0; j < MeshDependentDataType::NumberOfEquations; j++ )
                 matrixRow.setElement( rowElements++,
                                       mdd.getDofIndex( j, faceIndexesK0[ f0 ] ),
                                       coeff::A_ijKEF( mdd, i, j, cellIndexes[ 0 ], E, e0, faceIndexesK0[ f0 ], f0 ) +
@@ -121,6 +123,7 @@ setMatrixElements( const MeshType & mesh,
 #endif
             }
             else {
+                for( int j = 0; j < MeshDependentDataType::NumberOfEquations; j++ )
                 matrixRow.setElement( rowElements++,
                                       mdd.getDofIndex( j, faceIndexesK1[ f1 ] ),
                                       coeff::A_ijKEF( mdd, i, j, cellIndexes[ 1 ], E, e1, faceIndexesK1[ f1 ], f1 ) );
@@ -132,6 +135,7 @@ setMatrixElements( const MeshType & mesh,
 
         while( g0 < MeshDependentDataType::FacesPerCell ) {
             const LocalIndex f0 = localFaceIndexesK0[ g0 ];
+            for( int j = 0; j < MeshDependentDataType::NumberOfEquations; j++ )
             matrixRow.setElement( rowElements++,
                                   mdd.getDofIndex( j, faceIndexesK0[ f0 ] ),
                                   coeff::A_ijKEF( mdd, i, j, cellIndexes[ 0 ], E, e0, faceIndexesK0[ f0 ], f0 ) );
@@ -140,6 +144,7 @@ setMatrixElements( const MeshType & mesh,
 
         while( g1 < MeshDependentDataType::FacesPerCell ) {
             const LocalIndex f1 = localFaceIndexesK1[ g1 ];
+            for( int j = 0; j < MeshDependentDataType::NumberOfEquations; j++ )
             matrixRow.setElement( rowElements++,
                                   mdd.getDofIndex( j, faceIndexesK1[ f1 ] ),
                                   coeff::A_ijKEF( mdd, i, j, cellIndexes[ 1 ], E, e1, faceIndexesK1[ f1 ], f1 ) );
