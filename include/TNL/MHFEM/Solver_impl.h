@@ -403,8 +403,8 @@ preIterate( const RealType time,
             const IndexType & K1 = cellIndexes[ 0 ];
 
             // find local index of face E
-            const auto faceIndexes = getFacesForCell( *_mesh, K1 );
-            const int e = getLocalIndex( faceIndexes, E );
+            const auto faceIndexesK1 = getFacesForCell( *_mesh, K1 );
+            const int e1 = getLocalIndex( faceIndexesK1, E );
 
             RealType m_iE_upw;
 
@@ -416,7 +416,7 @@ preIterate( const RealType time,
                 for( int j = 0; j < MeshDependentDataType::NumberOfEquations; j++ )
                     // Taking the boundary value increases the error, for example in the mcwh3d problem
                     // on cubes, so we need to use _mdd->v_iKe instead of _bc->getNeumannValue
-                    if( _mdd->v_iKe( j, K1, e ) < 0 ) {
+                    if( _mdd->v_iKe( j, K1, e1 ) < 0 ) {
                         inflow = true;
                         break;
                     }
@@ -431,13 +431,18 @@ preIterate( const RealType time,
             }
             else {
                 const IndexType & K2 = cellIndexes[ 1 ];
+                const auto faceIndexesK2 = getFacesForCell( *_mesh, K2 );
+                const int e2 = getLocalIndex( faceIndexesK2, E );
                 // Theoretically, v_iKE is conservative so one might expect that `vel = _mdd->v_iKe( i, K1, e )`
                 // is enough, but there might be numerical errors. Perhaps more importantly, the main equation
                 // might not be based on balancing v_iKE, but some other quantity. We also use a dummy equation
                 // if Q_K is singular, so this has significant effect on the error.
-                const RealType vel = _mdd->v_iKe( i, K1, e ) - _mdd->v_iKe( i, K2, e );
+                const RealType vel = _mdd->v_iKe( i, K1, e1 ) - _mdd->v_iKe( i, K2, e2 );
 
-                if( vel >= 0.0 )
+                if( vel == 0 )
+                    // symmetrized (upwinding should not depend on the order of elements K1 and K2)
+                    m_iE_upw = 0.5 * ( _mdd->m_iK( i, K1 ) + _mdd->m_iK( i, K2 ) );
+                else if( vel > 0 )
                     m_iE_upw = _mdd->m_iK( i, K1 );
                 else
                     m_iE_upw = _mdd->m_iK( i, K2 );
@@ -460,10 +465,10 @@ preIterate( const RealType time,
             const IndexType & K1 = cellIndexes[ 0 ];
 
             // find local index of face E
-            const auto faceIndexes = getFacesForCell( *_mesh, K1 );
-            const int e = getLocalIndex( faceIndexes, E );
+            const auto faceIndexesK1 = getFacesForCell( *_mesh, K1 );
+            const int e1 = getLocalIndex( faceIndexesK1, E );
 
-            const RealType a_plus_u = _mdd->a_ijKe( i, j, K1, e ) + _mdd->u_ijKe( i, j, K1, e );
+            const RealType a_plus_u = _mdd->a_ijKe( i, j, K1, e1 ) + _mdd->u_ijKe( i, j, K1, e1 );
 
             RealType Z_ijE_upw;
 
