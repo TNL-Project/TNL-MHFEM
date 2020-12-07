@@ -14,6 +14,21 @@
 
 namespace mhfem {
 
+#ifdef HAVE_MPI
+template< typename DistributedMesh,
+          std::enable_if_t< (DistributedMesh::getMeshDimension() > 1), bool > = true >
+void distributeFaces( DistributedMesh& mesh )
+{
+    TNL::Meshes::DistributedMeshes::distributeSubentities< DistributedMesh::getMeshDimension() - 1 >( mesh );
+}
+
+template< typename DistributedMesh,
+          std::enable_if_t< DistributedMesh::getMeshDimension() == 1, bool > = true >
+void distributeFaces( DistributedMesh& mesh )
+{
+}
+#endif
+
 template< typename Problem >
 void init( Problem& problem,
            typename Problem::DistributedHostMeshPointer& meshPointer,
@@ -27,7 +42,7 @@ void init( Problem& problem,
         throw std::runtime_error( "failed to load the distributed mesh from file " + meshFile );
 
     // distribute faces
-    TNL::Meshes::DistributedMeshes::distributeSubentities< Problem::DistributedMeshType::getMeshDimension() - 1 >( *meshPointer );
+    distributeFaces( *meshPointer );
 #else
     if( ! TNL::Meshes::loadMesh( meshPointer->getLocalMesh(), meshFile, meshFileFormat ) )
         throw std::runtime_error( "failed to load the mesh from file " + meshFile );
