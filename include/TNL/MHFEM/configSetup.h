@@ -13,7 +13,7 @@ configSetup( TNL::Config::ConfigDescription& config,
     config.addEntry< TNL::String >( "output-directory", "Path to the output directory." );
 
     config.addDelimiter( sectionPrefix + " space discretisation" );
-    config.addEntry< TNL::String >( "mesh", "A file which contains the numerical mesh. You may create it with tools like tnl-grid-setup or tnl-mesh-convert.", "mesh.tnl" );
+    config.addRequiredEntry< TNL::String >( "mesh", "Input mesh file path." );
     config.addEntry< TNL::String >( "mesh-format", "Input mesh file format.", "auto" );
         config.addEntryEnum( "auto" );
         config.addEntryEnum( "vtk" );

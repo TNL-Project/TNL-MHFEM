@@ -51,7 +51,8 @@ struct AdvectiveRowSetter
         for( LocalIndex j = 0; j < MeshDependentData::NumberOfEquations; j++ ) {
             for( LocalIndex g = 0; g < MeshDependentData::FacesPerCell; g++ ) {
                 const LocalIndex f = localFaceIndexes[ g ];
-                matrixRow.setElement( j * MeshDependentData::FacesPerCell + g,
+                // NOTE: the local element index depends on the DOF vector ordering
+                matrixRow.setElement( j + MeshDependentData::NumberOfEquations * g,
                                       mdd.getDofIndex( j, faceIndexes[ f ] ),
                                       coeff::A_ijKEF( mdd, i, j, K, E, e, faceIndexes[ f ], f ) );
             }
@@ -80,7 +81,8 @@ struct AdvectiveRowSetter< TNL::Meshes::Grid< Dimension, MeshReal, Device, MeshI
 
         for( int j = 0; j < MeshDependentData::NumberOfEquations; j++ ) {
             for( int f = 0; f < MeshDependentData::FacesPerCell; f++ ) {
-                matrixRow.setElement( j * MeshDependentData::FacesPerCell + f,
+                // NOTE: the local element index depends on the DOF vector ordering
+                matrixRow.setElement( j + MeshDependentData::NumberOfEquations * f,
                                       mdd.getDofIndex( j, faceIndexes[ f ] ),
                                       coeff::A_ijKEF( mdd, i, j, K, E, e, faceIndexes[ f ], f ) );
             }
@@ -108,7 +110,8 @@ struct FluxRowSetter
         // TODO: the effect of u_ij and a_ij in boundary conditions is still very experimental!
         for( int j = 0; j < MeshDependentData::NumberOfEquations; j++ ) {
             const auto value = matrixRow.getValue( j * MeshDependentData::FacesPerCell + e );
-            matrixRow.setElement( j * MeshDependentData::FacesPerCell + e,
+            // NOTE: the local element index depends on the DOF vector ordering
+            matrixRow.setElement( j + MeshDependentData::NumberOfEquations * e,
                                   mdd.getDofIndex( j, E ),
                                   value - mdd.u_ijKe( i, j, K, e ) - mdd.a_ijKe( i, j, K, e ) );
         }
