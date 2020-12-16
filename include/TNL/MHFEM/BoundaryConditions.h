@@ -3,6 +3,7 @@
 #include <TNL/Containers/Array.h>
 
 #include "BoundaryConditionsType.h"
+#include "BoundaryConditionsStorage.h"
 
 namespace mhfem
 {
@@ -20,8 +21,7 @@ public:
     using TagArrayType = TNL::Containers::Array< BoundaryConditionsType, DeviceType, IndexType >;
     using ValueArrayType = TNL::Containers::Array< RealType, DeviceType, IndexType >;
 
-    bool init( const IndexType numberOfFaces,
-               const TNL::String & fileName );
+    void init( const BoundaryConditionsStorage< RealType > & storage );
 
     __cuda_callable__
     IndexType getLinearSystemRowLength( const MeshType & mesh,

@@ -5,7 +5,6 @@
 #include "BoundaryConditions.h"
 #include "../lib_general/mesh_helpers.h"
 #include "SecondaryCoefficients.h"
-#include "BoundaryConditionsStorage.h"
 
 namespace mhfem
 {
@@ -121,25 +120,13 @@ struct FluxRowSetter
 
 template< typename MeshDependentData,
           typename BoundaryModel >
-bool
+void
 BoundaryConditions< MeshDependentData, BoundaryModel >::
-init( const IndexType numberOfFaces,
-      const TNL::String & fileName )
+init( const BoundaryConditionsStorage< RealType > & storage )
 {
-    BoundaryConditionsStorage< RealType > storage;
-    storage.load( fileName );
-
-    if( MeshDependentDataType::NumberOfEquations * numberOfFaces != storage.dofSize ) {
-        std::cerr << "Wrong dofSize in BoundaryConditionsStorage loaded from file " << fileName << ". Expected " << numberOfFaces
-             << " elements, got " << storage.dofSize << "." << std::endl;
-        return false;
-    }
-
     tags = storage.tags;
     values = storage.values;
     dirichletValues = storage.dirichletValues;
-
-    return true;
 }
 
 template< typename MeshDependentData,

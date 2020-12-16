@@ -200,8 +200,14 @@ setInitialCondition( const TNL::Config::ParameterContainer & parameters )
         path.replace_extension(ext);
         boundaryConditionsFile = path.string();
     }
-    if( ! boundaryConditionsPointer->init( localMeshPointer->template getEntitiesCount< typename MeshType::Face >(), boundaryConditionsFile ) )
+    BoundaryConditionsStorage< RealType > storage;
+    storage.load( boundaryConditionsFile );
+    if( storage.dofSize != getDofs() ) {
+        std::cerr << "Wrong dofSize in BoundaryConditionsStorage loaded from file " << boundaryConditionsFile << ". "
+                  << "Expected " << getDofs() << " elements, got " << storage.dofSize << "." << std::endl;
         return false;
+    }
+    boundaryConditionsPointer->init( storage );
 
     if( parameters.checkParameter( "initial-condition" ) ) {
         const TNL::String & initialConditionFile = parameters.getParameter< TNL::String >( "initial-condition" );
@@ -248,7 +254,7 @@ setInitialCondition( const TNL::Config::ParameterContainer & parameters )
     };
     mdd->Z_iF.forAll( faceAverageKernel );
 
-    mdd->v_iKe.setValue( 0.0 );
+    mdd->v_iKe.setValue( 0 );
 
     return true;
 }
