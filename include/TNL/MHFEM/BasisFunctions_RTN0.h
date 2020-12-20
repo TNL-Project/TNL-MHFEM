@@ -108,11 +108,11 @@ struct RTN0< TNL::Meshes::MeshEntity< MeshConfig, Device, TNL::Meshes::Topologie
         PointType point( 0.0 );
         const CoordinatesType constTerm = coordinates / getEntityMeasure( mesh, entity );
 
-        point[ 2 ] += constTerm[ 4 ] * ( x.z() - v_6.z() );  // bottom
-        point[ 1 ] += constTerm[ 2 ] * ( x.y() - v_6.y() );  // front
-        point[ 0 ] += constTerm[ 1 ] * ( x.x() - v_0.x() );  // right
+        point[ 2 ] += constTerm[ 0 ] * ( x.z() - v_6.z() );  // bottom
+        point[ 1 ] += constTerm[ 1 ] * ( x.y() - v_6.y() );  // front
+        point[ 0 ] += constTerm[ 2 ] * ( x.x() - v_0.x() );  // right
         point[ 1 ] += constTerm[ 3 ] * ( x.y() - v_0.y() );  // back
-        point[ 0 ] += constTerm[ 0 ] * ( x.x() - v_6.x() );  // left
+        point[ 0 ] += constTerm[ 4 ] * ( x.x() - v_6.x() );  // left
         point[ 2 ] += constTerm[ 5 ] * ( x.z() - v_0.z() );  // top
 
         return point;
