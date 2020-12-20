@@ -134,59 +134,6 @@ setup( const TNL::Config::ParameterContainer & parameters,
 template< typename MeshDependentData,
           typename BoundaryModel,
           typename Matrix >
-typename Solver< MeshDependentData, BoundaryModel, Matrix >::IndexType
-Solver< MeshDependentData, BoundaryModel, Matrix >::
-getDofsOffset() const
-{
-    return MeshDependentDataType::NumberOfEquations * facesOffset;
-}
-
-template< typename MeshDependentData,
-          typename BoundaryModel,
-          typename Matrix >
-typename Solver< MeshDependentData, BoundaryModel, Matrix >::IndexType
-Solver< MeshDependentData, BoundaryModel, Matrix >::
-getLocalDofs() const
-{
-    // exclude ghost entities
-    return MeshDependentDataType::NumberOfEquations * localFaces;
-}
-
-template< typename MeshDependentData,
-          typename BoundaryModel,
-          typename Matrix >
-typename Solver< MeshDependentData, BoundaryModel, Matrix >::IndexType
-Solver< MeshDependentData, BoundaryModel, Matrix >::
-getDofs() const
-{
-    // include ghost entities
-    return MeshDependentDataType::NumberOfEquations * localMeshPointer->template getEntitiesCount< typename MeshType::Face >();
-}
-
-template< typename MeshDependentData,
-          typename BoundaryModel,
-          typename Matrix >
-typename Solver< MeshDependentData, BoundaryModel, Matrix >::IndexType
-Solver< MeshDependentData, BoundaryModel, Matrix >::
-getGlobalDofs() const
-{
-    return MeshDependentDataType::NumberOfEquations * globalFaces;
-}
-
-template< typename MeshDependentData,
-          typename BoundaryModel,
-          typename Matrix >
-typename Solver< MeshDependentData, BoundaryModel, Matrix >::MeshDependentDataPointer&
-Solver< MeshDependentData, BoundaryModel, Matrix >::
-getMeshDependentData()
-{
-    return mdd;
-}
-
-
-template< typename MeshDependentData,
-          typename BoundaryModel,
-          typename Matrix >
 bool
 Solver< MeshDependentData, BoundaryModel, Matrix >::
 setInitialCondition( const TNL::Config::ParameterContainer & parameters )
@@ -318,6 +265,91 @@ setupLinearSystem()
     // bind device pointer to the local matrix
     this->localMatrixPointer = LocalMatrixPointer( distributedMatrixPointer->getLocalMatrix() );
 }
+
+
+template< typename MeshDependentData,
+          typename BoundaryModel,
+          typename Matrix >
+typename Solver< MeshDependentData, BoundaryModel, Matrix >::DistributedHostMeshPointer
+Solver< MeshDependentData, BoundaryModel, Matrix >::
+getHostMesh()
+{
+    return distributedHostMeshPointer;
+}
+
+template< typename MeshDependentData,
+          typename BoundaryModel,
+          typename Matrix >
+typename Solver< MeshDependentData, BoundaryModel, Matrix >::DistributedMeshPointer
+Solver< MeshDependentData, BoundaryModel, Matrix >::
+getMesh()
+{
+    return distributedMeshPointer;
+}
+
+template< typename MeshDependentData,
+          typename BoundaryModel,
+          typename Matrix >
+typename Solver< MeshDependentData, BoundaryModel, Matrix >::MeshDependentDataPointer&
+Solver< MeshDependentData, BoundaryModel, Matrix >::
+getMeshDependentData()
+{
+    return mdd;
+}
+
+template< typename MeshDependentData,
+          typename BoundaryModel,
+          typename Matrix >
+typename Solver< MeshDependentData, BoundaryModel, Matrix >::BoundaryConditionsPointer&
+Solver< MeshDependentData, BoundaryModel, Matrix >::
+getBoundaryConditions()
+{
+    return boundaryConditionsPointer;
+}
+
+
+template< typename MeshDependentData,
+          typename BoundaryModel,
+          typename Matrix >
+typename Solver< MeshDependentData, BoundaryModel, Matrix >::IndexType
+Solver< MeshDependentData, BoundaryModel, Matrix >::
+getDofsOffset() const
+{
+    return MeshDependentDataType::NumberOfEquations * facesOffset;
+}
+
+template< typename MeshDependentData,
+          typename BoundaryModel,
+          typename Matrix >
+typename Solver< MeshDependentData, BoundaryModel, Matrix >::IndexType
+Solver< MeshDependentData, BoundaryModel, Matrix >::
+getLocalDofs() const
+{
+    // exclude ghost entities
+    return MeshDependentDataType::NumberOfEquations * localFaces;
+}
+
+template< typename MeshDependentData,
+          typename BoundaryModel,
+          typename Matrix >
+typename Solver< MeshDependentData, BoundaryModel, Matrix >::IndexType
+Solver< MeshDependentData, BoundaryModel, Matrix >::
+getDofs() const
+{
+    // include ghost entities
+    return MeshDependentDataType::NumberOfEquations * localMeshPointer->template getEntitiesCount< typename MeshType::Face >();
+}
+
+template< typename MeshDependentData,
+          typename BoundaryModel,
+          typename Matrix >
+typename Solver< MeshDependentData, BoundaryModel, Matrix >::IndexType
+Solver< MeshDependentData, BoundaryModel, Matrix >::
+getGlobalDofs() const
+{
+    return MeshDependentDataType::NumberOfEquations * globalFaces;
+}
+
 
 template< typename MeshDependentData,
           typename BoundaryModel,
