@@ -138,23 +138,39 @@ bool
 Solver< MeshDependentData, BoundaryModel, Matrix >::
 setInitialCondition( const TNL::Config::ParameterContainer & parameters )
 {
-    std::string boundaryConditionsFile = parameters.getParameter< std::string >( "boundary-conditions-file" );
-    if( DistributedMeshType::CommunicatorType::GetSize() > 1 ) {
-        namespace fs = std::experimental::filesystem;
-        fs::path path( boundaryConditionsFile );
-        std::string ext = path.extension();
-        ext = "." + std::to_string( DistributedMeshType::CommunicatorType::GetRank() ) + ext;
-        path.replace_extension(ext);
-        boundaryConditionsFile = path.string();
+    if( parameters.checkParameter( "boundary-conditions-file" ) ) {
+        std::string boundaryConditionsFile = parameters.getParameter< std::string >( "boundary-conditions-file" );
+        if( DistributedMeshType::CommunicatorType::GetSize() > 1 ) {
+            namespace fs = std::experimental::filesystem;
+            fs::path path( boundaryConditionsFile );
+            std::string ext = path.extension();
+            ext = "." + std::to_string( DistributedMeshType::CommunicatorType::GetRank() ) + ext;
+            path.replace_extension(ext);
+            boundaryConditionsFile = path.string();
+        }
+        BoundaryConditionsStorage< RealType > storage;
+        storage.load( boundaryConditionsFile );
+        if( storage.dofSize != getDofs() ) {
+            std::cerr << "Wrong dofSize in BoundaryConditionsStorage loaded from file " << boundaryConditionsFile << ". "
+                      << "Expected " << getDofs() << " elements, got " << storage.dofSize << "." << std::endl;
+            return false;
+        }
+        boundaryConditionsPointer->init( storage );
     }
-    BoundaryConditionsStorage< RealType > storage;
-    storage.load( boundaryConditionsFile );
-    if( storage.dofSize != getDofs() ) {
-        std::cerr << "Wrong dofSize in BoundaryConditionsStorage loaded from file " << boundaryConditionsFile << ". "
-                  << "Expected " << getDofs() << " elements, got " << storage.dofSize << "." << std::endl;
-        return false;
+    else {
+        // default boundary conditions (zero Dirichlet), without this calling setupLinearSystem would fail
+        // (e.g. the coupled solver calls setInitialCondition first without boundary-conditions-file, but
+        // then sets different boundary conditions properly)
+        BoundaryConditionsStorage< RealType > storage;
+        storage.dofSize = getDofs();
+        storage.tags.setSize( getDofs() );
+        storage.values.setSize( getDofs() );
+        storage.dirichletValues.setSize( getDofs() );
+        storage.tags.setValue( BoundaryConditionsType::FixedValue );
+        storage.values.setValue( 0 );
+        storage.dirichletValues.setValue( 0 );
+        boundaryConditionsPointer->init( storage );
     }
-    boundaryConditionsPointer->init( storage );
 
     if( parameters.checkParameter( "initial-condition" ) ) {
         const TNL::String & initialConditionFile = parameters.getParameter< TNL::String >( "initial-condition" );
