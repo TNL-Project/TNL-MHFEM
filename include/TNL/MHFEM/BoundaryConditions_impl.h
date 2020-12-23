@@ -6,11 +6,51 @@
 #include "../lib_general/mesh_helpers.h"
 #include "SecondaryCoefficients.h"
 
-namespace mhfem
-{
+namespace mhfem {
 
-template< typename Mesh, typename MeshDependentData >
-struct AdvectiveRowSetter
+template< typename MeshDependentData >
+struct AdditionalTerms_AdvectiveOutflow
+{
+    using RealType = typename MeshDependentData::RealType;
+    using IndexType = typename MeshDependentData::IndexType;
+
+    __cuda_callable__
+    static RealType
+    T_ijKef( const MeshDependentData & mdd,
+             const int i,
+             const int j,
+             const IndexType K,
+             const int e,
+             const int f )
+    {
+        return 0;
+    }
+};
+
+template< typename MeshDependentData >
+struct AdditionalTerms_FixedFlux
+{
+    using RealType = typename MeshDependentData::RealType;
+    using IndexType = typename MeshDependentData::IndexType;
+
+    __cuda_callable__
+    static RealType
+    T_ijKef( const MeshDependentData & mdd,
+             const int i,
+             const int j,
+             const IndexType K,
+             const int e,
+             const int f )
+    {
+        if( e == f )
+            // TODO: the effect of u_ij and a_ij in boundary conditions is still very experimental!
+            return - mdd.u_ijKe( i, j, K, e ) - mdd.a_ijKe( i, j, K, e );
+        return 0;
+    }
+};
+
+template< typename Mesh, typename MeshDependentData, typename AdditionalTerms >
+struct RowSetter
 {
     template< typename MatrixRow, typename FaceIndexes, typename IndexType >
     __cuda_callable__
@@ -53,7 +93,7 @@ struct AdvectiveRowSetter
                 // NOTE: the local element index depends on the DOF vector ordering
                 matrixRow.setElement( j + MeshDependentData::NumberOfEquations * g,
                                       mdd.getDofIndex( j, faceIndexes[ f ] ),
-                                      coeff::A_ijKEF( mdd, i, j, K, E, e, faceIndexes[ f ], f ) );
+                                      coeff::A_ijKEF( mdd, i, j, K, E, e, faceIndexes[ f ], f ) + AdditionalTerms::T_ijKef( mdd, i, j, K, e, f ) );
             }
         }
     }
@@ -63,8 +103,9 @@ template< int Dimension,
           typename MeshReal,
           typename Device,
           typename MeshIndex,
-          typename MeshDependentData >
-struct AdvectiveRowSetter< TNL::Meshes::Grid< Dimension, MeshReal, Device, MeshIndex >, MeshDependentData >
+          typename MeshDependentData,
+          typename AdditionalTerms >
+struct RowSetter< TNL::Meshes::Grid< Dimension, MeshReal, Device, MeshIndex >, MeshDependentData, AdditionalTerms >
 {
     template< typename MatrixRow, typename FaceIndexes, typename IndexType >
     __cuda_callable__
@@ -83,36 +124,8 @@ struct AdvectiveRowSetter< TNL::Meshes::Grid< Dimension, MeshReal, Device, MeshI
                 // NOTE: the local element index depends on the DOF vector ordering
                 matrixRow.setElement( j + MeshDependentData::NumberOfEquations * f,
                                       mdd.getDofIndex( j, faceIndexes[ f ] ),
-                                      coeff::A_ijKEF( mdd, i, j, K, E, e, faceIndexes[ f ], f ) );
+                                      coeff::A_ijKEF( mdd, i, j, K, E, e, faceIndexes[ f ], f ) + AdditionalTerms::T_ijKef( mdd, i, j, K, e, f ) );
             }
-        }
-    }
-};
-
-
-template< typename Mesh, typename MeshDependentData >
-struct FluxRowSetter
-{
-    template< typename MatrixRow, typename FaceIndexes, typename IndexType >
-    __cuda_callable__
-    static void setRow( MatrixRow & matrixRow,
-                        const MeshDependentData & mdd,
-                        const FaceIndexes & faceIndexes,
-                        const int i,
-                        const IndexType K,
-                        const IndexType E,
-                        const int e )
-    {
-        AdvectiveRowSetter< Mesh, MeshDependentData >::setRow( matrixRow, mdd, faceIndexes, i, K, E, e );
-
-        // modify the diagonal elements in each j-block
-        // TODO: the effect of u_ij and a_ij in boundary conditions is still very experimental!
-        for( int j = 0; j < MeshDependentData::NumberOfEquations; j++ ) {
-            const auto value = matrixRow.getValue( j * MeshDependentData::FacesPerCell + e );
-            // NOTE: the local element index depends on the DOF vector ordering
-            matrixRow.setElement( j + MeshDependentData::NumberOfEquations * e,
-                                  mdd.getDofIndex( j, E ),
-                                  value - mdd.u_ijKe( i, j, K, e ) - mdd.a_ijKe( i, j, K, e ) );
         }
     }
 };
@@ -209,7 +222,7 @@ setMatrixElements( const MeshType & mesh,
             b[ rowIndex ] = bValue;
 
             // set non-zero elements
-            FluxRowSetter< MeshType, MeshDependentDataType >::
+            RowSetter< MeshType, MeshDependentDataType, AdditionalTerms_FixedFlux< MeshDependentDataType > >::
                 setRow( matrixRow,
                         mdd,
                         faceIndexes,
@@ -246,7 +259,7 @@ setMatrixElements( const MeshType & mesh,
             b[ rowIndex ] = bValue;
 
             // set non-zero elements
-            AdvectiveRowSetter< MeshType, MeshDependentDataType >::
+            RowSetter< MeshType, MeshDependentDataType, AdditionalTerms_AdvectiveOutflow< MeshDependentDataType > >::
                 setRow( matrixRow,
                         mdd,
                         faceIndexes,
