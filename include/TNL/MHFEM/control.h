@@ -153,7 +153,8 @@ void writeProlog( TNL::Logger& logger, bool writeSystemInformation = true )
     const bool printGPUs = std::is_same< typename Problem::DeviceType, TNL::Devices::Cuda >::value;
 
     logger.writeHeader( Problem::getPrologHeader() );
-    logger.writeParameter< TNL::String >( "Real type:",     TNL::getType< typename Problem::RealType >() );
+    if( TNL::Communicators::MpiCommunicator::IsInitialized() )
+        logger.writeParameter( "MPI processes:", TNL::Communicators::MpiCommunicator::GetSize() );
     logger.writeParameter< TNL::String >( "Device type:",   TNL::getType< typename Problem::DeviceType >() );
     if( ! printGPUs ) {
         if( TNL::Devices::Host::isOMPEnabled() ) {
@@ -163,6 +164,7 @@ void writeProlog( TNL::Logger& logger, bool writeSystemInformation = true )
         else
             logger.writeParameter< TNL::String >( "OMP enabled:", "no", 1 );
     }
+    logger.writeParameter< TNL::String >( "Real type:",     TNL::getType< typename Problem::RealType >() );
     logger.writeParameter< TNL::String >( "Index type:",    TNL::getType< typename Problem::IndexType >() );
     logger.writeParameter< TNL::String >( "Mesh type:",     TNL::getType< typename Problem::MeshType >() );
     logger.writeParameter< TNL::String >( "Sparse matrix:", TNL::getType< typename Problem::MatrixType >() );
