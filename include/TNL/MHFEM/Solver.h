@@ -122,7 +122,7 @@ protected:
                // postIterate
                timer_explicit, timer_velocities, timer_model_postIterate,
                // MPI synchronization
-               timer_mpi_upwind, timer_mpi;
+               timer_mpi_upwind;
 
     DistributedHostMeshPointer distributedHostMeshPointer = nullptr;
     DistributedMeshPointer distributedMeshPointer = nullptr;

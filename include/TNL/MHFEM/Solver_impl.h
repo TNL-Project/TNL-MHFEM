@@ -4,6 +4,7 @@
 
 #include <TNL/Meshes/Readers/getMeshReader.h>
 #include <TNL/Matrices/StaticMatrix.h>
+#include <TNL/MPI/Wrappers.h>
 
 #include "../lib_general/mesh_helpers.h"
 #include "Solver.h"
@@ -47,7 +48,7 @@ setMesh( DistributedHostMeshPointer & meshPointer )
     localFaces = localMeshPointer->template getGhostEntitiesOffset< MeshType::getMeshDimension() - 1 >();
     localCells = localMeshPointer->template getGhostEntitiesOffset< MeshType::getMeshDimension() >();
 
-    if( DistributedMeshType::CommunicatorType::isDistributed() ) {
+    if( TNL::MPI::GetSize() > 1 ) {
         // initialize the synchronizer
         faceSynchronizer = std::make_shared< FaceSynchronizerType >();
         faceSynchronizer->initialize( *distributedMeshPointer );
@@ -55,11 +56,11 @@ setMesh( DistributedHostMeshPointer & meshPointer )
         facesOffset = distributedMeshPointer->template getGlobalIndices< MeshType::getMeshDimension() - 1 >().getElement( 0 );
 
         const IndexType maxFaceIndex = distributedMeshPointer->template getGlobalIndices< MeshType::getMeshDimension() - 1 >().getElement( localMeshPointer->template getGhostEntitiesOffset< MeshType::getMeshDimension() - 1 >() - 1 );
-        DistributedMeshType::CommunicatorType::Allreduce( &maxFaceIndex, &this->globalFaces, 1, MPI_MAX, distributedMeshPointer->getCommunicationGroup() );
+        TNL::MPI::Allreduce( &maxFaceIndex, &this->globalFaces, 1, MPI_MAX, distributedMeshPointer->getCommunicationGroup() );
         ++this->globalFaces;
 
         const IndexType maxCellIndex = distributedMeshPointer->template getGlobalIndices< MeshType::getMeshDimension() >().getElement( localMeshPointer->template getGhostEntitiesOffset< MeshType::getMeshDimension() >() - 1 );
-        DistributedMeshType::CommunicatorType::Allreduce( &maxCellIndex, &this->globalCells, 1, MPI_MAX, distributedMeshPointer->getCommunicationGroup() );
+        TNL::MPI::Allreduce( &maxCellIndex, &this->globalCells, 1, MPI_MAX, distributedMeshPointer->getCommunicationGroup() );
         ++this->globalCells;
     }
     else {
@@ -126,7 +127,14 @@ setup( const TNL::Config::ParameterContainer & parameters,
     timer_velocities.reset();
     timer_model_postIterate.reset();
     timer_mpi_upwind.reset();
-    timer_mpi.reset();
+
+    TNL::MPI::getTimerAllreduce().reset();
+    if( TNL::MPI::GetSize() > 1 ) {
+        faceSynchronizer->async_ops_count = 0;
+        faceSynchronizer->async_wait_before_start_timer.reset();
+        faceSynchronizer->async_start_timer.reset();
+        faceSynchronizer->async_wait_timer.reset();
+    }
 
     return true;
 }
@@ -140,11 +148,11 @@ setInitialCondition( const TNL::Config::ParameterContainer & parameters )
 {
     if( parameters.checkParameter( "boundary-conditions-file" ) ) {
         std::string boundaryConditionsFile = parameters.getParameter< std::string >( "boundary-conditions-file" );
-        if( DistributedMeshType::CommunicatorType::GetSize() > 1 ) {
+        if( TNL::MPI::GetSize() > 1 ) {
             namespace fs = std::experimental::filesystem;
             fs::path path( boundaryConditionsFile );
             std::string ext = path.extension();
-            ext = "." + std::to_string( DistributedMeshType::CommunicatorType::GetRank() ) + ext;
+            ext = "." + std::to_string( TNL::MPI::GetRank() ) + ext;
             path.replace_extension(ext);
             boundaryConditionsFile = path.string();
         }
@@ -551,7 +559,7 @@ preIterate( const RealType time,
     timer_upwind.stop();
 
     // synchronize the upwinded quantities
-    if( DistributedMeshType::CommunicatorType::isDistributed() )
+    if( TNL::MPI::GetSize() > 1 )
     {
         timer_mpi_upwind.start();
 
@@ -761,6 +769,7 @@ solveLinearSystem( TNL::Solvers::IterativeSolverMonitor< RealType, IndexType >* 
     dist_rhs.setSynchronizer( faceSynchronizer, MeshDependentDataType::NumberOfEquations );
     dist_rhs.startSynchronization();
 
+    // NOTE: the dist_dofs vector will be synchronized by the solver, so we do not have to use faceSynchronizer again
     const bool converged = linearSystemSolver->solve( dist_rhs, dist_dofs );
     allIterations += linearSystemSolver->getIterations();
     timer_linearSolver.stop();
@@ -770,18 +779,6 @@ solveLinearSystem( TNL::Solvers::IterativeSolverMonitor< RealType, IndexType >* 
         // TODO: save the distributed system
         saveLinearSystem( distributedMatrixPointer->getLocalMatrix(), dofs_view, rhsVector );
         throw std::runtime_error( "MHFEM error: the linear system solver did not converge (" + std::to_string(linearSystemSolver->getIterations()) + " iterations)." );
-    }
-
-    // synchronize the result
-    if( DistributedMeshType::CommunicatorType::isDistributed() )
-    {
-        timer_mpi.start();
-
-        // NOTE: this is specific to the dofs ordering
-        auto dofs_view = mdd->Z_iF.getStorageArray().getView();
-        faceSynchronizer->synchronizeArray( dofs_view, MeshDependentDataType::NumberOfEquations );
-
-        timer_mpi.stop();
     }
 }
 
@@ -859,11 +856,24 @@ writeEpilog( TNL::Logger & logger ) const
     logger.writeParameter< double >( "Linear system assembler time:", timer_assembleLinearSystem.getRealTime() );
     logger.writeParameter< double >( "Linear preconditioner update time:", timer_linearPreconditioner.getRealTime() );
     logger.writeParameter< double >( "Linear system solver time:", timer_linearSolver.getRealTime() );
-    logger.writeParameter< double >( "MPI synchronization time:", timer_mpi.getRealTime() );
+    if( TNL::MPI::GetSize() > 1 ) {
+        const double total_mpi_time = faceSynchronizer->async_wait_before_start_timer.getRealTime()
+                                    + faceSynchronizer->async_start_timer.getRealTime()
+                                    + faceSynchronizer->async_wait_timer.getRealTime();
+        logger.writeParameter< std::size_t >( "  MPI synchronizations count:", faceSynchronizer->async_ops_count );
+        logger.writeParameter< double >( "  MPI synchronization time:", total_mpi_time );
+        logger.writeParameter< double >( "    async wait before start time:", faceSynchronizer->async_wait_before_start_timer.getRealTime() );
+        logger.writeParameter< double >( "    async start time:", faceSynchronizer->async_start_timer.getRealTime() );
+        logger.writeParameter< double >( "    async wait time:", faceSynchronizer->async_wait_timer.getRealTime() );
+    }
     logger.writeParameter< double >( "Post-iterate time:", timer_postIterate.getRealTime() );
     logger.writeParameter< double >( "  Z_iF -> Z_iK update time:", timer_explicit.getRealTime() );
     logger.writeParameter< double >( "  velocities update time:", timer_velocities.getRealTime() );
     logger.writeParameter< double >( "  model post-iterate time:", timer_model_postIterate.getRealTime() );
+    if( TNL::MPI::GetSize() > 1 ) {
+        logger.writeParameter< std::string >( "MPI operations (included in the previous phases):", "" );
+        logger.writeParameter< double >( "  MPI_Allreduce time:", TNL::MPI::getTimerAllreduce().getRealTime() );
+    }
 }
 
 } // namespace mhfem

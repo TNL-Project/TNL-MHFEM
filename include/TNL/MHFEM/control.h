@@ -37,8 +37,7 @@ void init( Problem& problem,
     const TNL::String meshFile = parameters.getParameter< TNL::String >( "mesh" );
     const TNL::String meshFileFormat = parameters.getParameter< TNL::String >( "mesh-format" );
 #ifdef HAVE_MPI
-    if( ! TNL::Meshes::loadDistributedMesh< typename Problem::DistributedHostMeshType::CommunicatorType >
-            ( meshPointer->getLocalMesh(), *meshPointer, meshFile, meshFileFormat ) )
+    if( ! TNL::Meshes::loadDistributedMesh( meshPointer->getLocalMesh(), *meshPointer, meshFile, meshFileFormat ) )
         throw std::runtime_error( "failed to load the distributed mesh from file " + meshFile );
 
     // distribute faces
@@ -153,8 +152,8 @@ void writeProlog( TNL::Logger& logger, bool writeSystemInformation = true )
     const bool printGPUs = std::is_same< typename Problem::DeviceType, TNL::Devices::Cuda >::value;
 
     logger.writeHeader( Problem::getPrologHeader() );
-    if( TNL::Communicators::MpiCommunicator::IsInitialized() )
-        logger.writeParameter( "MPI processes:", TNL::Communicators::MpiCommunicator::GetSize() );
+    if( TNL::MPI::isInitialized() )
+        logger.writeParameter( "MPI processes:", TNL::MPI::GetSize() );
     logger.writeParameter< TNL::String >( "Device type:",   TNL::getType< typename Problem::DeviceType >() );
     if( ! printGPUs ) {
         if( TNL::Devices::Host::isOMPEnabled() ) {
@@ -246,7 +245,7 @@ bool execute( const TNL::Config::ParameterContainer& controlParameters,
         writeProlog< Problem >( logger );
 
         // make sure that only the master rank has enabled monitor thread
-        if( TNL::Communicators::MpiCommunicator::isDistributed() && TNL::Communicators::MpiCommunicator::GetRank() > 0 )
+        if( TNL::MPI::GetRank() > 0 )
             solverMonitor.stopMainLoop();
 
         // create solver monitor thread
