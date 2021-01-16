@@ -20,7 +20,9 @@ struct AdditionalTerms_AdvectiveOutflow
              const int i,
              const int j,
              const IndexType K,
+             const IndexType E,
              const int e,
+             const IndexType F,
              const int f )
     {
         return 0;
@@ -39,12 +41,14 @@ struct AdditionalTerms_FixedFlux
              const int i,
              const int j,
              const IndexType K,
+             const IndexType E,
              const int e,
+             const IndexType F,
              const int f )
     {
         if( e == f )
             // TODO: the effect of u_ij and a_ij in boundary conditions is still very experimental!
-            return - mdd.u_ijKe( i, j, K, e ) - mdd.a_ijKe( i, j, K, e );
+            return - mdd.Z_ijE_upw( i, j, E ) * ( mdd.u_ijKe( i, j, K, e ) + mdd.a_ijKe( i, j, K, e ) );
         return 0;
     }
 };
@@ -93,7 +97,7 @@ struct RowSetter
                 // NOTE: the local element index depends on the DOF vector ordering
                 matrixRow.setElement( j + MeshDependentData::NumberOfEquations * g,
                                       mdd.getDofIndex( j, faceIndexes[ f ] ),
-                                      coeff::A_ijKEF( mdd, i, j, K, E, e, faceIndexes[ f ], f ) + AdditionalTerms::T_ijKef( mdd, i, j, K, e, f ) );
+                                      coeff::A_ijKEF( mdd, i, j, K, E, e, faceIndexes[ f ], f ) + AdditionalTerms::T_ijKef( mdd, i, j, K, E, e, faceIndexes[ f ], f ) );
             }
         }
     }
@@ -124,7 +128,7 @@ struct RowSetter< TNL::Meshes::Grid< Dimension, MeshReal, Device, MeshIndex >, M
                 // NOTE: the local element index depends on the DOF vector ordering
                 matrixRow.setElement( j + MeshDependentData::NumberOfEquations * f,
                                       mdd.getDofIndex( j, faceIndexes[ f ] ),
-                                      coeff::A_ijKEF( mdd, i, j, K, E, e, faceIndexes[ f ], f ) + AdditionalTerms::T_ijKef( mdd, i, j, K, e, f ) );
+                                      coeff::A_ijKEF( mdd, i, j, K, E, e, faceIndexes[ f ], f ) + AdditionalTerms::T_ijKef( mdd, i, j, K, E, e, faceIndexes[ f ], f ) );
             }
         }
     }
