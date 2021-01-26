@@ -55,6 +55,7 @@ public:
 
     static TNL::String getPrologHeader();
 
+    // initialization methods
     void setMesh( DistributedHostMeshPointer & meshPointer );
 
     bool setup( const TNL::Config::ParameterContainer & parameters,
@@ -64,9 +65,16 @@ public:
 
     void setupLinearSystem();
 
-    void makeSnapshot( const RealType time,
-                       const IndexType step );
+    // getters for internal components (used e.g. for coupling)
+    DistributedHostMeshPointer getHostMesh();
 
+    DistributedMeshPointer getMesh();
+
+    MeshDependentDataPointer& getMeshDependentData();
+
+    BoundaryConditionsPointer& getBoundaryConditions();
+
+    // index getters
     IndexType getDofsOffset() const;
 
     IndexType getLocalDofs() const;
@@ -75,7 +83,9 @@ public:
 
     IndexType getGlobalDofs() const;
 
-    MeshDependentDataPointer& getMeshDependentData();
+    // main solver methods (used from the functions in control.h)
+    void makeSnapshot( const RealType time,
+                       const IndexType step );
 
     void preIterate( const RealType time,
                      const RealType tau );
@@ -112,7 +122,7 @@ protected:
                // postIterate
                timer_explicit, timer_velocities, timer_model_postIterate,
                // MPI synchronization
-               timer_mpi_upwind, timer_mpi;
+               timer_mpi_upwind;
 
     DistributedHostMeshPointer distributedHostMeshPointer = nullptr;
     DistributedMeshPointer distributedMeshPointer = nullptr;
