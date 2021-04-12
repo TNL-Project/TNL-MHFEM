@@ -4,9 +4,9 @@
 #include <TNL/Config/ConfigDescription.h>
 #include <TNL/Solvers/IterativeSolverMonitor.h>
 #include <TNL/Pointers/SmartPointersRegister.h>
-#include <TNL/Meshes/TypeResolver/TypeResolver.h>
+#include <TNL/Meshes/TypeResolver/resolveMeshType.h>
 #ifdef HAVE_MPI
-#include <TNL/Meshes/DistributedMeshes/loadDistributedMesh.h>
+#include <TNL/Meshes/TypeResolver/resolveDistributedMeshType.h>
 #include <TNL/Meshes/DistributedMeshes/distributeSubentities.h>
 #endif
 
