@@ -1,7 +1,6 @@
 #pragma once
 
 #include <TNL/Config/ParameterContainer.h>
-#include <TNL/Config/ConfigDescription.h>
 #include <TNL/Solvers/IterativeSolverMonitor.h>
 #include <TNL/Pointers/SmartPointersRegister.h>
 #include <TNL/Meshes/TypeResolver/resolveMeshType.h>
@@ -205,8 +204,7 @@ void writeEpilog( TNL::Logger& logger,
 
 template< typename Problem >
 bool execute( const TNL::Config::ParameterContainer& controlParameters,
-              const TNL::Config::ParameterContainer& solverParameters,
-              const TNL::Config::ConfigDescription& solverConfigDescription )
+              const TNL::Config::ParameterContainer& solverParameters )
 {
     TNL::Timer totalTimer, computeTimer, ioTimer;
     totalTimer.start();
