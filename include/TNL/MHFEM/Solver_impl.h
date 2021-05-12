@@ -331,6 +331,16 @@ getBoundaryConditions()
     return boundaryConditionsPointer;
 }
 
+template< typename MeshDependentData,
+          typename BoundaryModel,
+          typename Matrix >
+std::shared_ptr< typename Solver< MeshDependentData, BoundaryModel, Matrix >::FaceSynchronizerType >&
+Solver< MeshDependentData, BoundaryModel, Matrix >::
+getFaceSynchronizer()
+{
+    return faceSynchronizer;
+}
+
 
 template< typename MeshDependentData,
           typename BoundaryModel,

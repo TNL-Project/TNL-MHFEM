@@ -53,6 +53,8 @@ public:
     using DistributedMatrixType = TNL::Matrices::DistributedMatrix< Matrix >;
     using DistributedMatrixPointer = TNL::Pointers::SharedPointer< DistributedMatrixType >;
 
+    using FaceSynchronizerType = TNL::Meshes::DistributedMeshes::DistributedMeshSynchronizer< DistributedMeshType, MeshType::getMeshDimension() - 1 >;
+
     static TNL::String getPrologHeader();
 
     // initialization methods
@@ -73,6 +75,8 @@ public:
     MeshDependentDataPointer& getMeshDependentData();
 
     BoundaryConditionsPointer& getBoundaryConditions();
+
+    std::shared_ptr<FaceSynchronizerType>& getFaceSynchronizer();
 
     // index getters
     IndexType getDofsOffset() const;
@@ -151,7 +155,6 @@ protected:
     LocalMeshPointer localMeshPointer = nullptr;
     LocalMatrixPointer localMatrixPointer = nullptr;
 
-    using FaceSynchronizerType = TNL::Meshes::DistributedMeshes::DistributedMeshSynchronizer< DistributedMeshType, MeshType::getMeshDimension() - 1 >;
     std::shared_ptr< FaceSynchronizerType > faceSynchronizer;
 };
 
