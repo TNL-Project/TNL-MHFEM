@@ -45,10 +45,17 @@ setMesh( DistributedHostMeshPointer & meshPointer )
     // allocate mesh dependent data
     mdd->allocate( *localMeshPointer );
 
-    localFaces = localMeshPointer->template getGhostEntitiesOffset< MeshType::getMeshDimension() - 1 >();
-    localCells = localMeshPointer->template getGhostEntitiesOffset< MeshType::getMeshDimension() >();
+    if( distributedMeshPointer->getCommunicationGroup() != TNL::MPI::NullGroup() ) {
+        localFaces = localMeshPointer->template getGhostEntitiesOffset< MeshType::getMeshDimension() - 1 >();
+        localCells = localMeshPointer->template getGhostEntitiesOffset< MeshType::getMeshDimension() >();
+    }
+    else {
+        localFaces = localCells = 0;
+    }
 
-    if( TNL::MPI::GetSize() > 1 ) {
+    if( distributedMeshPointer->getCommunicationGroup() != TNL::MPI::NullGroup()
+        && TNL::MPI::GetSize( distributedMeshPointer->getCommunicationGroup() ) > 1 )
+    {
         // initialize the synchronizer
         faceSynchronizer = std::make_shared< FaceSynchronizerType >();
         faceSynchronizer->initialize( *distributedMeshPointer );
@@ -129,7 +136,9 @@ setup( const TNL::Config::ParameterContainer & parameters,
     timer_mpi_upwind.reset();
 
     TNL::MPI::getTimerAllreduce().reset();
-    if( TNL::MPI::GetSize() > 1 ) {
+    if( distributedMeshPointer->getCommunicationGroup() != TNL::MPI::NullGroup()
+        && TNL::MPI::GetSize( distributedMeshPointer->getCommunicationGroup() ) > 1 )
+    {
         faceSynchronizer->async_ops_count = 0;
         faceSynchronizer->async_wait_before_start_timer.reset();
         faceSynchronizer->async_start_timer.reset();
@@ -237,6 +246,9 @@ void
 Solver< MeshDependentData, BoundaryModel, Matrix >::
 setupLinearSystem()
 {
+    if( distributedMeshPointer->getCommunicationGroup() == TNL::MPI::NullGroup() )
+        return;
+
     using CompressedRowLengths =
         TNL::Containers::NDArray< IndexType,
                                   TNL::Containers::SizesHolder< IndexType, MeshDependentDataType::NumberOfEquations, 0 >,  // i, F
@@ -276,7 +288,7 @@ setupLinearSystem()
     const IndexType localDofs = this->getLocalDofs();
     const IndexType dofs = this->getDofs();
     const IndexType globalDofs = this->getGlobalDofs();
-    distributedMatrixPointer->setDistribution( {offset, offset + localDofs}, globalDofs, dofs );
+    distributedMatrixPointer->setDistribution( {offset, offset + localDofs}, globalDofs, dofs, distributedMeshPointer->getCommunicationGroup() );
     TNL::Containers::DistributedVectorView< IndexType, DeviceType, IndexType > dist_rowLengths( {offset, offset + localDofs}, 0, globalDofs, distributedMatrixPointer->getCommunicationGroup(), rowLengths_vector );
     distributedMatrixPointer->setRowCapacities( dist_rowLengths );
 
@@ -569,7 +581,8 @@ preIterate( const RealType time,
     timer_upwind.stop();
 
     // synchronize the upwinded quantities
-    if( TNL::MPI::GetSize() > 1 )
+    if( distributedMeshPointer->getCommunicationGroup() != TNL::MPI::NullGroup()
+        && TNL::MPI::GetSize( distributedMeshPointer->getCommunicationGroup() ) > 1 )
     {
         timer_mpi_upwind.start();
 
@@ -703,6 +716,9 @@ Solver< MeshDependentData, BoundaryModel, Matrix >::
 assembleLinearSystem( const RealType time,
                       const RealType tau )
 {
+    if( distributedMeshPointer->getCommunicationGroup() == TNL::MPI::NullGroup() )
+        return;
+
     timer_assembleLinearSystem.start();
 
     const auto* _mesh = &localMeshPointer.template getData< DeviceType >();
@@ -756,6 +772,9 @@ void
 Solver< MeshDependentData, BoundaryModel, Matrix >::
 solveLinearSystem( TNL::Solvers::IterativeSolverMonitor< RealType, IndexType >* solverMonitor )
 {
+    if( distributedMeshPointer->getCommunicationGroup() == TNL::MPI::NullGroup() )
+        return;
+
     if( solverMonitor )
         linearSystemSolver->setSolverMonitor( *solverMonitor );
 
@@ -866,7 +885,9 @@ writeEpilog( TNL::Logger & logger ) const
     logger.writeParameter< double >( "Linear system assembler time:", timer_assembleLinearSystem.getRealTime() );
     logger.writeParameter< double >( "Linear preconditioner update time:", timer_linearPreconditioner.getRealTime() );
     logger.writeParameter< double >( "Linear system solver time:", timer_linearSolver.getRealTime() );
-    if( TNL::MPI::GetSize() > 1 ) {
+    if( distributedMeshPointer->getCommunicationGroup() != TNL::MPI::NullGroup()
+        && TNL::MPI::GetSize( distributedMeshPointer->getCommunicationGroup() ) > 1 )
+    {
         const double total_mpi_time = faceSynchronizer->async_wait_before_start_timer.getRealTime()
                                     + faceSynchronizer->async_start_timer.getRealTime()
                                     + faceSynchronizer->async_wait_timer.getRealTime();
