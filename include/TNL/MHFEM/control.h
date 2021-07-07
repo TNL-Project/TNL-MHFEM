@@ -36,7 +36,7 @@ void init( Problem& problem,
     const TNL::String meshFile = parameters.getParameter< TNL::String >( "mesh" );
     const TNL::String meshFileFormat = parameters.getParameter< TNL::String >( "mesh-format" );
 #ifdef HAVE_MPI
-    if( ! TNL::Meshes::loadDistributedMesh( meshPointer->getLocalMesh(), *meshPointer, meshFile, meshFileFormat ) )
+    if( ! TNL::Meshes::loadDistributedMesh( *meshPointer, meshFile, meshFileFormat ) )
         throw std::runtime_error( "failed to load the distributed mesh from file " + meshFile );
 
     if( meshPointer->getCommunicationGroup() != TNL::MPI::NullGroup() )
