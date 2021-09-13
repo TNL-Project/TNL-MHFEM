@@ -39,13 +39,13 @@ void init( Problem& problem,
     if( ! TNL::Meshes::loadDistributedMesh( *meshPointer, meshFile, meshFileFormat ) )
         throw std::runtime_error( "failed to load the distributed mesh from file " + meshFile );
 
-    if( meshPointer->getCommunicationGroup() != TNL::MPI::NullGroup() )
+    if( meshPointer->getCommunicator() != MPI_COMM_NULL )
         // distribute faces
         distributeFaces( *meshPointer );
 #else
     if( ! TNL::Meshes::loadMesh( meshPointer->getLocalMesh(), meshFile, meshFileFormat ) )
         throw std::runtime_error( "failed to load the mesh from file " + meshFile );
-    meshPointer->setCommunicationGroup( TNL::MPI::AllGroup() );
+    meshPointer->setCommunicator( MPI_COMM_WORLD );
 #endif
 
     problem.setMesh( meshPointer );

@@ -45,7 +45,7 @@ setMesh( DistributedHostMeshPointer & meshPointer )
     // allocate mesh dependent data
     mdd->allocate( *localMeshPointer );
 
-    if( distributedMeshPointer->getCommunicationGroup() != TNL::MPI::NullGroup() ) {
+    if( distributedMeshPointer->getCommunicator() != MPI_COMM_NULL ) {
         localFaces = localMeshPointer->template getGhostEntitiesOffset< MeshType::getMeshDimension() - 1 >();
         localCells = localMeshPointer->template getGhostEntitiesOffset< MeshType::getMeshDimension() >();
     }
@@ -53,8 +53,8 @@ setMesh( DistributedHostMeshPointer & meshPointer )
         localFaces = localCells = 0;
     }
 
-    if( distributedMeshPointer->getCommunicationGroup() != TNL::MPI::NullGroup()
-        && TNL::MPI::GetSize( distributedMeshPointer->getCommunicationGroup() ) > 1 )
+    if( distributedMeshPointer->getCommunicator() != MPI_COMM_NULL
+        && TNL::MPI::GetSize( distributedMeshPointer->getCommunicator() ) > 1 )
     {
         // initialize the synchronizer
         faceSynchronizer = std::make_shared< FaceSynchronizerType >();
@@ -63,11 +63,11 @@ setMesh( DistributedHostMeshPointer & meshPointer )
         facesOffset = distributedMeshPointer->template getGlobalIndices< MeshType::getMeshDimension() - 1 >().getElement( 0 );
 
         const IndexType maxFaceIndex = distributedMeshPointer->template getGlobalIndices< MeshType::getMeshDimension() - 1 >().getElement( localMeshPointer->template getGhostEntitiesOffset< MeshType::getMeshDimension() - 1 >() - 1 );
-        TNL::MPI::Allreduce( &maxFaceIndex, &this->globalFaces, 1, MPI_MAX, distributedMeshPointer->getCommunicationGroup() );
+        TNL::MPI::Allreduce( &maxFaceIndex, &this->globalFaces, 1, MPI_MAX, distributedMeshPointer->getCommunicator() );
         ++this->globalFaces;
 
         const IndexType maxCellIndex = distributedMeshPointer->template getGlobalIndices< MeshType::getMeshDimension() >().getElement( localMeshPointer->template getGhostEntitiesOffset< MeshType::getMeshDimension() >() - 1 );
-        TNL::MPI::Allreduce( &maxCellIndex, &this->globalCells, 1, MPI_MAX, distributedMeshPointer->getCommunicationGroup() );
+        TNL::MPI::Allreduce( &maxCellIndex, &this->globalCells, 1, MPI_MAX, distributedMeshPointer->getCommunicator() );
         ++this->globalCells;
     }
     else {
@@ -136,8 +136,8 @@ setup( const TNL::Config::ParameterContainer & parameters,
     timer_mpi_upwind.reset();
 
     TNL::MPI::getTimerAllreduce().reset();
-    if( distributedMeshPointer->getCommunicationGroup() != TNL::MPI::NullGroup()
-        && TNL::MPI::GetSize( distributedMeshPointer->getCommunicationGroup() ) > 1 )
+    if( distributedMeshPointer->getCommunicator() != MPI_COMM_NULL
+        && TNL::MPI::GetSize( distributedMeshPointer->getCommunicator() ) > 1 )
     {
         faceSynchronizer->async_ops_count = 0;
         faceSynchronizer->async_wait_before_start_timer.reset();
@@ -246,7 +246,7 @@ void
 Solver< MeshDependentData, BoundaryModel, Matrix >::
 setupLinearSystem()
 {
-    if( distributedMeshPointer->getCommunicationGroup() == TNL::MPI::NullGroup() )
+    if( distributedMeshPointer->getCommunicator() == MPI_COMM_NULL )
         return;
 
     using CompressedRowLengths =
@@ -288,8 +288,8 @@ setupLinearSystem()
     const IndexType localDofs = this->getLocalDofs();
     const IndexType dofs = this->getDofs();
     const IndexType globalDofs = this->getGlobalDofs();
-    distributedMatrixPointer->setDistribution( {offset, offset + localDofs}, globalDofs, dofs, distributedMeshPointer->getCommunicationGroup() );
-    TNL::Containers::DistributedVectorView< IndexType, DeviceType, IndexType > dist_rowLengths( {offset, offset + localDofs}, 0, globalDofs, distributedMatrixPointer->getCommunicationGroup(), rowLengths_vector );
+    distributedMatrixPointer->setDistribution( {offset, offset + localDofs}, globalDofs, dofs, distributedMeshPointer->getCommunicator() );
+    TNL::Containers::DistributedVectorView< IndexType, DeviceType, IndexType > dist_rowLengths( {offset, offset + localDofs}, 0, globalDofs, distributedMatrixPointer->getCommunicator(), rowLengths_vector );
     distributedMatrixPointer->setRowCapacities( dist_rowLengths );
 
     // initialize the right hand side vector
@@ -581,8 +581,8 @@ preIterate( const RealType time,
     timer_upwind.stop();
 
     // synchronize the upwinded quantities
-    if( distributedMeshPointer->getCommunicationGroup() != TNL::MPI::NullGroup()
-        && TNL::MPI::GetSize( distributedMeshPointer->getCommunicationGroup() ) > 1 )
+    if( distributedMeshPointer->getCommunicator() != MPI_COMM_NULL
+        && TNL::MPI::GetSize( distributedMeshPointer->getCommunicator() ) > 1 )
     {
         timer_mpi_upwind.start();
 
@@ -716,7 +716,7 @@ Solver< MeshDependentData, BoundaryModel, Matrix >::
 assembleLinearSystem( const RealType time,
                       const RealType tau )
 {
-    if( distributedMeshPointer->getCommunicationGroup() == TNL::MPI::NullGroup() )
+    if( distributedMeshPointer->getCommunicator() == MPI_COMM_NULL )
         return;
 
     timer_assembleLinearSystem.start();
@@ -772,7 +772,7 @@ void
 Solver< MeshDependentData, BoundaryModel, Matrix >::
 solveLinearSystem( TNL::Solvers::IterativeSolverMonitor< RealType, IndexType >* solverMonitor )
 {
-    if( distributedMeshPointer->getCommunicationGroup() == TNL::MPI::NullGroup() )
+    if( distributedMeshPointer->getCommunicator() == MPI_COMM_NULL )
         return;
 
     if( solverMonitor )
@@ -792,8 +792,8 @@ solveLinearSystem( TNL::Solvers::IterativeSolverMonitor< RealType, IndexType >* 
     const IndexType globalDofs = this->getGlobalDofs();
 
     DofViewType dofs_view = mdd->Z_iF.getStorageArray().getView();
-    TNL::Containers::DistributedVectorView< RealType, DeviceType, IndexType > dist_dofs( {offset, offset + localDofs}, dofs - localDofs, globalDofs, distributedMatrixPointer->getCommunicationGroup(), dofs_view );
-    TNL::Containers::DistributedVectorView< RealType, DeviceType, IndexType > dist_rhs( {offset, offset + localDofs}, dofs - localDofs, globalDofs, distributedMatrixPointer->getCommunicationGroup(), rhsVector.getView() );
+    TNL::Containers::DistributedVectorView< RealType, DeviceType, IndexType > dist_dofs( {offset, offset + localDofs}, dofs - localDofs, globalDofs, distributedMatrixPointer->getCommunicator(), dofs_view );
+    TNL::Containers::DistributedVectorView< RealType, DeviceType, IndexType > dist_rhs( {offset, offset + localDofs}, dofs - localDofs, globalDofs, distributedMatrixPointer->getCommunicator(), rhsVector.getView() );
     dist_dofs.setSynchronizer( faceSynchronizer, MeshDependentDataType::NumberOfEquations );
     dist_rhs.setSynchronizer( faceSynchronizer, MeshDependentDataType::NumberOfEquations );
     dist_rhs.startSynchronization();
@@ -885,8 +885,8 @@ writeEpilog( TNL::Logger & logger ) const
     logger.writeParameter< double >( "Linear system assembler time:", timer_assembleLinearSystem.getRealTime() );
     logger.writeParameter< double >( "Linear preconditioner update time:", timer_linearPreconditioner.getRealTime() );
     logger.writeParameter< double >( "Linear system solver time:", timer_linearSolver.getRealTime() );
-    if( distributedMeshPointer->getCommunicationGroup() != TNL::MPI::NullGroup()
-        && TNL::MPI::GetSize( distributedMeshPointer->getCommunicationGroup() ) > 1 )
+    if( distributedMeshPointer->getCommunicator() != MPI_COMM_NULL
+        && TNL::MPI::GetSize( distributedMeshPointer->getCommunicator() ) > 1 )
     {
         const double total_mpi_time = faceSynchronizer->async_wait_before_start_timer.getRealTime()
                                     + faceSynchronizer->async_start_timer.getRealTime()
