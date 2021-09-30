@@ -451,7 +451,7 @@ preIterate( const RealType time,
             MassMatrix::update( *_mesh, *_mdd, K, i, j );
         };
         TNL::Algorithms::ParallelFor3D< DeviceType >::exec( (IndexType) 0, (IndexType) 0, (IndexType) 0,
-                                                            cells, MeshDependentDataType::NumberOfEquations, MeshDependentDataType::NumberOfEquations,
+                                                            cells, (IndexType) MeshDependentDataType::NumberOfEquations, (IndexType) MeshDependentDataType::NumberOfEquations,
                                                             kernel );
     }
     timer_b.stop();
@@ -465,7 +465,7 @@ preIterate( const RealType time,
             _mdd->updateVectorCoefficients( *_mesh, K, i );
         };
         TNL::Algorithms::ParallelFor2D< DeviceType >::exec( (IndexType) 0, (IndexType) 0,
-                                                            cells, MeshDependentDataType::NumberOfEquations,
+                                                            cells, (IndexType) MeshDependentDataType::NumberOfEquations,
                                                             kernel );
     }
     timer_nonlinear.stop();
@@ -537,7 +537,7 @@ preIterate( const RealType time,
         };
         // mdd->m_iE_upw.forAll does not skip ghosts, so we use ParallelFor2D manually for the specific permutation of indices
         TNL::Algorithms::ParallelFor2D< DeviceType >::exec( (IndexType) 0, (IndexType) 0,
-                                                            localFaces, MeshDependentDataType::NumberOfEquations,
+                                                            localFaces, (IndexType) MeshDependentDataType::NumberOfEquations,
                                                             kernel_m_iE );
 
         auto kernel_Z_ijE = [_mdd, _mesh] __cuda_callable__ ( IndexType E, int j, int i ) mutable
@@ -573,9 +573,9 @@ preIterate( const RealType time,
             // write into the global memory after all branches have converged
             _mdd->Z_ijE_upw( i, j, E ) = Z_ijE_upw;
         };
-        // mdd->Z_ijE_upw.forAll does not skip ghosts, so we use ParallelFor2D manually for the specific permutation of indices
+        // mdd->Z_ijE_upw.forAll does not skip ghosts, so we use ParallelFor3D manually for the specific permutation of indices
         TNL::Algorithms::ParallelFor3D< DeviceType >::exec( (IndexType) 0, (IndexType) 0, (IndexType) 0,
-                                                            localFaces, MeshDependentDataType::NumberOfEquations, MeshDependentDataType::NumberOfEquations,
+                                                            localFaces, (IndexType) MeshDependentDataType::NumberOfEquations, (IndexType) MeshDependentDataType::NumberOfEquations,
                                                             kernel_Z_ijE );
     }
     timer_upwind.stop();
@@ -613,7 +613,7 @@ preIterate( const RealType time,
             _mdd->R_iK( i, K ) = coeff::R_iK( *_mdd, *_mesh, entity, faceIndexes, i, K, tau );
         };
         TNL::Algorithms::ParallelFor2D< DeviceType >::exec( (IndexType) 0, (IndexType) 0,
-                                                            cells, MeshDependentDataType::NumberOfEquations,
+                                                            cells, (IndexType) MeshDependentDataType::NumberOfEquations,
                                                             kernel );
     }
     timer_R.stop();
@@ -744,7 +744,7 @@ assembleLinearSystem( const RealType time,
     TNL_ASSERT_EQ( localMatrixPointer->getRows(), MeshDependentDataType::NumberOfEquations * localFaces, "BUG: wrong matrix size" );
     // mdd->Z_iF.forAll does not skip ghosts, so we use ParallelFor2D manually for the specific permutation of indices
     TNL::Algorithms::ParallelFor2D< DeviceType >::exec( (IndexType) 0, (IndexType) 0,
-                                                        localFaces, MeshDependentDataType::NumberOfEquations,
+                                                        localFaces, (IndexType) MeshDependentDataType::NumberOfEquations,
                                                         kernel );
 
     timer_assembleLinearSystem.stop();
@@ -850,7 +850,7 @@ postIterate( const RealType time,
                 _mdd->v_iKe( i, K, e ) = coeff::v_iKE( *_mdd, faceIndexes, i, K, faceIndexes[ e ], e );
         };
         TNL::Algorithms::ParallelFor2D< DeviceType >::exec( (IndexType) 0, (IndexType) 0,
-                                                            cells, MeshDependentDataType::NumberOfEquations,
+                                                            cells, (IndexType) MeshDependentDataType::NumberOfEquations,
                                                             kernel );
     }
     timer_velocities.stop();
