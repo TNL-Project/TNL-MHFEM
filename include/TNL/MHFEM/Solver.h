@@ -11,9 +11,8 @@
 #include <TNL/Meshes/DistributedMeshes/DistributedMeshSynchronizer.h>
 #include <TNL/Matrices/DistributedMatrix.h>
 
-#include "DifferentialOperator.h"
+#include "LinearSystem.h"
 #include "BoundaryConditions.h"
-#include "RightHandSide.h"
 
 namespace mhfem
 {
@@ -42,12 +41,9 @@ public:
     using MeshDependentDataPointer = TNL::Pointers::SharedPointer< MeshDependentDataType, DeviceType >;
     using DofVectorType = TNL::Containers::Vector< RealType, DeviceType, IndexType >;
     using DofViewType = TNL::Containers::VectorView< RealType, DeviceType, IndexType >;
-    using DifferentialOperator = mhfem::DifferentialOperator< MeshType, MeshDependentDataType >;
-    using DifferentialOperatorPointer = TNL::Pointers::SharedPointer< DifferentialOperator >;
+    using LinearSystem = mhfem::LinearSystem< MeshType, MeshDependentDataType >;
     using BoundaryConditions = mhfem::BoundaryConditions< MeshDependentDataType, BoundaryModel >;
     using BoundaryConditionsPointer = TNL::Pointers::SharedPointer< BoundaryConditions >;
-    using RightHandSide = mhfem::RightHandSide< MeshDependentDataType >;
-    using RightHandSidePointer = TNL::Pointers::SharedPointer< RightHandSide, DeviceType >;
 
     using MatrixType = Matrix;
     using DistributedMatrixType = TNL::Matrices::DistributedMatrix< Matrix >;
@@ -131,10 +127,7 @@ protected:
     DistributedHostMeshPointer distributedHostMeshPointer = nullptr;
     DistributedMeshPointer distributedMeshPointer = nullptr;
     MeshDependentDataPointer mdd;
-
-    DifferentialOperatorPointer differentialOperatorPointer;
     BoundaryConditionsPointer boundaryConditionsPointer;
-    RightHandSidePointer rightHandSidePointer;
 
     // linear system solver and preconditioner
     using LinearSolverType = TNL::Solvers::Linear::LinearSolver< DistributedMatrixType >;

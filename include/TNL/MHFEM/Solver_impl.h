@@ -261,15 +261,14 @@ setupLinearSystem()
 
     auto rowLengths_view = rowLengths.getView();
     const MeshType* _mesh = &localMeshPointer.template getData< DeviceType >();
-    const auto* _op = &differentialOperatorPointer.template getData< DeviceType >();
     const auto* _bc = &boundaryConditionsPointer.template getData< DeviceType >();
-    auto kernel = [rowLengths_view, _mesh, _op, _bc] __cuda_callable__ ( int i, IndexType E ) mutable
+    auto kernel = [rowLengths_view, _mesh, _bc] __cuda_callable__ ( int i, IndexType E ) mutable
     {
         IndexType length;
         if( isBoundaryFace( *_mesh, E ) )
             length = _bc->getLinearSystemRowLength( *_mesh, E, i );
         else
-            length = _op->getLinearSystemRowLength( *_mesh, E, i );
+            length = LinearSystem::getRowLength( *_mesh, E, i );
         rowLengths_view( i, E ) = length;
     };
     rowLengths_view.forAll( kernel );
@@ -724,12 +723,10 @@ assembleLinearSystem( const RealType time,
 
     const auto* _mesh = &localMeshPointer.template getData< DeviceType >();
     const auto* _mdd = &mdd.template modifyData< DeviceType >();
-    const auto* _op = &differentialOperatorPointer.template getData< DeviceType >();
     const auto* _bc = &boundaryConditionsPointer.template getData< DeviceType >();
-    const auto* _rhs = &rightHandSidePointer.template getData< DeviceType >();
     auto* _matrix = &localMatrixPointer.template modifyData< DeviceType >();
     auto _b = rhsVector.getView();
-    auto kernel = [_mesh, _mdd, _op, _bc, _rhs, _matrix, _b, time, tau] __cuda_callable__ ( IndexType E, int i ) mutable
+    auto kernel = [_mesh, _mdd, _bc, _matrix, _b, time, tau] __cuda_callable__ ( IndexType E, int i ) mutable
     {
         TNL_ASSERT_FALSE( _mesh->template isGhostEntity< MeshType::getMeshDimension() - 1 >( E ),
                           "A ghost face encountered while assembling the linear system." );
@@ -738,8 +735,8 @@ assembleLinearSystem( const RealType time,
         if( isBoundaryFace( *_mesh, E ) )
             _bc->setMatrixElements( *_mesh, *_mdd, rowIndex, E, i, time + tau, tau, *_matrix, _b );
         else {
-            _op->setMatrixElements( *_mesh, *_mdd, rowIndex, E, i, time + tau, tau, *_matrix, _b );
-            _b[ rowIndex ] = (*_rhs)( *_mesh, *_mdd, E, i );
+            LinearSystem::setMatrixElements( *_mesh, *_mdd, rowIndex, E, i, time + tau, tau, *_matrix, _b );
+            _b[ rowIndex ] = LinearSystem::RHS::getValue( *_mesh, *_mdd, E, i );
         }
     };
     TNL_ASSERT_EQ( localMatrixPointer->getRows(), MeshDependentDataType::NumberOfEquations * localFaces, "BUG: wrong matrix size" );
