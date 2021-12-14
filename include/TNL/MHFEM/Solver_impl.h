@@ -288,6 +288,7 @@ setupLinearSystem()
     const IndexType localDofs = this->getLocalDofs();
     const IndexType dofs = this->getDofs();
     const IndexType globalDofs = this->getGlobalDofs();
+    distributedMatrixPointer = std::make_shared< DistributedMatrixType >();
     distributedMatrixPointer->setDistribution( {offset, offset + localDofs}, globalDofs, dofs, distributedMeshPointer->getCommunicator() );
     TNL::Containers::DistributedVectorView< IndexType, DeviceType, IndexType > dist_rowLengths( {offset, offset + localDofs}, 0, globalDofs, distributedMatrixPointer->getCommunicator(), rowLengths_vector );
     distributedMatrixPointer->setRowCapacities( dist_rowLengths );

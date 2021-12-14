@@ -51,7 +51,7 @@ public:
 
     using MatrixType = Matrix;
     using DistributedMatrixType = TNL::Matrices::DistributedMatrix< Matrix >;
-    using DistributedMatrixPointer = TNL::Pointers::SharedPointer< DistributedMatrixType >;
+    using DistributedMatrixPointer = std::shared_ptr< DistributedMatrixType >;
 
     using FaceSynchronizerType = TNL::Meshes::DistributedMeshes::DistributedMeshSynchronizer< DistributedMeshType, MeshType::getMeshDimension() - 1 >;
 
@@ -136,7 +136,7 @@ protected:
     BoundaryConditionsPointer boundaryConditionsPointer;
     RightHandSidePointer rightHandSidePointer;
 
-    // linear system preconditioner and solver
+    // linear system solver and preconditioner
     using LinearSolverType = TNL::Solvers::Linear::LinearSolver< DistributedMatrixType >;
     using LinearSolverPointer = std::shared_ptr< LinearSolverType >;
     using PreconditionerType = typename LinearSolverType::PreconditionerType;
@@ -144,9 +144,10 @@ protected:
     // uninitialized smart pointers (they are initialized in the setup method)
     LinearSolverPointer linearSystemSolver = nullptr;
     PreconditionerPointer preconditioner = nullptr;
+    // (distributedMatrixPointer is initialized in the setupLinearSystem method)
+    DistributedMatrixPointer distributedMatrixPointer = nullptr;
 
-    // matrix and right hand side vector for the linear system
-    DistributedMatrixPointer distributedMatrixPointer;
+    // right hand side vector for the linear system
     DofVectorType rhsVector;
 
     // device pointers to local stuff for passing to CUDA kernels
