@@ -48,6 +48,9 @@ void init( Problem& problem,
     meshPointer->setCommunicator( MPI_COMM_WORLD );
 #endif
 
+    // estimate memory before further allocations
+    problem.estimateMemoryDemands( *meshPointer );
+
     problem.setMesh( meshPointer );
 
     if( ! problem.setup( parameters ) )

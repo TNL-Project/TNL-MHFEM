@@ -104,6 +104,8 @@ public:
 
     void writeEpilog( TNL::Logger & logger ) const;
 
+    static void estimateMemoryDemands( const DistributedHostMeshType & mesh, std::ostream & out = std::cout );
+
 protected:
     // prefix for snapshots
     TNL::String outputDirectory;

@@ -905,4 +905,127 @@ writeEpilog( TNL::Logger & logger ) const
     }
 }
 
+template< typename MeshDependentData,
+          typename BoundaryModel,
+          typename Matrix >
+void
+Solver< MeshDependentData, BoundaryModel, Matrix >::
+estimateMemoryDemands( const DistributedHostMeshType & mesh, std::ostream & out )
+{
+    if( mesh.getCommunicator() == MPI_COMM_NULL ) {
+        out << "The mesh is on MPI_COMM_NULL, no memory estimate." << std::endl;
+        return;
+    }
+
+    const HostMeshType & localMesh = mesh.getLocalMesh();
+    const IndexType cells = localMesh.template getEntitiesCount< typename MeshType::Cell >();
+    const IndexType faces = localMesh.template getEntitiesCount< MeshType::getMeshDimension() - 1 >();
+    const IndexType localFaces = localMesh.template getGhostEntitiesOffset< MeshType::getMeshDimension() - 1 >();
+
+    using MassMatrix = typename MeshDependentDataType::MassMatrix;
+    using FPC = ::FacesPerCell< typename MeshType::Cell >;
+    static constexpr int FacesPerCell = FPC::value;
+    constexpr int n = MeshDependentDataType::NumberOfEquations;
+
+    // TODO: report exact size of the current mesh
+
+    // as per BaseModel::allocate
+    std::size_t mdd_size =
+        // Z_iF
+        + n * faces
+        // Z_iK
+        + n * cells
+        // N_ijK
+        + n * n * cells
+        // u_ijKe
+        + n * n * cells * FacesPerCell
+        // m_iK
+        + n * cells
+        // D_ijK  NOTE: only for D isotropic (represented by scalar value)
+        + n * n * cells
+        // w_iKe
+        + n * cells * FacesPerCell
+        // a_ijKe
+        + n * n * cells * FacesPerCell
+        // r_ijK
+        + n * n * cells
+        // f_iK
+        + n * cells
+        // v_iKe
+        + n * cells * FacesPerCell
+        // m_iE_upw
+        + n * faces
+        // Z_ijE_upw
+        + n * n * faces
+        // b_ijK_storage
+        + n * n * cells * MassMatrix::size
+        // R_ijKe
+        + n * n * cells * FacesPerCell
+        // R_iK
+        + n * cells
+    ;
+    mdd_size *= sizeof(RealType);
+
+    // boundary conditions
+    const std::size_t bc_size =
+        // tags
+        + n * faces * sizeof(std::uint8_t)
+        // values
+        + n * faces * sizeof(RealType)
+        // dirichletValues
+        + n * faces * sizeof(RealType)
+    ;
+
+    // sparse matrix (only upper bound)
+    const std::size_t matrix_size = n * localFaces * ( 2 * FacesPerCell - 1 ) * n * sizeof(RealType);
+
+    // DOF and RHS vectors
+    const std::size_t dof_size = n * faces * sizeof(RealType);
+    const std::size_t rhs_size = n * localFaces * sizeof(RealType);
+
+    // linear solver and preconditioner
+    const std::size_t solver_size = 7 * dof_size;
+    const std::size_t preconditioner_size = dof_size;
+
+    // total
+    const std::size_t total_size = mdd_size + bc_size + matrix_size + dof_size + rhs_size + solver_size + preconditioner_size;
+
+    // GPU memory usage
+    std::size_t gpu_total = 0;
+    std::size_t gpu_free = 0;
+    #ifdef HAVE_CUDA
+    {
+        int gpu_id;
+        cudaGetDevice(&gpu_id);
+        cudaMemGetInfo(&gpu_free, &gpu_total);
+    }
+    #endif
+
+    auto format = []( std::size_t value )
+    {
+        const std::size_t MiB = value / 1024.0 / 1024.0;
+        return std::to_string(MiB) + " MiB";
+    };
+
+    out << "Mesh size:\n"
+        << "- cells count:\t" << cells << "\n"
+        << "- faces count:\t" << faces << "\n"
+        << "- local faces count:\t" << localFaces << "\n"
+    ;
+    out << "(Estimated) memory demands:\n"
+        << "- mesh-dependent data:\t" << format(mdd_size) << "\n"
+        << "- boundary conditions:\t" << format(bc_size) << "\n"
+        << "- sparse matrix:\t" << format(matrix_size) << "\n"
+        << "- DOF vector:\t" << format(dof_size) << "\n"
+        << "- RHS vector:\t" << format(rhs_size) << "\n"
+        << "- linear system solver:\t" << format(solver_size) << "\n"
+        << "  (N * DOF vector size, where e.g. N = 7 for BiCGstab)\n"
+        << "- preconditioner:\t" << format(preconditioner_size) << "\n"
+        << "  (DOF vector size for Jacobi/diagonal, sparse matrix size for ILU(0))\n"
+        << "Total GPU memory needed: " << format(total_size) << " (" << 100.0 * total_size / gpu_total << "%)\n"
+        << "Current GPU memory: available " << format(gpu_free) << ", total " << format(gpu_total) << "\n"
+    ;
+    out.flush();
+}
+
 } // namespace mhfem
