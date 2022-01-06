@@ -1022,7 +1022,7 @@ estimateMemoryDemands( const DistributedHostMeshType & mesh, std::ostream & out 
         << "  (N * DOF vector size, where e.g. N = 7 for BiCGstab)\n"
         << "- preconditioner:\t" << format(preconditioner_size) << "\n"
         << "  (DOF vector size for Jacobi/diagonal, sparse matrix size for ILU(0))\n"
-        << "Total GPU memory needed: " << format(total_size) << " (" << 100.0 * total_size / gpu_total << "%)\n"
+        << "Total GPU memory needed: " << format(total_size) << " (" << 100.0 * total_size / (gpu_total + 1) << "%)\n"
         << "Current GPU memory: available " << format(gpu_free) << ", total " << format(gpu_total) << "\n"
     ;
     out.flush();
