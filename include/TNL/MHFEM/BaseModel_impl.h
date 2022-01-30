@@ -9,9 +9,10 @@ namespace mhfem
 template< typename Mesh,
           typename Real,
           int NumberOfEquations,
-          typename MassMatrix >
+          typename MassMatrix,
+          typename ArrayTypes >
 void
-BaseModel< Mesh, Real, NumberOfEquations, MassMatrix >::
+BaseModel< Mesh, Real, NumberOfEquations, MassMatrix, ArrayTypes >::
 allocate( const MeshType & mesh )
 {
     numberOfCells = mesh.template getEntitiesCount< typename Mesh::Cell >();
@@ -24,7 +25,7 @@ allocate( const MeshType & mesh )
     u_ijKe.setSizes( 0, 0, numberOfCells, 0 );
     m_iK.setSizes( 0, numberOfCells );
     // NOTE: only for D isotropic (represented by scalar value)
-//    D.setSize( n * d * n * d * cells );
+//    D.setSize( NumberOfEquations * d * NumberOfEquations * d * cells );
     D_ijK.setSizes( 0, 0, numberOfCells );
     w_iKe.setSizes( 0, numberOfCells, 0 );
     a_ijKe.setSizes( 0, 0, numberOfCells, 0 );
@@ -38,6 +39,58 @@ allocate( const MeshType & mesh )
     b_ijK_storage.setSizes( 0, 0, numberOfCells, 0 );
     R_ijKe.setSizes( 0, 0, numberOfCells, 0 );
     R_iK.setSizes( 0, numberOfCells );
+}
+
+template< typename Mesh,
+          typename Real,
+          int NumberOfEquations,
+          typename MassMatrix,
+          typename ArrayTypes >
+    template< typename DistributedHostMeshType >
+std::size_t
+BaseModel< Mesh, Real, NumberOfEquations, MassMatrix, ArrayTypes >::
+estimateMemoryDemands( const DistributedHostMeshType & mesh )
+{
+    const auto & localMesh = mesh.getLocalMesh();
+    const IndexType cells = localMesh.template getEntitiesCount< typename MeshType::Cell >();
+    const IndexType faces = localMesh.template getEntitiesCount< MeshType::getMeshDimension() - 1 >();
+
+    std::size_t mdd_size =
+        // Z_iF
+        + NumberOfEquations * faces
+        // Z_iK
+        + NumberOfEquations * cells
+        // N_ijK
+        + NumberOfEquations * NumberOfEquations * cells
+        // u_ijKe
+        + NumberOfEquations * NumberOfEquations * cells * FacesPerCell
+        // m_iK
+        + NumberOfEquations * cells
+        // D_ijK  NOTE: only for D isotropic (represented by scalar value)
+        + NumberOfEquations * NumberOfEquations * cells
+        // w_iKe
+        + NumberOfEquations * cells * FacesPerCell
+        // a_ijKe
+        + NumberOfEquations * NumberOfEquations * cells * FacesPerCell
+        // r_ijK
+        + NumberOfEquations * NumberOfEquations * cells
+        // f_iK
+        + NumberOfEquations * cells
+        // v_iKe
+        + NumberOfEquations * cells * FacesPerCell
+        // m_iE_upw
+        + NumberOfEquations * faces
+        // Z_ijE_upw
+        + NumberOfEquations * NumberOfEquations * faces
+        // b_ijK_storage
+        + NumberOfEquations * NumberOfEquations * cells * MassMatrix::size
+        // R_ijKe
+        + NumberOfEquations * NumberOfEquations * cells * FacesPerCell
+        // R_iK
+        + NumberOfEquations * cells
+    ;
+    mdd_size *= sizeof(RealType);
+    return mdd_size;
 }
 
 template< typename Array, typename NDArray >
@@ -58,10 +111,11 @@ setInitialCondition_fuck_you_nvcc( const int i, const Array & sourceArray, NDArr
 template< typename Mesh,
           typename Real,
           int NumberOfEquations,
-          typename MassMatrix >
+          typename MassMatrix,
+          typename ArrayTypes >
     template< typename StdVector >
 void
-BaseModel< Mesh, Real, NumberOfEquations, MassMatrix >::
+BaseModel< Mesh, Real, NumberOfEquations, MassMatrix, ArrayTypes >::
 setInitialCondition( const int i, const StdVector & vector )
 {
     if( (IndexType) vector.size() != numberOfCells )

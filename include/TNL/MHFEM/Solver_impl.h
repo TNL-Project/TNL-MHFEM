@@ -535,10 +535,11 @@ preIterate( const RealType time,
             // write into the global memory after all branches have converged
             _mdd->m_iE_upw( i, E ) = m_iE_upw;
         };
-        // mdd->m_iE_upw.forAll does not skip ghosts, so we use ParallelFor2D manually for the specific permutation of indices
-        TNL::Algorithms::ParallelFor2D< DeviceType >::exec( (IndexType) 0, (IndexType) 0,
-                                                            localFaces, (IndexType) MeshDependentDataType::NumberOfEquations,
-                                                            kernel_m_iE );
+        if( MeshDependentDataType::do_mobility_upwind )
+            // mdd->m_iE_upw.forAll does not skip ghosts, so we use ParallelFor2D manually for the specific permutation of indices
+            TNL::Algorithms::ParallelFor2D< DeviceType >::exec( (IndexType) 0, (IndexType) 0,
+                                                                localFaces, (IndexType) MeshDependentDataType::NumberOfEquations,
+                                                                kernel_m_iE );
 
         auto kernel_Z_ijE = [_mdd, _mesh] __cuda_callable__ ( IndexType E, int j, int i ) mutable
         {
@@ -587,8 +588,10 @@ preIterate( const RealType time,
         timer_mpi_upwind.start();
 
         // NOTE: this is specific to how the ndarrays are ordered
-        auto m_upw_view = mdd->m_iE_upw.getStorageArray().getView();
-        faceSynchronizer->synchronizeArray( m_upw_view, MeshDependentDataType::NumberOfEquations );
+        if( MeshDependentDataType::do_mobility_upwind ) {
+            auto m_upw_view = mdd->m_iE_upw.getStorageArray().getView();
+            faceSynchronizer->synchronizeArray( m_upw_view, MeshDependentDataType::NumberOfEquations );
+        }
 
         auto Z_upw_view = mdd->Z_ijE_upw.getStorageArray().getView();
         faceSynchronizer->synchronizeArray( Z_upw_view, MeshDependentDataType::NumberOfEquations * MeshDependentDataType::NumberOfEquations );
@@ -840,6 +843,7 @@ postIterate( const RealType time,
     //       coefficients, but "new" Z_{j,K} and Z_{j,F}. From the semi-implicit approach it follows that
     //       velocity calculated this way is conservative, which is very important for upwinding.
     timer_velocities.start();
+    if( MeshDependentDataType::do_mobility_upwind )
     {
         auto kernel = [_mdd, _mesh] __cuda_callable__ ( IndexType K, int i ) mutable
         {
@@ -922,49 +926,13 @@ estimateMemoryDemands( const DistributedHostMeshType & mesh, std::ostream & out 
     const IndexType faces = localMesh.template getEntitiesCount< MeshType::getMeshDimension() - 1 >();
     const IndexType localFaces = localMesh.template getGhostEntitiesOffset< MeshType::getMeshDimension() - 1 >();
 
-    using MassMatrix = typename MeshDependentDataType::MassMatrix;
-    using FPC = ::FacesPerCell< typename MeshType::Cell >;
-    static constexpr int FacesPerCell = FPC::value;
+    constexpr int FacesPerCell = MeshDependentDataType::FacesPerCell;
     constexpr int n = MeshDependentDataType::NumberOfEquations;
 
     // TODO: report exact size of the current mesh
 
-    // as per BaseModel::allocate
-    std::size_t mdd_size =
-        // Z_iF
-        + n * faces
-        // Z_iK
-        + n * cells
-        // N_ijK
-        + n * n * cells
-        // u_ijKe
-        + n * n * cells * FacesPerCell
-        // m_iK
-        + n * cells
-        // D_ijK  NOTE: only for D isotropic (represented by scalar value)
-        + n * n * cells
-        // w_iKe
-        + n * cells * FacesPerCell
-        // a_ijKe
-        + n * n * cells * FacesPerCell
-        // r_ijK
-        + n * n * cells
-        // f_iK
-        + n * cells
-        // v_iKe
-        + n * cells * FacesPerCell
-        // m_iE_upw
-        + n * faces
-        // Z_ijE_upw
-        + n * n * faces
-        // b_ijK_storage
-        + n * n * cells * MassMatrix::size
-        // R_ijKe
-        + n * n * cells * FacesPerCell
-        // R_iK
-        + n * cells
-    ;
-    mdd_size *= sizeof(RealType);
+    // mesh/model-dependent data
+    const std::size_t mdd_size = MeshDependentDataType::estimateMemoryDemands( mesh );
 
     // boundary conditions
     const std::size_t bc_size =
