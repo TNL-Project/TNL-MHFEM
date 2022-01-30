@@ -42,6 +42,10 @@ setMesh( DistributedHostMeshPointer & meshPointer )
     }
     this->localMeshPointer = LocalMeshPointer( distributedMeshPointer->getLocalMesh() );
 
+    // deallocate unnecessary superentity matrix on the device mesh
+    // (it is needed only for distributeSubentities and the EntityTags layer initialization)
+    this->localMeshPointer->template getSuperentitiesMatrix< 0, MeshType::getMeshDimension() - 1 >().reset();
+
     // allocate mesh dependent data
     mdd->allocate( *localMeshPointer );
 
