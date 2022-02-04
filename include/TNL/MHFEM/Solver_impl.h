@@ -926,9 +926,9 @@ estimateMemoryDemands( const DistributedHostMeshType & mesh, std::ostream & out 
     }
 
     const HostMeshType & localMesh = mesh.getLocalMesh();
-    const IndexType cells = localMesh.template getEntitiesCount< typename MeshType::Cell >();
-    const IndexType faces = localMesh.template getEntitiesCount< MeshType::getMeshDimension() - 1 >();
-    const IndexType localFaces = localMesh.template getGhostEntitiesOffset< MeshType::getMeshDimension() - 1 >();
+    const std::size_t cells = localMesh.template getEntitiesCount< typename MeshType::Cell >();
+    const std::size_t faces = localMesh.template getEntitiesCount< MeshType::getMeshDimension() - 1 >();
+    const std::size_t localFaces = localMesh.template getGhostEntitiesOffset< MeshType::getMeshDimension() - 1 >();
 
     constexpr int FacesPerCell = MeshDependentDataType::FacesPerCell;
     constexpr int n = MeshDependentDataType::NumberOfEquations;

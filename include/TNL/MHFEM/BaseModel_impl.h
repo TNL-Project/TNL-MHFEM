@@ -52,8 +52,8 @@ BaseModel< Mesh, Real, NumberOfEquations, MassMatrix, ArrayTypes >::
 estimateMemoryDemands( const DistributedHostMeshType & mesh )
 {
     const auto & localMesh = mesh.getLocalMesh();
-    const IndexType cells = localMesh.template getEntitiesCount< typename MeshType::Cell >();
-    const IndexType faces = localMesh.template getEntitiesCount< MeshType::getMeshDimension() - 1 >();
+    const std::size_t cells = localMesh.template getEntitiesCount< typename MeshType::Cell >();
+    const std::size_t faces = localMesh.template getEntitiesCount< MeshType::getMeshDimension() - 1 >();
 
     std::size_t mdd_size =
         // Z_iF
