@@ -161,11 +161,11 @@ setInitialCondition( const TNL::Config::ParameterContainer & parameters )
 {
     if( parameters.checkParameter( "boundary-conditions-file" ) ) {
         std::string boundaryConditionsFile = parameters.getParameter< std::string >( "boundary-conditions-file" );
-        if( TNL::MPI::GetSize() > 1 ) {
+        if( TNL::MPI::GetSize( distributedMeshPointer->getCommunicator() ) > 1 ) {
             namespace fs = std::experimental::filesystem;
             fs::path path( boundaryConditionsFile );
             std::string ext = path.extension();
-            ext = "." + std::to_string( TNL::MPI::GetRank() ) + ext;
+            ext = "." + std::to_string( TNL::MPI::GetRank( distributedMeshPointer->getCommunicator() ) ) + ext;
             path.replace_extension(ext);
             boundaryConditionsFile = path.string();
         }
@@ -907,7 +907,7 @@ writeEpilog( TNL::Logger & logger ) const
     logger.writeParameter< double >( "  Z_iF -> Z_iK update time:", timer_explicit.getRealTime() );
     logger.writeParameter< double >( "  velocities update time:", timer_velocities.getRealTime() );
     logger.writeParameter< double >( "  model post-iterate time:", timer_model_postIterate.getRealTime() );
-    if( TNL::MPI::GetSize() > 1 ) {
+    if( TNL::MPI::GetSize( distributedMeshPointer->getCommunicator() ) > 1 ) {
         logger.writeParameter< std::string >( "MPI operations (included in the previous phases):", "" );
         logger.writeParameter< double >( "  MPI_Allreduce time:", TNL::MPI::getTimerAllreduce().getRealTime() );
     }
