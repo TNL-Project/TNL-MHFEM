@@ -879,18 +879,31 @@ void
 Solver< MeshDependentData, BoundaryModel, Matrix >::
 writeEpilog( TNL::Logger & logger ) const
 {
+    const TNL::MPI::Comm& communicator = distributedMeshPointer->getCommunicator();
+    auto log_mpi_value = [&logger, &communicator] ( std::string prefix, auto local_value )
+    {
+        const auto avg = TNL::MPI::reduce( local_value, MPI_SUM, communicator ) / communicator.size();
+        const double stddev = std::sqrt( TNL::MPI::reduce( TNL::pow( local_value - avg, 2 ), MPI_SUM, communicator ) / communicator.size() );
+        const auto min = TNL::MPI::reduce( local_value, MPI_MIN, communicator );
+        const auto max = TNL::MPI::reduce( local_value, MPI_MAX, communicator );
+
+        std::stringstream str;
+        str << std::scientific << "avg: " << avg << " stddev: " << stddev << " min: " << min << " max: " << max;
+        logger.writeParameter< std::string >( prefix + " ", str.str() );
+    };
+
     logger.writeParameter< long long int >( "Total count of linear solver iterations:", allIterations );
-    logger.writeParameter< double >( "Pre-iterate time:", timer_preIterate.getRealTime() );
-    logger.writeParameter< double >( "  nonlinear update time:", timer_nonlinear.getRealTime() );
-    logger.writeParameter< double >( "  update_b time:", timer_b.getRealTime() );
-    logger.writeParameter< double >( "  upwind update time:", timer_upwind.getRealTime() );
-    logger.writeParameter< double >( "  upwind MPI synchronization time:", timer_mpi_upwind.getRealTime() );
-    logger.writeParameter< double >( "  update_R time:", timer_R.getRealTime() );
-    logger.writeParameter< double >( "  update_Q time:", timer_Q.getRealTime() );
-    logger.writeParameter< double >( "  model pre-iterate time:", timer_model_preIterate.getRealTime() );
-    logger.writeParameter< double >( "Linear system assembler time:", timer_assembleLinearSystem.getRealTime() );
-    logger.writeParameter< double >( "Linear preconditioner update time:", timer_linearPreconditioner.getRealTime() );
-    logger.writeParameter< double >( "Linear system solver time:", timer_linearSolver.getRealTime() );
+    log_mpi_value( "Pre-iterate time:", timer_preIterate.getRealTime() );
+    log_mpi_value( "  nonlinear update time:", timer_nonlinear.getRealTime() );
+    log_mpi_value( "  update_b time:", timer_b.getRealTime() );
+    log_mpi_value( "  upwind update time:", timer_upwind.getRealTime() );
+    log_mpi_value( "  upwind MPI synchronization time:", timer_mpi_upwind.getRealTime() );
+    log_mpi_value( "  update_R time:", timer_R.getRealTime() );
+    log_mpi_value( "  update_Q time:", timer_Q.getRealTime() );
+    log_mpi_value( "  model pre-iterate time:", timer_model_preIterate.getRealTime() );
+    log_mpi_value( "Linear system assembler time:", timer_assembleLinearSystem.getRealTime() );
+    log_mpi_value( "Linear preconditioner update time:", timer_linearPreconditioner.getRealTime() );
+    log_mpi_value( "Linear system solver time:", timer_linearSolver.getRealTime() );
     if( distributedMeshPointer->getCommunicator() != MPI_COMM_NULL
         && TNL::MPI::GetSize( distributedMeshPointer->getCommunicator() ) > 1 )
     {
@@ -898,18 +911,18 @@ writeEpilog( TNL::Logger & logger ) const
                                     + faceSynchronizer->async_start_timer.getRealTime()
                                     + faceSynchronizer->async_wait_timer.getRealTime();
         logger.writeParameter< std::size_t >( "  MPI synchronizations count:", faceSynchronizer->async_ops_count );
-        logger.writeParameter< double >( "  MPI synchronization time:", total_mpi_time );
-        logger.writeParameter< double >( "    async wait before start time:", faceSynchronizer->async_wait_before_start_timer.getRealTime() );
-        logger.writeParameter< double >( "    async start time:", faceSynchronizer->async_start_timer.getRealTime() );
-        logger.writeParameter< double >( "    async wait time:", faceSynchronizer->async_wait_timer.getRealTime() );
+        log_mpi_value( "  MPI synchronization time:", total_mpi_time );
+        log_mpi_value( "    async wait before start time:", faceSynchronizer->async_wait_before_start_timer.getRealTime() );
+        log_mpi_value( "    async start time:", faceSynchronizer->async_start_timer.getRealTime() );
+        log_mpi_value( "    async wait time:", faceSynchronizer->async_wait_timer.getRealTime() );
     }
-    logger.writeParameter< double >( "Post-iterate time:", timer_postIterate.getRealTime() );
-    logger.writeParameter< double >( "  Z_iF -> Z_iK update time:", timer_explicit.getRealTime() );
-    logger.writeParameter< double >( "  velocities update time:", timer_velocities.getRealTime() );
-    logger.writeParameter< double >( "  model post-iterate time:", timer_model_postIterate.getRealTime() );
-    if( TNL::MPI::GetSize( distributedMeshPointer->getCommunicator() ) > 1 ) {
+    log_mpi_value( "Post-iterate time:", timer_postIterate.getRealTime() );
+    log_mpi_value( "  Z_iF -> Z_iK update time:", timer_explicit.getRealTime() );
+    log_mpi_value( "  velocities update time:", timer_velocities.getRealTime() );
+    log_mpi_value( "  model post-iterate time:", timer_model_postIterate.getRealTime() );
+    if( communicator.size() > 1 ) {
         logger.writeParameter< std::string >( "MPI operations (included in the previous phases):", "" );
-        logger.writeParameter< double >( "  MPI_Allreduce time:", TNL::MPI::getTimerAllreduce().getRealTime() );
+        log_mpi_value( "  MPI_Allreduce time:", TNL::MPI::getTimerAllreduce().getRealTime() );
     }
 }
 
