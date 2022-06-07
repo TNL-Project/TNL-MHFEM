@@ -58,13 +58,14 @@ struct RowSetter
 {
     template< typename MatrixRow, typename FaceIndexes, typename IndexType >
     __cuda_callable__
-    static void setRow( MatrixRow & matrixRow,
-                        const MeshDependentData & mdd,
-                        const FaceIndexes & faceIndexes,
-                        const int i,
-                        const IndexType K,
-                        const IndexType E,
-                        const int e )
+    static typename MeshDependentData::RealType
+    setRow( MatrixRow & matrixRow,
+            const MeshDependentData & mdd,
+            const FaceIndexes & faceIndexes,
+            const int i,
+            const IndexType K,
+            const IndexType E,
+            const int e )
     {
         using coeff = SecondaryCoefficients< MeshDependentData >;
         using LocalIndex = typename Mesh::LocalIndexType;
@@ -98,15 +99,30 @@ struct RowSetter
                 if( ! comparator( localFaceIndexes[ k2 ], localFaceIndexes[ k2+1 ] ) )
                     TNL::swap( localFaceIndexes[ k2 ], localFaceIndexes[ k2+1 ] );
 
-        for( LocalIndex j = 0; j < MeshDependentData::NumberOfEquations; j++ ) {
-            for( LocalIndex g = 0; g < MeshDependentData::FacesPerCell; g++ ) {
-                const LocalIndex f = localFaceIndexes[ g ];
-                // NOTE: the local element index depends on the DOF vector ordering
-                matrixRow.setElement( j + MeshDependentData::NumberOfEquations * g,
-                                      mdd.getDofIndex( j, faceIndexes[ f ] ),
-                                      coeff::A_ijKEF( mdd, i, j, K, E, e, faceIndexes[ f ], f ) + AdditionalTerms::T_ijKef( mdd, i, j, K, E, e, faceIndexes[ f ], f ) );
+        // we will scale the row such that the diagonal element equals one
+        const auto diagonalValue = coeff::A_ijKEF( mdd, i, i, K, E, e, E, e ) + AdditionalTerms::T_ijKef( mdd, i, i, K, E, e, E, e );
+
+        for( LocalIndex g = 0; g < MeshDependentData::FacesPerCell; g++ ) {
+            const LocalIndex f = localFaceIndexes[ g ];
+            for( LocalIndex j = 0; j < MeshDependentData::NumberOfEquations; j++ ) {
+                // set the diagonal element
+                if( j == i && faceIndexes[ f ] == E ) {
+                    // NOTE: the local element index depends on the DOF vector ordering
+                    matrixRow.setElement( j + MeshDependentData::NumberOfEquations * g,
+                                          mdd.getDofIndex( j, faceIndexes[ f ] ),
+                                          1 );
+                }
+                else {
+                    const auto value = coeff::A_ijKEF( mdd, i, j, K, E, e, faceIndexes[ f ], f ) + AdditionalTerms::T_ijKef( mdd, i, j, K, E, e, faceIndexes[ f ], f );
+                    // NOTE: the local element index depends on the DOF vector ordering
+                    matrixRow.setElement( j + MeshDependentData::NumberOfEquations * g,
+                                          mdd.getDofIndex( j, faceIndexes[ f ] ),
+                                          value / diagonalValue );
+                }
             }
         }
+
+        return diagonalValue;
     }
 };
 
@@ -120,24 +136,40 @@ struct RowSetter< TNL::Meshes::Grid< Dimension, MeshReal, Device, MeshIndex >, M
 {
     template< typename MatrixRow, typename FaceIndexes, typename IndexType >
     __cuda_callable__
-    static void setRow( MatrixRow & matrixRow,
-                        const MeshDependentData & mdd,
-                        const FaceIndexes & faceIndexes,
-                        const int i,
-                        const IndexType K,
-                        const IndexType E,
-                        const int e )
+    static typename MeshDependentData::RealType
+    setRow( MatrixRow & matrixRow,
+            const MeshDependentData & mdd,
+            const FaceIndexes & faceIndexes,
+            const int i,
+            const IndexType K,
+            const IndexType E,
+            const int e )
     {
         using coeff = SecondaryCoefficients< MeshDependentData >;
 
+        // we will scale the row such that the diagonal element equals one
+        const auto diagonalValue = coeff::A_ijKEF( mdd, i, i, K, E, e, E, e ) + AdditionalTerms::T_ijKef( mdd, i, i, K, E, e, E, e );
+
         for( int j = 0; j < MeshDependentData::NumberOfEquations; j++ ) {
             for( int f = 0; f < MeshDependentData::FacesPerCell; f++ ) {
-                // NOTE: the local element index depends on the DOF vector ordering
-                matrixRow.setElement( j + MeshDependentData::NumberOfEquations * f,
-                                      mdd.getDofIndex( j, faceIndexes[ f ] ),
-                                      coeff::A_ijKEF( mdd, i, j, K, E, e, faceIndexes[ f ], f ) + AdditionalTerms::T_ijKef( mdd, i, j, K, E, e, faceIndexes[ f ], f ) );
+                // set the diagonal element
+                if( j == i && faceIndexes[ f ] == E ) {
+                    // NOTE: the local element index depends on the DOF vector ordering
+                    matrixRow.setElement( j + MeshDependentData::NumberOfEquations * f,
+                                          mdd.getDofIndex( j, faceIndexes[ f ] ),
+                                          1 );
+                }
+                else {
+                    const auto value = coeff::A_ijKEF( mdd, i, j, K, E, e, faceIndexes[ f ], f ) + AdditionalTerms::T_ijKef( mdd, i, j, K, E, e, faceIndexes[ f ], f );
+                    // NOTE: the local element index depends on the DOF vector ordering
+                    matrixRow.setElement( j + MeshDependentData::NumberOfEquations * f,
+                                          mdd.getDofIndex( j, faceIndexes[ f ] ),
+                                          value / diagonalValue );
+                }
             }
         }
+
+        return diagonalValue;
     }
 };
 
@@ -222,6 +254,14 @@ setMatrixElements( const MeshType & mesh,
             const auto faceIndexes = getFacesForCell( mesh, K );
             const int e = getLocalIndex( faceIndexes, E );
 
+            // set non-zero elements and get the diagonal entry value
+            const RealType diagonalValue =
+                RowSetter< MeshType, MeshDependentDataType, AdditionalTerms_FixedFlux< MeshDependentDataType > >::
+                    setRow( matrixRow,
+                            mdd,
+                            faceIndexes,
+                            i, K, E, e );
+
             // set right hand side value
             const auto& entity = mesh.template getEntity< typename MeshType::Face >( E );
             RealType bValue = - getNeumannValue( mesh, i, E, time, tau ) * getEntityMeasure( mesh, entity );
@@ -230,14 +270,9 @@ setMatrixElements( const MeshType & mesh,
             for( int j = 0; j < MeshDependentDataType::NumberOfEquations; j++ ) {
                 bValue += MeshDependentDataType::MassMatrix::b_ijKe( mdd, i, j, K, e ) * mdd.R_iK( j, K );
             }
-            b[ rowIndex ] = bValue;
+            // scale the right hand side value by the matrix diagonal
+            b[ rowIndex ] = bValue / diagonalValue;
 
-            // set non-zero elements
-            RowSetter< MeshType, MeshDependentDataType, AdditionalTerms_FixedFlux< MeshDependentDataType > >::
-                setRow( matrixRow,
-                        mdd,
-                        faceIndexes,
-                        i, K, E, e );
             break;
         }
 
@@ -260,6 +295,14 @@ setMatrixElements( const MeshType & mesh,
             const auto faceIndexes = getFacesForCell( mesh, K );
             const int e = getLocalIndex( faceIndexes, E );
 
+            // set non-zero elements
+            const RealType diagonalValue =
+                RowSetter< MeshType, MeshDependentDataType, AdditionalTerms_AdvectiveOutflow< MeshDependentDataType > >::
+                    setRow( matrixRow,
+                            mdd,
+                            faceIndexes,
+                            i, K, E, e );
+
             // set right hand side value
             RealType bValue = 0;
 
@@ -267,14 +310,9 @@ setMatrixElements( const MeshType & mesh,
             for( int j = 0; j < MeshDependentDataType::NumberOfEquations; j++ ) {
                 bValue += MeshDependentDataType::MassMatrix::b_ijKe( mdd, i, j, K, e ) * mdd.R_iK( j, K );
             }
-            b[ rowIndex ] = bValue;
+            // scale the right hand side value by the matrix diagonal
+            b[ rowIndex ] = bValue / diagonalValue;
 
-            // set non-zero elements
-            RowSetter< MeshType, MeshDependentDataType, AdditionalTerms_AdvectiveOutflow< MeshDependentDataType > >::
-                setRow( matrixRow,
-                        mdd,
-                        faceIndexes,
-                        i, K, E, e );
             break;
         }
 

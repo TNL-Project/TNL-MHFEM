@@ -113,8 +113,11 @@ setup( const TNL::Config::ParameterContainer & parameters,
     // NOTE: Hypre uses right-preconditioning in all solvers, which means that
     // *original* (i.e. unpreconditioned) residuals are used in the stopping
     // criteria. Hence, the stopping threshold is fundamentally different from
-    // what we use in TNL solvers that use left-preconditioning.
-    HYPRE_BiCGSTABSetTol( *hypre_solver, 1e-17 );     // convergence tolerance
+    // left-preconditioned solvers in TNL. But so far we used only the Jacobi
+    // preconditioner in TNL and the MHFEM matrix assembler was updated to apply
+    // the diagonal scaling manually, so the threshold value should be on the
+    // same scale now.
+    HYPRE_BiCGSTABSetTol( *hypre_solver, parameters.getParameter< double >( "convergence-residue" ) );
 //    HYPRE_BiCGSTABSetPrintLevel( *hypre_solver, 2 );  // print solve info
 
     // Set some parameters (See Reference Manual for more parameters)
@@ -783,8 +786,8 @@ assembleLinearSystem( const RealType time,
         if( isBoundaryFace( *_mesh, E ) )
             _bc->setMatrixElements( *_mesh, *_mdd, rowIndex, E, i, time + tau, tau, *_matrix, _b );
         else {
-            LinearSystem::setMatrixElements( *_mesh, *_mdd, rowIndex, E, i, time + tau, tau, *_matrix, _b );
-            _b[ rowIndex ] = LinearSystem::RHS::getValue( *_mesh, *_mdd, E, i );
+            const auto diagonalValue = LinearSystem::setMatrixElements( *_mesh, *_mdd, rowIndex, E, i, time + tau, tau, *_matrix, _b );
+            _b[ rowIndex ] = LinearSystem::RHS::getValue( *_mesh, *_mdd, E, i ) / diagonalValue;
         }
     };
     TNL_ASSERT_EQ( localMatrixPointer->getRows(), MeshDependentDataType::NumberOfEquations * localFaces, "BUG: wrong matrix size" );

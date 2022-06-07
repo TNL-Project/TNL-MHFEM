@@ -35,7 +35,7 @@ public:
 
     template< typename Matrix, typename Vector >
     __cuda_callable__
-    static void
+    static RealType
     setMatrixElements( const MeshType & mesh,
                        const MeshDependentDataType & mdd,
                        const IndexType rowIndex,
@@ -120,6 +120,10 @@ public:
 
         LocalIndex rowElements = 0;
 
+        // we will scale the row such that the diagonal element equals one
+        const auto diagonalValue = coeff::A_ijKEF( mdd, i, i, cellIndexes[ 0 ], E, e0, E, e0 ) +
+                                   coeff::A_ijKEF( mdd, i, i, cellIndexes[ 1 ], E, e1, E, e1 );
+
         // NOTE: the placement of the j-loop depends on the DOF vector ordering
         //for( int j = 0; j < MeshDependentDataType::NumberOfEquations; j++ )
         {
@@ -134,19 +138,31 @@ public:
                 const LocalIndex f0 = localFaceIndexesK0[ g0 ];
                 const LocalIndex f1 = localFaceIndexesK1[ g1 ];
                 if( dofIndexK0( f0 ) < dofIndexK1( f1 ) ) {
-                    for( int j = 0; j < MeshDependentDataType::NumberOfEquations; j++ )
-                    matrixRow.setElement( rowElements++,
-                                          mdd.getDofIndex( j, faceIndexesK0[ f0 ] ),
-                                          coeff::A_ijKEF( mdd, i, j, cellIndexes[ 0 ], E, e0, faceIndexesK0[ f0 ], f0 ) );
+                    for( int j = 0; j < MeshDependentDataType::NumberOfEquations; j++ ) {
+                        const auto value = coeff::A_ijKEF( mdd, i, j, cellIndexes[ 0 ], E, e0, faceIndexesK0[ f0 ], f0 );
+                        matrixRow.setElement( rowElements++,
+                                              mdd.getDofIndex( j, faceIndexesK0[ f0 ] ),
+                                              value / diagonalValue );
+                    }
                     g0++;
                 }
                 else if( dofIndexK0( f0 ) == dofIndexK1( f1 ) ) {
                     TNL_ASSERT( setDiag == false, );
-                    for( int j = 0; j < MeshDependentDataType::NumberOfEquations; j++ )
-                    matrixRow.setElement( rowElements++,
-                                          mdd.getDofIndex( j, faceIndexesK0[ f0 ] ),
-                                          coeff::A_ijKEF( mdd, i, j, cellIndexes[ 0 ], E, e0, faceIndexesK0[ f0 ], f0 ) +
-                                          coeff::A_ijKEF( mdd, i, j, cellIndexes[ 1 ], E, e1, faceIndexesK1[ f1 ], f1 ) );
+                    for( int j = 0; j < MeshDependentDataType::NumberOfEquations; j++ ) {
+                        // set the diagonal element
+                        if( j == i ) {
+                            matrixRow.setElement( rowElements++,
+                                                  mdd.getDofIndex( j, faceIndexesK0[ f0 ] ),
+                                                  1 );
+                        }
+                        else {
+                            const auto value = coeff::A_ijKEF( mdd, i, j, cellIndexes[ 0 ], E, e0, faceIndexesK0[ f0 ], f0 ) +
+                                               coeff::A_ijKEF( mdd, i, j, cellIndexes[ 1 ], E, e1, faceIndexesK1[ f1 ], f1 );
+                            matrixRow.setElement( rowElements++,
+                                                  mdd.getDofIndex( j, faceIndexesK0[ f0 ] ),
+                                                  value / diagonalValue );
+                        }
+                    }
                     g0++;
                     g1++;
 #ifndef NDEBUG
@@ -154,10 +170,12 @@ public:
 #endif
                 }
                 else {
-                    for( int j = 0; j < MeshDependentDataType::NumberOfEquations; j++ )
-                    matrixRow.setElement( rowElements++,
-                                          mdd.getDofIndex( j, faceIndexesK1[ f1 ] ),
-                                          coeff::A_ijKEF( mdd, i, j, cellIndexes[ 1 ], E, e1, faceIndexesK1[ f1 ], f1 ) );
+                    for( int j = 0; j < MeshDependentDataType::NumberOfEquations; j++ ) {
+                        const auto value = coeff::A_ijKEF( mdd, i, j, cellIndexes[ 1 ], E, e1, faceIndexesK1[ f1 ], f1 );
+                        matrixRow.setElement( rowElements++,
+                                              mdd.getDofIndex( j, faceIndexesK1[ f1 ] ),
+                                              value / diagonalValue );
+                    }
                     g1++;
                 }
             }
@@ -166,19 +184,23 @@ public:
 
             while( g0 < MeshDependentDataType::FacesPerCell ) {
                 const LocalIndex f0 = localFaceIndexesK0[ g0 ];
-                for( int j = 0; j < MeshDependentDataType::NumberOfEquations; j++ )
-                matrixRow.setElement( rowElements++,
-                                      mdd.getDofIndex( j, faceIndexesK0[ f0 ] ),
-                                      coeff::A_ijKEF( mdd, i, j, cellIndexes[ 0 ], E, e0, faceIndexesK0[ f0 ], f0 ) );
+                for( int j = 0; j < MeshDependentDataType::NumberOfEquations; j++ ) {
+                    const auto value = coeff::A_ijKEF( mdd, i, j, cellIndexes[ 0 ], E, e0, faceIndexesK0[ f0 ], f0 );
+                    matrixRow.setElement( rowElements++,
+                                          mdd.getDofIndex( j, faceIndexesK0[ f0 ] ),
+                                          value / diagonalValue );
+                }
                 g0++;
             }
 
             while( g1 < MeshDependentDataType::FacesPerCell ) {
                 const LocalIndex f1 = localFaceIndexesK1[ g1 ];
-                for( int j = 0; j < MeshDependentDataType::NumberOfEquations; j++ )
-                matrixRow.setElement( rowElements++,
-                                      mdd.getDofIndex( j, faceIndexesK1[ f1 ] ),
-                                      coeff::A_ijKEF( mdd, i, j, cellIndexes[ 1 ], E, e1, faceIndexesK1[ f1 ], f1 ) );
+                for( int j = 0; j < MeshDependentDataType::NumberOfEquations; j++ ) {
+                    const auto value = coeff::A_ijKEF( mdd, i, j, cellIndexes[ 1 ], E, e1, faceIndexesK1[ f1 ], f1 );
+                    matrixRow.setElement( rowElements++,
+                                          mdd.getDofIndex( j, faceIndexesK1[ f1 ] ),
+                                          value / diagonalValue );
+                }
                 g1++;
             }
         }
@@ -198,6 +220,8 @@ public:
             TNL_ASSERT_TRUE( false, "the diagonal matrix element is not positive" );
         }
 #endif
+
+        return diagonalValue;
     }
 };
 
@@ -260,6 +284,7 @@ public:
         const auto faceIndexesK1 = getFacesForCell( mesh, cellIndexes[ 1 ] );
 
         for( int j = 0; j < MeshDependentDataType::NumberOfEquations; j++ ) {
+            // TODO: scale the row such that the diagonal element equals one
             matrixRow.setElement( j * 3 + 0, mdd.getDofIndex( j, faceIndexesK1[ 0 ] ), coeff::A_ijKEF( mdd, i, j, cellIndexes[ 1 ], E, 1, faceIndexesK1[ 0 ], 0 ) );
             matrixRow.setElement( j * 3 + 1, mdd.getDofIndex( j, faceIndexesK1[ 1 ] ), coeff::A_ijKEF( mdd, i, j, cellIndexes[ 1 ], E, 1, faceIndexesK1[ 1 ], 1 ) +
                                                                                        coeff::A_ijKEF( mdd, i, j, cellIndexes[ 0 ], E, 0, faceIndexesK0[ 0 ], 0 ) );
@@ -331,6 +356,7 @@ public:
             //      |____|____|
             //        4     5
             for( int j = 0; j < MeshDependentDataType::NumberOfEquations; j++ ) {
+                // TODO: scale the row such that the diagonal element equals one
                 matrixRow.setElement( j * 7 + 0, mdd.getDofIndex( j, faceIndexesK1[ 0 ] ), coeff::A_ijKEF( mdd, i, j, cellIndexes[ 1 ], E, 1, faceIndexesK1[ 0 ], 0 ) );
                 matrixRow.setElement( j * 7 + 1, mdd.getDofIndex( j, faceIndexesK1[ 1 ] ), coeff::A_ijKEF( mdd, i, j, cellIndexes[ 1 ], E, 1, faceIndexesK1[ 1 ], 1 ) +
                                                                                            coeff::A_ijKEF( mdd, i, j, cellIndexes[ 0 ], E, 0, faceIndexesK0[ 0 ], 0 ) );
@@ -351,6 +377,7 @@ public:
             //      |____|
             //        4
             for( int j = 0; j < MeshDependentDataType::NumberOfEquations; j++ ) {
+                // TODO: scale the row such that the diagonal element equals one
                 matrixRow.setElement( j * 7 + 0, mdd.getDofIndex( j, faceIndexesK1[ 0 ] ), coeff::A_ijKEF( mdd, i, j, cellIndexes[ 1 ], E, 3, faceIndexesK1[ 0 ], 0 ) );
                 matrixRow.setElement( j * 7 + 1, mdd.getDofIndex( j, faceIndexesK1[ 1 ] ), coeff::A_ijKEF( mdd, i, j, cellIndexes[ 1 ], E, 3, faceIndexesK1[ 1 ], 1 ) );
                 matrixRow.setElement( j * 7 + 2, mdd.getDofIndex( j, faceIndexesK0[ 0 ] ), coeff::A_ijKEF( mdd, i, j, cellIndexes[ 0 ], E, 2, faceIndexesK0[ 0 ], 0 ) );
@@ -427,6 +454,7 @@ public:
             //      |____|____|
             //        4     5
             for( int j = 0; j < MeshDependentDataType::NumberOfEquations; j++ ) {
+                // TODO: scale the row such that the diagonal element equals one
                 matrixRow.setElement( j * 11 +  0, mdd.getDofIndex( j, faceIndexesK1[ 0 ] ), coeff::A_ijKEF( mdd, i, j, cellIndexes[ 1 ], E, 1, faceIndexesK1[ 0 ], 0 ) );
                 matrixRow.setElement( j * 11 +  1, mdd.getDofIndex( j, faceIndexesK1[ 1 ] ), coeff::A_ijKEF( mdd, i, j, cellIndexes[ 1 ], E, 1, faceIndexesK1[ 1 ], 1 ) +
                                                                                              coeff::A_ijKEF( mdd, i, j, cellIndexes[ 0 ], E, 0, faceIndexesK0[ 0 ], 0 ) );
@@ -451,6 +479,7 @@ public:
             //      |____|
             //        4
             for( int j = 0; j < MeshDependentDataType::NumberOfEquations; j++ ) {
+                // TODO: scale the row such that the diagonal element equals one
                 matrixRow.setElement( j * 11 +  0, mdd.getDofIndex( j, faceIndexesK1[ 0 ] ), coeff::A_ijKEF( mdd, i, j, cellIndexes[ 1 ], E, 3, faceIndexesK1[ 0 ], 0 ) );
                 matrixRow.setElement( j * 11 +  1, mdd.getDofIndex( j, faceIndexesK1[ 1 ] ), coeff::A_ijKEF( mdd, i, j, cellIndexes[ 1 ], E, 3, faceIndexesK1[ 1 ], 1 ) );
                 matrixRow.setElement( j * 11 +  2, mdd.getDofIndex( j, faceIndexesK0[ 0 ] ), coeff::A_ijKEF( mdd, i, j, cellIndexes[ 0 ], E, 2, faceIndexesK0[ 0 ], 0 ) );
@@ -468,6 +497,7 @@ public:
         else {
             // E is n_z face
             for( int j = 0; j < MeshDependentDataType::NumberOfEquations; j++ ) {
+                // TODO: scale the row such that the diagonal element equals one
                 matrixRow.setElement( j * 11 +  0, mdd.getDofIndex( j, faceIndexesK1[ 0 ] ), coeff::A_ijKEF( mdd, i, j, cellIndexes[ 1 ], E, 5, faceIndexesK1[ 0 ], 0 ) );
                 matrixRow.setElement( j * 11 +  1, mdd.getDofIndex( j, faceIndexesK1[ 1 ] ), coeff::A_ijKEF( mdd, i, j, cellIndexes[ 1 ], E, 5, faceIndexesK1[ 1 ], 1 ) );
                 matrixRow.setElement( j * 11 +  2, mdd.getDofIndex( j, faceIndexesK0[ 0 ] ), coeff::A_ijKEF( mdd, i, j, cellIndexes[ 0 ], E, 4, faceIndexesK0[ 0 ], 0 ) );
