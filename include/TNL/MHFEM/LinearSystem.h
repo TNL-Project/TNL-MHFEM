@@ -62,6 +62,27 @@ public:
         const auto faceIndexesK0 = getFacesForCell( mesh, cellIndexes[ 0 ] );
         const auto faceIndexesK1 = getFacesForCell( mesh, cellIndexes[ 1 ] );
 
+#ifdef HAVE_HYPRE
+        // we must compare by global column indices
+        auto dofIndexK0 = [&mdd, &faceIndexesK0] ( LocalIndex e )
+        {
+            return mdd.getDofIndex( 0, faceIndexesK0[ e ] );
+        };
+        auto dofIndexK1 = [&mdd, &faceIndexesK1] ( LocalIndex e )
+        {
+            return mdd.getDofIndex( 0, faceIndexesK1[ e ] );
+        };
+#else
+        auto dofIndexK0 = [&faceIndexesK0] ( LocalIndex e )
+        {
+            return faceIndexesK0[ e ];
+        };
+        auto dofIndexK1 = [&faceIndexesK1] ( LocalIndex e )
+        {
+            return faceIndexesK1[ e ];
+        };
+#endif
+
         using LocalIndexPermutation = TNL::Containers::StaticArray< MeshDependentDataType::FacesPerCell, LocalIndex >;
 
         // For unstructured meshes the face indexes might be unsorted.
@@ -80,10 +101,10 @@ public:
         for( LocalIndex j = 0; j < MeshDependentDataType::FacesPerCell; j++ )
             localFaceIndexesK0[ j ] = localFaceIndexesK1[ j ] = j;
         auto comparatorK0 = [&]( LocalIndex a, LocalIndex b ) {
-            return faceIndexesK0[ a ] < faceIndexesK0[ b ];
+            return dofIndexK0( a ) < dofIndexK0( b );
         };
         auto comparatorK1 = [&]( LocalIndex a, LocalIndex b ) {
-            return faceIndexesK1[ a ] < faceIndexesK1[ b ];
+            return dofIndexK1( a ) < dofIndexK1( b );
         };
         // We assume that the array size is small, so we sort it with bubble sort.
         for( LocalIndex k1 = MeshDependentDataType::FacesPerCell - 1; k1 > 0; k1-- )
@@ -112,14 +133,14 @@ public:
             while( g0 < MeshDependentDataType::FacesPerCell && g1 < MeshDependentDataType::FacesPerCell ) {
                 const LocalIndex f0 = localFaceIndexesK0[ g0 ];
                 const LocalIndex f1 = localFaceIndexesK1[ g1 ];
-                if( faceIndexesK0[ f0 ] < faceIndexesK1[ f1 ] ) {
+                if( dofIndexK0( f0 ) < dofIndexK1( f1 ) ) {
                     for( int j = 0; j < MeshDependentDataType::NumberOfEquations; j++ )
                     matrixRow.setElement( rowElements++,
                                           mdd.getDofIndex( j, faceIndexesK0[ f0 ] ),
                                           coeff::A_ijKEF( mdd, i, j, cellIndexes[ 0 ], E, e0, faceIndexesK0[ f0 ], f0 ) );
                     g0++;
                 }
-                else if( faceIndexesK0[ f0 ] == faceIndexesK1[ f1 ] ) {
+                else if( dofIndexK0( f0 ) == dofIndexK1( f1 ) ) {
                     TNL_ASSERT( setDiag == false, );
                     for( int j = 0; j < MeshDependentDataType::NumberOfEquations; j++ )
                     matrixRow.setElement( rowElements++,

@@ -82,9 +82,16 @@ struct RowSetter
 #endif
         for( LocalIndex j = 0; j < FaceIndexes::getSize(); j++ )
             localFaceIndexes[ j ] = j;
+#ifdef HAVE_HYPRE
+        // we must sort by global column indices
+        auto comparator = [&]( LocalIndex a, LocalIndex b ) {
+            return mdd.getDofIndex( 0, faceIndexes[ a ] ) < mdd.getDofIndex( 0, faceIndexes[ b ] );
+        };
+#else
         auto comparator = [&]( LocalIndex a, LocalIndex b ) {
             return faceIndexes[ a ] < faceIndexes[ b ];
         };
+#endif
         // We assume that the array size is small, so we sort it with bubble sort.
         for( LocalIndex k1 = FaceIndexes::getSize() - 1; k1 > 0; k1-- )
             for( LocalIndex k2 = 0; k2 < k1; k2++ )

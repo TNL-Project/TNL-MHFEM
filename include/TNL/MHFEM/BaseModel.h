@@ -174,7 +174,11 @@ public:
     __cuda_callable__
     IndexType getDofIndex( const int i, const IndexType indexFace ) const
     {
+#ifdef HAVE_HYPRE
+        return i + globalFaceIndices[ indexFace ] * NumberOfEquations;
+#else
         return Z_iF.getStorageIndex( i, indexFace );
+#endif
     }
 
     __cuda_callable__
@@ -205,6 +209,11 @@ public:
     typename ArrayTypes::b_ijK_storage_t b_ijK_storage;
     typename ArrayTypes::R_ijKe_t R_ijKe;
     typename ArrayTypes::R_iK_t R_iK;
+
+#ifdef HAVE_HYPRE
+    using GlobalIndexArrayView = typename MeshType::GlobalIndexArray::ConstViewType;
+    GlobalIndexArrayView globalFaceIndices;
+#endif
 
 protected:
     // number of entities of the mesh for which the vectors are allocated

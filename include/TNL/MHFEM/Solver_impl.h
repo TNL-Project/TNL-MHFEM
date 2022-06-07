@@ -48,6 +48,9 @@ setMesh( DistributedHostMeshPointer & meshPointer )
 
     // allocate mesh dependent data
     mdd->allocate( *localMeshPointer );
+#ifdef HAVE_HYPRE
+    mdd->globalFaceIndices.bind( distributedMeshPointer->template getGlobalIndices< MeshType::getMeshDimension() - 1 >().getConstView() );
+#endif
 
     if( distributedMeshPointer->getCommunicator() != MPI_COMM_NULL ) {
         localFaces = localMeshPointer->template getGhostEntitiesOffset< MeshType::getMeshDimension() - 1 >();
@@ -97,6 +100,27 @@ setup( const TNL::Config::ParameterContainer & parameters,
     // prefix for snapshots
     outputDirectory = parameters.getParameter< TNL::String >( "output-directory" );
 
+#ifdef HAVE_HYPRE
+    // create new solver and preconditioner
+    hypre_solver = std::make_unique< TNL::Solvers::Linear::HypreBiCGSTAB >( distributedMeshPointer->getCommunicator() );
+    hypre_precond = std::make_unique< TNL::Solvers::Linear::HypreBoomerAMG >();
+
+    // set the preconditioner to the solver
+    hypre_solver->setPreconditioner( *hypre_precond );
+
+    // Set some parameters (See Reference Manual for more parameters)
+    HYPRE_BiCGSTABSetMaxIter( *hypre_solver, 1000 );  // max iterations
+    // NOTE: Hypre uses right-preconditioning in all solvers, which means that
+    // *original* (i.e. unpreconditioned) residuals are used in the stopping
+    // criteria. Hence, the stopping threshold is fundamentally different from
+    // what we use in TNL solvers that use left-preconditioning.
+    HYPRE_BiCGSTABSetTol( *hypre_solver, 1e-17 );     // convergence tolerance
+//    HYPRE_BiCGSTABSetPrintLevel( *hypre_solver, 2 );  // print solve info
+
+    // Set some parameters (See Reference Manual for more parameters)
+//    HYPRE_BoomerAMGSetPrintLevel( *hypre_precond, 1 );    // Print setup info + parameters
+    hypre_precond->setSystemsOptions( MeshDependentData::NumberOfEquations, false );
+#else
     // set up the linear solver
     const TNL::String& linearSolverName = parameters.getParameter< TNL::String >( "linear-solver" );
     linearSystemSolver = TNL::Solvers::getLinearSolver< DistributedMatrixType >( linearSolverName );
@@ -113,6 +137,7 @@ setup( const TNL::Config::ParameterContainer & parameters,
         if( ! preconditioner->setup( parameters ) )
             return false;
     }
+#endif
 
     // Our kernels for preIterate, postIterate and DifferentialOperator have many local memory spills,
     // so this helps a lot. It does not affect TNL's reduction and multireduction algorithms,
@@ -123,6 +148,7 @@ setup( const TNL::Config::ParameterContainer & parameters,
 
     // reset output/profiling variables
     allIterations = 0;
+    allTimeSteps = 0;
     timer_preIterate.reset();
     timer_assembleLinearSystem.reset();
     timer_linearPreconditioner.reset();
@@ -138,6 +164,14 @@ setup( const TNL::Config::ParameterContainer & parameters,
     timer_velocities.reset();
     timer_model_postIterate.reset();
     timer_mpi_upwind.reset();
+#ifdef HAVE_HYPRE
+    timer_hypre_conversion.reset();
+    timer_hypre_setup.reset();
+    timer_hypre_solve.reset();
+    hypre_updated_iters = 0;
+    hypre_last_iters = 1;
+    hypre_setup_counter = 0;
+#endif
 
     TNL::MPI::getTimerAllreduce().reset();
     if( distributedMeshPointer->getCommunicator() != MPI_COMM_NULL
@@ -286,21 +320,28 @@ setupLinearSystem()
         throw std::runtime_error( ss.str() );
     }
 
-    // initialize the matrix
     const IndexType offset = this->getDofsOffset();
     const IndexType localDofs = this->getLocalDofs();
     const IndexType dofs = this->getDofs();
     const IndexType globalDofs = this->getGlobalDofs();
+    const TNL::Containers::Subrange< IndexType > localRange( offset, offset + localDofs );
+
+#ifdef HAVE_HYPRE
+    // Hypre needs global column indices
+    const IndexType columns = globalDofs;
+#else
+    // local columns indices are used otherwise
+    const IndexType columns = dofs;
+#endif
+
+    // initialize the matrix
     distributedMatrixPointer = std::make_shared< DistributedMatrixType >();
-    distributedMatrixPointer->setDistribution( {offset, offset + localDofs}, globalDofs, dofs, distributedMeshPointer->getCommunicator() );
-    TNL::Containers::DistributedVectorView< IndexType, DeviceType, IndexType > dist_rowLengths( {offset, offset + localDofs}, 0, globalDofs, distributedMatrixPointer->getCommunicator(), rowLengths_vector );
+    distributedMatrixPointer->setDistribution( localRange, globalDofs, columns, distributedMeshPointer->getCommunicator() );
+    TNL::Containers::DistributedVectorView< IndexType, DeviceType, IndexType > dist_rowLengths( localRange, 0, globalDofs, distributedMatrixPointer->getCommunicator(), rowLengths_vector );
     distributedMatrixPointer->setRowCapacities( dist_rowLengths );
 
     // initialize the right hand side vector
     rhsVector.setSize( dofs );
-
-    // set the matrix for the linear solver
-    linearSystemSolver->setMatrix( distributedMatrixPointer );
 
     // bind device pointer to the local matrix
     this->localMatrixPointer = LocalMatrixPointer( distributedMatrixPointer->getLocalMatrix() );
@@ -780,8 +821,90 @@ solveLinearSystem( TNL::Solvers::IterativeSolverMonitor< RealType, IndexType >* 
     if( distributedMeshPointer->getCommunicator() == MPI_COMM_NULL )
         return;
 
+    allTimeSteps++;
+
+    const IndexType offset = this->getDofsOffset();
+    const IndexType localDofs = this->getLocalDofs();
+    const IndexType globalDofs = this->getGlobalDofs();
+    const TNL::Containers::Subrange< IndexType > localRange( offset, offset + localDofs );
+
+#ifdef HAVE_HYPRE
+    timer_hypre_conversion.start();
+        // Bind the local matrix to Hypre
+        TNL::Matrices::HypreCSRMatrix hypre_A;
+        hypre_A.bind( localMatrixPointer->getRows(),
+                      this->getGlobalDofs(),
+                      localMatrixPointer->getValues(),
+                      localMatrixPointer->getColumnIndexes(),
+                      localMatrixPointer->getSegments().getOffsets() );
+
+        // Assemble the distributed matrix in Hypre from the local blocks
+        // Note that this is a square matrix, so we indicate the row partition
+        // size twice (since number of rows = number of cols)
+        auto parcsr_A = TNL::Matrices::HypreParCSRMatrix::fromLocalBlocks(
+                            distributedMatrixPointer->getCommunicator(),
+                            globalDofs,
+                            globalDofs,
+                            localRange,
+                            localRange,
+                            hypre_A );
+    timer_hypre_conversion.stop();
+
+    {
+        // Check if the preconditioner should be reused
+        // TODO: figure out logging and better parametrization
+//        const bool reuse_preconditioner = hypre_last_iters <= 2 * hypre_updated_iters;
+        const bool reuse_preconditioner = hypre_last_iters <= TNL::min( 2 * hypre_updated_iters, hypre_updated_iters + 5 );
+//        std::cout << "reuse preconditioner: " << reuse_preconditioner << "  last iters: " << hypre_last_iters << " updated iters: " << hypre_updated_iters << std::endl;
+
+        // Set the matrix of the linear system
+        hypre_solver->setMatrix( parcsr_A, reuse_preconditioner );
+
+        // Prepare parallel vectors
+        DofViewType dofs_view = mdd->Z_iF.getStorageArray().getView( 0, localDofs );
+        TNL::Containers::DistributedVectorView< RealType, DeviceType, IndexType > dist_dofs( localRange, 0, globalDofs, distributedMatrixPointer->getCommunicator(), dofs_view );
+        TNL::Containers::DistributedVectorView< RealType, DeviceType, IndexType > dist_rhs( localRange, 0, globalDofs, distributedMatrixPointer->getCommunicator(), rhsVector.getView( 0, localDofs ) );
+
+        TNL::Containers::HypreParVector par_b;
+        TNL::Containers::HypreParVector par_x;
+        par_b.bind( dist_rhs );
+        par_x.bind( dist_dofs );
+
+        // Solve the linear system
+        if( ! reuse_preconditioner ) {
+            timer_hypre_setup.start();
+            hypre_solver->setup( par_b, par_x );
+            timer_hypre_setup.stop();
+        }
+        timer_hypre_solve.start();
+        hypre_solver->solve( par_b, par_x );
+        timer_hypre_solve.stop();
+
+        // synchronize the solution
+        auto dofs_view_with_ghosts = mdd->Z_iF.getStorageArray().getView();
+        faceSynchronizer->synchronizeArray( dofs_view_with_ghosts, MeshDependentDataType::NumberOfEquations );
+
+        const long long int num_iterations = hypre_solver->getNumIterations();
+        double final_res_norm;
+        HYPRE_BiCGSTABGetFinalRelativeResidualNorm( *hypre_solver, &final_res_norm );
+        if( solverMonitor ) {
+            solverMonitor->setIterations( num_iterations );
+            solverMonitor->setResidue( final_res_norm );
+        }
+        allIterations += num_iterations;
+
+        hypre_last_iters = num_iterations;
+        if( ! reuse_preconditioner || hypre_updated_iters == 0 )
+            hypre_updated_iters = num_iterations;
+        if( ! reuse_preconditioner )
+            hypre_setup_counter++;
+    }
+#else
     if( solverMonitor )
         linearSystemSolver->setSolverMonitor( *solverMonitor );
+
+    // set the matrix for the linear solver
+    linearSystemSolver->setMatrix( distributedMatrixPointer );
 
     if( preconditioner )
     {
@@ -791,14 +914,11 @@ solveLinearSystem( TNL::Solvers::IterativeSolverMonitor< RealType, IndexType >* 
     }
 
     timer_linearSolver.start();
-    const IndexType offset = this->getDofsOffset();
-    const IndexType localDofs = this->getLocalDofs();
-    const IndexType dofs = this->getDofs();
-    const IndexType globalDofs = this->getGlobalDofs();
 
+    const IndexType dofs = this->getDofs();
     DofViewType dofs_view = mdd->Z_iF.getStorageArray().getView();
-    TNL::Containers::DistributedVectorView< RealType, DeviceType, IndexType > dist_dofs( {offset, offset + localDofs}, dofs - localDofs, globalDofs, distributedMatrixPointer->getCommunicator(), dofs_view );
-    TNL::Containers::DistributedVectorView< RealType, DeviceType, IndexType > dist_rhs( {offset, offset + localDofs}, dofs - localDofs, globalDofs, distributedMatrixPointer->getCommunicator(), rhsVector.getView() );
+    TNL::Containers::DistributedVectorView< RealType, DeviceType, IndexType > dist_dofs( localRange, dofs - localDofs, globalDofs, distributedMatrixPointer->getCommunicator(), dofs_view );
+    TNL::Containers::DistributedVectorView< RealType, DeviceType, IndexType > dist_rhs( localRange, dofs - localDofs, globalDofs, distributedMatrixPointer->getCommunicator(), rhsVector.getView() );
     dist_dofs.setSynchronizer( faceSynchronizer, MeshDependentDataType::NumberOfEquations );
     dist_rhs.setSynchronizer( faceSynchronizer, MeshDependentDataType::NumberOfEquations );
     dist_rhs.startSynchronization();
@@ -814,6 +934,7 @@ solveLinearSystem( TNL::Solvers::IterativeSolverMonitor< RealType, IndexType >* 
         saveLinearSystem( distributedMatrixPointer->getLocalMatrix(), dofs_view, rhsVector );
         throw std::runtime_error( "MHFEM error: the linear system solver did not converge (" + std::to_string(linearSystemSolver->getIterations()) + " iterations)." );
     }
+#endif
 }
 
 template< typename MeshDependentData,
@@ -892,7 +1013,11 @@ writeEpilog( TNL::Logger & logger ) const
         logger.writeParameter< std::string >( prefix + " ", str.str() );
     };
 
-    logger.writeParameter< long long int >( "Total count of linear solver iterations:", allIterations );
+    logger.writeParameter< long long int >( "Total number of linear solver iterations:", allIterations );
+    logger.writeParameter< long long int >( "Total number of time steps:", allTimeSteps );
+#ifdef HAVE_HYPRE
+    logger.writeParameter< long long int >( "Number of time steps in which the preconditioner was updated:", hypre_setup_counter );
+#endif
     log_mpi_value( "Pre-iterate time:", timer_preIterate.getRealTime() );
     log_mpi_value( "  nonlinear update time:", timer_nonlinear.getRealTime() );
     log_mpi_value( "  update_b time:", timer_b.getRealTime() );
@@ -902,8 +1027,14 @@ writeEpilog( TNL::Logger & logger ) const
     log_mpi_value( "  update_Q time:", timer_Q.getRealTime() );
     log_mpi_value( "  model pre-iterate time:", timer_model_preIterate.getRealTime() );
     log_mpi_value( "Linear system assembler time:", timer_assembleLinearSystem.getRealTime() );
+#ifdef HAVE_HYPRE
+    log_mpi_value( "Hypre matrix conversion time:", timer_hypre_conversion.getRealTime() );
+    log_mpi_value( "Hypre setup time:", timer_hypre_setup.getRealTime() );
+    log_mpi_value( "Hypre solve time:", timer_hypre_solve.getRealTime() );
+#else
     log_mpi_value( "Linear preconditioner update time:", timer_linearPreconditioner.getRealTime() );
     log_mpi_value( "Linear system solver time:", timer_linearSolver.getRealTime() );
+#endif
     if( distributedMeshPointer->getCommunicator() != MPI_COMM_NULL
         && TNL::MPI::GetSize( distributedMeshPointer->getCommunicator() ) > 1 )
     {

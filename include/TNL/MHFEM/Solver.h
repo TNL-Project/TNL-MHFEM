@@ -10,6 +10,9 @@
 #include <TNL/Meshes/DistributedMeshes/DistributedMesh.h>
 #include <TNL/Meshes/DistributedMeshes/DistributedMeshSynchronizer.h>
 #include <TNL/Matrices/DistributedMatrix.h>
+#include <TNL/Containers/HypreParVector.h>
+#include <TNL/Matrices/HypreParCSRMatrix.h>
+#include <TNL/Solvers/Linear/Hypre.h>
 
 #include "LinearSystem.h"
 #include "BoundaryConditions.h"
@@ -118,6 +121,7 @@ protected:
 
     // output/profiling variables
     long long int allIterations = 0;
+    long long int allTimeSteps = 0;
     TNL::Timer timer_preIterate, timer_assembleLinearSystem, timer_linearPreconditioner, timer_linearSolver, timer_postIterate,
                // preIterate
                timer_b, timer_R, timer_Q, timer_nonlinear, timer_upwind, timer_model_preIterate,
@@ -125,6 +129,18 @@ protected:
                timer_explicit, timer_velocities, timer_model_postIterate,
                // MPI synchronization
                timer_mpi_upwind;
+#ifdef HAVE_HYPRE
+    TNL::Timer timer_hypre_conversion, timer_hypre_setup, timer_hypre_solve;
+
+    // Hypre solver and preconditioner
+    // (we need std::unique_ptr to pass the MPI communicator later to the constructor)
+    std::unique_ptr< TNL::Solvers::Linear::HypreBiCGSTAB > hypre_solver = nullptr;
+    std::unique_ptr< TNL::Solvers::Linear::HypreBoomerAMG > hypre_precond = nullptr;
+
+    long long int hypre_updated_iters = 0;
+    long long int hypre_last_iters = 1;
+    long long int hypre_setup_counter = 0;
+#endif
 
     DistributedHostMeshPointer distributedHostMeshPointer = nullptr;
     DistributedMeshPointer distributedMeshPointer = nullptr;
