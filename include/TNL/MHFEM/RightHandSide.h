@@ -6,9 +6,8 @@ namespace mhfem
 {
 
 template< typename MeshDependentData >
-class RightHandSide
+struct RightHandSide
 {
-public:
     using MeshType = typename MeshDependentData::MeshType;
     using MeshDependentDataType = MeshDependentData;
     using DeviceType = typename MeshType::DeviceType;
@@ -16,10 +15,11 @@ public:
     using IndexType = typename MeshDependentDataType::IndexType;
 
     __cuda_callable__
-    RealType operator()( const MeshType & mesh,
-                         const MeshDependentDataType & mdd,
-                         const IndexType E,
-                         const int i ) const
+    static RealType
+    getValue( const MeshType & mesh,
+              const MeshDependentDataType & mdd,
+              const IndexType E,
+              const int i )
     {
         TNL_ASSERT_TRUE( ! isBoundaryFace( mesh, E ), "" );
 

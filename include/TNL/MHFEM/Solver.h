@@ -11,9 +11,8 @@
 #include <TNL/Meshes/DistributedMeshes/DistributedMeshSynchronizer.h>
 #include <TNL/Matrices/DistributedMatrix.h>
 
-#include "DifferentialOperator.h"
+#include "LinearSystem.h"
 #include "BoundaryConditions.h"
-#include "RightHandSide.h"
 
 namespace mhfem
 {
@@ -42,16 +41,15 @@ public:
     using MeshDependentDataPointer = TNL::Pointers::SharedPointer< MeshDependentDataType, DeviceType >;
     using DofVectorType = TNL::Containers::Vector< RealType, DeviceType, IndexType >;
     using DofViewType = TNL::Containers::VectorView< RealType, DeviceType, IndexType >;
-    using DifferentialOperator = mhfem::DifferentialOperator< MeshType, MeshDependentDataType >;
-    using DifferentialOperatorPointer = TNL::Pointers::SharedPointer< DifferentialOperator >;
+    using LinearSystem = mhfem::LinearSystem< MeshType, MeshDependentDataType >;
     using BoundaryConditions = mhfem::BoundaryConditions< MeshDependentDataType, BoundaryModel >;
     using BoundaryConditionsPointer = TNL::Pointers::SharedPointer< BoundaryConditions >;
-    using RightHandSide = mhfem::RightHandSide< MeshDependentDataType >;
-    using RightHandSidePointer = TNL::Pointers::SharedPointer< RightHandSide, DeviceType >;
 
     using MatrixType = Matrix;
     using DistributedMatrixType = TNL::Matrices::DistributedMatrix< Matrix >;
-    using DistributedMatrixPointer = TNL::Pointers::SharedPointer< DistributedMatrixType >;
+    using DistributedMatrixPointer = std::shared_ptr< DistributedMatrixType >;
+
+    using FaceSynchronizerType = TNL::Meshes::DistributedMeshes::DistributedMeshSynchronizer< DistributedMeshType, MeshType::getMeshDimension() - 1 >;
 
     static TNL::String getPrologHeader();
 
@@ -73,6 +71,8 @@ public:
     MeshDependentDataPointer& getMeshDependentData();
 
     BoundaryConditionsPointer& getBoundaryConditions();
+
+    std::shared_ptr<FaceSynchronizerType>& getFaceSynchronizer();
 
     // index getters
     IndexType getDofsOffset() const;
@@ -104,6 +104,8 @@ public:
 
     void writeEpilog( TNL::Logger & logger ) const;
 
+    static void estimateMemoryDemands( const DistributedHostMeshType & mesh, std::ostream & out = std::cout );
+
 protected:
     // prefix for snapshots
     TNL::String outputDirectory;
@@ -127,12 +129,9 @@ protected:
     DistributedHostMeshPointer distributedHostMeshPointer = nullptr;
     DistributedMeshPointer distributedMeshPointer = nullptr;
     MeshDependentDataPointer mdd;
-
-    DifferentialOperatorPointer differentialOperatorPointer;
     BoundaryConditionsPointer boundaryConditionsPointer;
-    RightHandSidePointer rightHandSidePointer;
 
-    // linear system preconditioner and solver
+    // linear system solver and preconditioner
     using LinearSolverType = TNL::Solvers::Linear::LinearSolver< DistributedMatrixType >;
     using LinearSolverPointer = std::shared_ptr< LinearSolverType >;
     using PreconditionerType = typename LinearSolverType::PreconditionerType;
@@ -140,9 +139,10 @@ protected:
     // uninitialized smart pointers (they are initialized in the setup method)
     LinearSolverPointer linearSystemSolver = nullptr;
     PreconditionerPointer preconditioner = nullptr;
+    // (distributedMatrixPointer is initialized in the setupLinearSystem method)
+    DistributedMatrixPointer distributedMatrixPointer = nullptr;
 
-    // matrix and right hand side vector for the linear system
-    DistributedMatrixPointer distributedMatrixPointer;
+    // right hand side vector for the linear system
     DofVectorType rhsVector;
 
     // device pointers to local stuff for passing to CUDA kernels
@@ -151,7 +151,6 @@ protected:
     LocalMeshPointer localMeshPointer = nullptr;
     LocalMatrixPointer localMatrixPointer = nullptr;
 
-    using FaceSynchronizerType = TNL::Meshes::DistributedMeshes::DistributedMeshSynchronizer< DistributedMeshType, MeshType::getMeshDimension() - 1 >;
     std::shared_ptr< FaceSynchronizerType > faceSynchronizer;
 };
 

@@ -1,7 +1,6 @@
 #pragma once
 
 #include <TNL/Config/ParameterContainer.h>
-#include <TNL/Config/ConfigDescription.h>
 #include <TNL/Solvers/IterativeSolverMonitor.h>
 #include <TNL/Pointers/SmartPointersRegister.h>
 #include <TNL/Meshes/TypeResolver/resolveMeshType.h>
@@ -32,20 +31,26 @@ void distributeFaces( DistributedMesh& mesh )
 template< typename Problem >
 void init( Problem& problem,
            typename Problem::DistributedHostMeshPointer& meshPointer,
-           const TNL::Config::ParameterContainer& parameters )
+           const TNL::Config::ParameterContainer& parameters,
+           const TNL::MPI::Comm& communicator = MPI_COMM_WORLD )
 {
     const TNL::String meshFile = parameters.getParameter< TNL::String >( "mesh" );
     const TNL::String meshFileFormat = parameters.getParameter< TNL::String >( "mesh-format" );
 #ifdef HAVE_MPI
-    if( ! TNL::Meshes::loadDistributedMesh( meshPointer->getLocalMesh(), *meshPointer, meshFile, meshFileFormat ) )
+    if( ! TNL::Meshes::loadDistributedMesh( *meshPointer, meshFile, meshFileFormat, communicator ) )
         throw std::runtime_error( "failed to load the distributed mesh from file " + meshFile );
 
-    // distribute faces
-    distributeFaces( *meshPointer );
+    if( meshPointer->getCommunicator() != MPI_COMM_NULL )
+        // distribute faces
+        distributeFaces( *meshPointer );
 #else
     if( ! TNL::Meshes::loadMesh( meshPointer->getLocalMesh(), meshFile, meshFileFormat ) )
         throw std::runtime_error( "failed to load the mesh from file " + meshFile );
+    meshPointer->setCommunicator( communicator );
 #endif
+
+    // estimate memory before further allocations
+    problem.estimateMemoryDemands( *meshPointer );
 
     problem.setMesh( meshPointer );
 
@@ -205,8 +210,7 @@ void writeEpilog( TNL::Logger& logger,
 
 template< typename Problem >
 bool execute( const TNL::Config::ParameterContainer& controlParameters,
-              const TNL::Config::ParameterContainer& solverParameters,
-              const TNL::Config::ConfigDescription& solverConfigDescription )
+              const TNL::Config::ParameterContainer& solverParameters )
 {
     TNL::Timer totalTimer, computeTimer, ioTimer;
     totalTimer.start();
