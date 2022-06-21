@@ -9,7 +9,7 @@
 #include <TNL/Matrices/StaticMatrix.h>
 #include <TNL/Matrices/Factorization/LUsequential.h>
 
-#include "../lib_general/mesh_helpers.h"
+#include "mesh_helpers.h"
 
 namespace mhfem {
 

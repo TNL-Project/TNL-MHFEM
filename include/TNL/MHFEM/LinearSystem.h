@@ -3,7 +3,7 @@
 #include <TNL/Meshes/Grid.h>
 #include "RightHandSide.h"
 #include "SecondaryCoefficients.h"
-#include "../lib_general/mesh_helpers.h"
+#include "mesh_helpers.h"
 
 namespace mhfem
 {

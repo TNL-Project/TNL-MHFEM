@@ -8,7 +8,7 @@
 #include <TNL/Meshes/Topologies/Tetrahedron.h>
 #include <TNL/Meshes/Topologies/Hexahedron.h>
 
-#include "../lib_general/mesh_helpers.h"
+#include "mesh_helpers.h"
 
 namespace mhfem {
 namespace BasisFunctions {

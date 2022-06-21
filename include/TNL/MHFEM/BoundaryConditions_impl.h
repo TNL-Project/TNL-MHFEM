@@ -3,7 +3,7 @@
 #include <TNL/Containers/StaticArray.h>
 
 #include "BoundaryConditions.h"
-#include "../lib_general/mesh_helpers.h"
+#include "mesh_helpers.h"
 #include "SecondaryCoefficients.h"
 
 namespace mhfem {

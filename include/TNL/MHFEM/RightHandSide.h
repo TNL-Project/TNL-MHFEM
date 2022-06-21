@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../lib_general/mesh_helpers.h"
+#include "mesh_helpers.h"
 
 namespace mhfem
 {
