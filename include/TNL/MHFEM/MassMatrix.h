@@ -7,9 +7,9 @@
 #include <TNL/Meshes/Topologies/Tetrahedron.h>
 #include <TNL/Meshes/Topologies/Hexahedron.h>
 #include <TNL/Matrices/StaticMatrix.h>
+#include <TNL/Matrices/Factorization/LUsequential.h>
 
 #include "../lib_general/mesh_helpers.h"
-#include "../lib_general/LU.h"
 
 namespace mhfem {
 
@@ -557,6 +557,7 @@ public:
 
         // LU decomposition is stable
         // TODO: use Cholesky instead
+        using namespace TNL::Matrices::Factorization;
 
         TNL::Matrices::StaticMatrix< typename Mesh::RealType, 3, 3 > matrix;
         TNL::Containers::StaticVector< 3, typename Mesh::RealType > v;
@@ -572,25 +573,25 @@ public:
         matrix( 2, 0 ) = matrix( 0, 2 );
         matrix( 2, 1 ) = matrix( 1, 2 );
 
-        LU_factorize( matrix );
+        LU_sequential_factorize( matrix );
 
         // store the inverse in the packed format (upper triangle, column by column)
         // see: http://www.netlib.org/lapack/lug/node123.html
 
         v.setValue( 0.0 );
         v[ 0 ] = 1.0;
-        LU_solve_inplace( matrix, v );
+        LU_sequential_solve_inplace( matrix, v );
         mdd.b_ijK_storage( i, j, K, 0 ) = v[ 0 ] * mdd.D_ijK( i, j, K );
 
         v.setValue( 0.0 );
         v[ 1 ] = 1.0;
-        LU_solve_inplace( matrix, v );
+        LU_sequential_solve_inplace( matrix, v );
         mdd.b_ijK_storage( i, j, K, 1 ) = v[ 0 ] * mdd.D_ijK( i, j, K );
         mdd.b_ijK_storage( i, j, K, 2 ) = v[ 1 ] * mdd.D_ijK( i, j, K );
 
         v.setValue( 0.0 );
         v[ 2 ] = 1.0;
-        LU_solve_inplace( matrix, v );
+        LU_sequential_solve_inplace( matrix, v );
         mdd.b_ijK_storage( i, j, K, 3 ) = v[ 0 ] * mdd.D_ijK( i, j, K );
         mdd.b_ijK_storage( i, j, K, 4 ) = v[ 1 ] * mdd.D_ijK( i, j, K );
         mdd.b_ijK_storage( i, j, K, 5 ) = v[ 2 ] * mdd.D_ijK( i, j, K );
@@ -681,6 +682,7 @@ public:
 
         // LU decomposition is stable
         // TODO: use Cholesky instead
+        using namespace TNL::Matrices::Factorization;
 
         TNL::Matrices::StaticMatrix< typename Mesh::RealType, 3, 3 > matrix;
         TNL::Containers::StaticVector< 3, typename Mesh::RealType > v;
@@ -696,25 +698,25 @@ public:
         matrix( 2, 0 ) = matrix( 0, 2 );
         matrix( 2, 1 ) = matrix( 1, 2 );
 
-        LU_factorize( matrix );
+        LU_sequential_factorize( matrix );
 
         // store the inverse in the packed format (upper triangle, column by column)
         // see: http://www.netlib.org/lapack/lug/node123.html
 
         v.setValue( 0.0 );
         v[ 0 ] = 1.0;
-        LU_solve_inplace( matrix, v );
+        LU_sequential_solve_inplace( matrix, v );
         mdd.b_ijK_storage( i, j, K, 0 ) = v[ 0 ] * mdd.D_ijK( i, j, K );
 
         v.setValue( 0.0 );
         v[ 1 ] = 1.0;
-        LU_solve_inplace( matrix, v );
+        LU_sequential_solve_inplace( matrix, v );
         mdd.b_ijK_storage( i, j, K, 1 ) = v[ 0 ] * mdd.D_ijK( i, j, K );
         mdd.b_ijK_storage( i, j, K, 2 ) = v[ 1 ] * mdd.D_ijK( i, j, K );
 
         v.setValue( 0.0 );
         v[ 2 ] = 1.0;
-        LU_solve_inplace( matrix, v );
+        LU_sequential_solve_inplace( matrix, v );
         mdd.b_ijK_storage( i, j, K, 3 ) = v[ 0 ] * mdd.D_ijK( i, j, K );
         mdd.b_ijK_storage( i, j, K, 4 ) = v[ 1 ] * mdd.D_ijK( i, j, K );
         mdd.b_ijK_storage( i, j, K, 5 ) = v[ 2 ] * mdd.D_ijK( i, j, K );
@@ -808,6 +810,7 @@ public:
 
         // LU decomposition is stable
         // TODO: use Cholesky instead
+        using namespace TNL::Matrices::Factorization;
 
         TNL::Matrices::StaticMatrix< typename Mesh::RealType, 4, 4 > matrix;
         TNL::Containers::StaticVector< 4, typename Mesh::RealType > v;
@@ -830,32 +833,32 @@ public:
         matrix( 3, 1 ) = matrix( 1, 3 );
         matrix( 3, 2 ) = matrix( 2, 3 );
 
-        LU_factorize( matrix );
+        LU_sequential_factorize( matrix );
 
         // store the inverse in the packed format (upper triangle, column by column)
         // see: http://www.netlib.org/lapack/lug/node123.html
 
         v.setValue( 0.0 );
         v[ 0 ] = 1.0;
-        LU_solve_inplace( matrix, v );
+        LU_sequential_solve_inplace( matrix, v );
         mdd.b_ijK_storage( i, j, K, 0 ) = v[ 0 ] * D;
 
         v.setValue( 0.0 );
         v[ 1 ] = 1.0;
-        LU_solve_inplace( matrix, v );
+        LU_sequential_solve_inplace( matrix, v );
         mdd.b_ijK_storage( i, j, K, 1 ) = v[ 0 ] * D;
         mdd.b_ijK_storage( i, j, K, 2 ) = v[ 1 ] * D;
 
         v.setValue( 0.0 );
         v[ 2 ] = 1.0;
-        LU_solve_inplace( matrix, v );
+        LU_sequential_solve_inplace( matrix, v );
         mdd.b_ijK_storage( i, j, K, 3 ) = v[ 0 ] * D;
         mdd.b_ijK_storage( i, j, K, 4 ) = v[ 1 ] * D;
         mdd.b_ijK_storage( i, j, K, 5 ) = v[ 2 ] * D;
 
         v.setValue( 0.0 );
         v[ 3 ] = 1.0;
-        LU_solve_inplace( matrix, v );
+        LU_sequential_solve_inplace( matrix, v );
         mdd.b_ijK_storage( i, j, K, 6 ) = v[ 0 ] * D;
         mdd.b_ijK_storage( i, j, K, 7 ) = v[ 1 ] * D;
         mdd.b_ijK_storage( i, j, K, 8 ) = v[ 2 ] * D;
@@ -953,6 +956,7 @@ public:
 
         // LU decomposition is stable
         // TODO: use Cholesky instead
+        using namespace TNL::Matrices::Factorization;
 
         TNL::Matrices::StaticMatrix< typename Mesh::RealType, 4, 4 > matrix;
         TNL::Containers::StaticVector< 4, typename Mesh::RealType > v;
@@ -975,32 +979,32 @@ public:
         matrix( 3, 1 ) = matrix( 1, 3 );
         matrix( 3, 2 ) = matrix( 2, 3 );
 
-        LU_factorize( matrix );
+        LU_sequential_factorize( matrix );
 
         // store the inverse in the packed format (upper triangle, column by column)
         // see: http://www.netlib.org/lapack/lug/node123.html
 
         v.setValue( 0.0 );
         v[ 0 ] = 1.0;
-        LU_solve_inplace( matrix, v );
+        LU_sequential_solve_inplace( matrix, v );
         mdd.b_ijK_storage( i, j, K, 0 ) = v[ 0 ] * D;
 
         v.setValue( 0.0 );
         v[ 1 ] = 1.0;
-        LU_solve_inplace( matrix, v );
+        LU_sequential_solve_inplace( matrix, v );
         mdd.b_ijK_storage( i, j, K, 1 ) = v[ 0 ] * D;
         mdd.b_ijK_storage( i, j, K, 2 ) = v[ 1 ] * D;
 
         v.setValue( 0.0 );
         v[ 2 ] = 1.0;
-        LU_solve_inplace( matrix, v );
+        LU_sequential_solve_inplace( matrix, v );
         mdd.b_ijK_storage( i, j, K, 3 ) = v[ 0 ] * D;
         mdd.b_ijK_storage( i, j, K, 4 ) = v[ 1 ] * D;
         mdd.b_ijK_storage( i, j, K, 5 ) = v[ 2 ] * D;
 
         v.setValue( 0.0 );
         v[ 3 ] = 1.0;
-        LU_solve_inplace( matrix, v );
+        LU_sequential_solve_inplace( matrix, v );
         mdd.b_ijK_storage( i, j, K, 6 ) = v[ 0 ] * D;
         mdd.b_ijK_storage( i, j, K, 7 ) = v[ 1 ] * D;
         mdd.b_ijK_storage( i, j, K, 8 ) = v[ 2 ] * D;

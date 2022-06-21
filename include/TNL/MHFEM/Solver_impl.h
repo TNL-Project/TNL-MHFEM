@@ -715,13 +715,14 @@ preIterate( const RealType time,
                 }
             }
 
-            LU_factorize( Q );
+            using namespace TNL::Matrices::Factorization;
+            LU_sequential_factorize( Q );
 
             RealType rhs[ MeshDependentDataType::NumberOfEquations ];
 
             for( int i = 0; i < MeshDependentDataType::NumberOfEquations; i++ )
                 rhs[ i ] = _mdd->R_iK( i, K );
-            LU_solve_inplace( Q, rhs );
+            LU_sequential_solve_inplace( Q, rhs );
             for( int i = 0; i < MeshDependentDataType::NumberOfEquations; i++ )
                 _mdd->R_iK( i, K ) = rhs[ i ];
 
@@ -729,7 +730,7 @@ preIterate( const RealType time,
                 for( int e = 0; e < MeshDependentDataType::FacesPerCell; e++ ) {
                     for( int i = 0; i < MeshDependentDataType::NumberOfEquations; i++ )
                         rhs[ i ] = _mdd->R_ijKe( i, j, K, e );
-                    LU_solve_inplace( Q, rhs );
+                    LU_sequential_solve_inplace( Q, rhs );
                     for( int i = 0; i < MeshDependentDataType::NumberOfEquations; i++ )
                         _mdd->R_ijKe( i, j, K, e ) = rhs[ i ];
                 }
