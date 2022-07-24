@@ -885,8 +885,12 @@ solveLinearSystem( TNL::Solvers::IterativeSolverMonitor< RealType, IndexType >* 
         timer_hypre_solve.stop();
 
         // synchronize the solution
-        auto dofs_view_with_ghosts = mdd->Z_iF.getStorageArray().getView();
-        faceSynchronizer->synchronizeArray( dofs_view_with_ghosts, MeshDependentDataType::NumberOfEquations );
+        if( distributedMeshPointer->getCommunicator() != MPI_COMM_NULL
+            && TNL::MPI::GetSize( distributedMeshPointer->getCommunicator() ) > 1 )
+        {
+            auto dofs_view_with_ghosts = mdd->Z_iF.getStorageArray().getView();
+            faceSynchronizer->synchronizeArray( dofs_view_with_ghosts, MeshDependentDataType::NumberOfEquations );
+        }
 
         const long long int num_iterations = hypre_solver->getNumIterations();
         double final_res_norm;
