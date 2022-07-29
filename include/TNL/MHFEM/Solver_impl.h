@@ -48,9 +48,6 @@ setMesh( DistributedHostMeshPointer & meshPointer )
 
     // allocate mesh dependent data
     mdd->allocate( *localMeshPointer );
-#ifdef HAVE_HYPRE
-    mdd->globalFaceIndices.bind( distributedMeshPointer->template getGlobalIndices< MeshType::getMeshDimension() - 1 >().getConstView() );
-#endif
 
     if( distributedMeshPointer->getCommunicator() != MPI_COMM_NULL ) {
         localFaces = localMeshPointer->template getGhostEntitiesOffset< MeshType::getMeshDimension() - 1 >();
@@ -290,12 +287,99 @@ setupLinearSystem()
     if( distributedMeshPointer->getCommunicator() == MPI_COMM_NULL )
         return;
 
+    const IndexType offset = this->getDofsOffset();
+    const IndexType localDofs = this->getLocalDofs();
+    const IndexType dofs = this->getDofs();
+    const IndexType globalDofs = this->getGlobalDofs();
+    const TNL::Containers::Subrange< IndexType > localRange( offset, offset + localDofs );
+
+    // initialize the right hand side vector
+    rhsVector.setSize( dofs );
+
     using CompressedRowLengths =
         TNL::Containers::NDArray< IndexType,
                                   TNL::Containers::SizesHolder< IndexType, MeshDependentDataType::NumberOfEquations, 0 >,  // i, F
                                   std::index_sequence< 1, 0 >,  // F, i  (must match the permutation for mdd.Z_iF for all devices
                                   DeviceType >;
 
+#ifdef HAVE_HYPRE
+    CompressedRowLengths rowLengths_diag, rowLengths_offd;
+    rowLengths_diag.setSizes( 0, localFaces );
+    rowLengths_offd.setSizes( 0, localFaces );
+    rowLengths_diag.setValue( -1 );
+    rowLengths_offd.setValue( -1 );
+
+    auto rowLengths_diag_view = rowLengths_diag.getView();
+    auto rowLengths_offd_view = rowLengths_offd.getView();
+    const MeshType* _mesh = &localMeshPointer.template getData< DeviceType >();
+    const auto* _bc = &boundaryConditionsPointer.template getData< DeviceType >();
+    auto kernel = [rowLengths_diag_view, rowLengths_offd_view, _mesh, _bc] __cuda_callable__ ( int i, IndexType E ) mutable
+    {
+        if( isBoundaryFace( *_mesh, E ) ) {
+            const IndexType diag_count = _bc->getLinearSystemRowLengthDiag( *_mesh, E, i );
+            rowLengths_diag_view( i, E ) = diag_count;
+            rowLengths_offd_view( i, E ) = _bc->getLinearSystemRowLength( *_mesh, E, i ) - diag_count;
+        }
+        else {
+            const IndexType diag_count = LinearSystem::getRowLengthDiag( *_mesh, E, i );
+            rowLengths_diag_view( i, E ) = diag_count;
+            rowLengths_offd_view( i, E ) = LinearSystem::getRowLength( *_mesh, E, i ) - diag_count;
+        }
+    };
+    rowLengths_diag_view.forAll( kernel );
+
+    // sanity check (doesn't happen if the traverser works, but this is pretty
+    // hard to debug and the check does not cost us much in initialization)
+    using IndexVectorViewType = TNL::Containers::VectorView< IndexType, DeviceType, IndexType >;
+    IndexVectorViewType rowLengths_diag_vector( rowLengths_diag.getStorageArray().getView() );
+    IndexVectorViewType rowLengths_offd_vector( rowLengths_offd.getStorageArray().getView() );
+    if( TNL::min( rowLengths_diag_vector ) <= 0 ) {
+        std::stringstream ss;
+        ss << "MHFEM error: attempted to set invalid rowsLengths vector for the diag block:\n" << rowLengths_diag_vector << std::endl;
+        throw std::runtime_error( ss.str() );
+    }
+    if( TNL::min( rowLengths_offd_vector ) < 0 ) {
+        std::stringstream ss;
+        ss << "MHFEM error: attempted to set invalid rowsLengths vector for the offd block:\n" << rowLengths_offd_vector << std::endl;
+        throw std::runtime_error( ss.str() );
+    }
+
+    // initialize the diag block
+    csr_diag.setDimensions( localDofs, localDofs );
+    csr_diag.setRowCapacities( rowLengths_diag_vector );
+
+    // initialize the offd block
+    csr_offd.setDimensions( localDofs, dofs - localDofs );
+    csr_offd.setRowCapacities( rowLengths_offd_vector );
+
+    // initialize the offd col map
+    CompressedRowLengths col_map_device;
+    const IndexType faces = localMeshPointer->template getEntitiesCount< MeshType::getMeshDimension() - 1 >();
+    col_map_device.setSizes( 0, faces - localFaces );
+    auto col_map_view = col_map_device.getView();
+    const auto* _mdd = &mdd.template getData< DeviceType >();
+    const auto& globalFaceIndices = distributedMeshPointer->template getGlobalIndices< MeshType::getMeshDimension() - 1 >().getConstView();
+    const IndexType localFaces = this->localFaces;
+    auto kernel_col_map = [col_map_view, _mdd, globalFaceIndices, localFaces] __cuda_callable__ ( IndexType E ) mutable
+    {
+        for( int i = 0; i < MeshDependentDataType::NumberOfEquations; i++ ) {
+            const IndexType globalDof = i + globalFaceIndices[ E ] * MeshDependentDataType::NumberOfEquations;
+            col_map_view( i, E - localFaces ) = globalDof;
+        }
+    };
+    TNL::Algorithms::ParallelFor< DeviceType >::exec( localFaces, faces, kernel_col_map );
+    col_map_offd = col_map_device.getStorageArray();
+
+    // initialize the parcsr matrix
+    parcsr_A.bind( distributedMeshPointer->getCommunicator(),
+                   globalDofs,
+                   globalDofs,
+                   localRange,
+                   localRange,
+                   csr_diag,
+                   csr_offd,
+                   col_map_offd.getData() );
+#else
     CompressedRowLengths rowLengths;
     rowLengths.setSizes( 0, localFaces );
     rowLengths.setValue( -1 );
@@ -323,31 +407,15 @@ setupLinearSystem()
         throw std::runtime_error( ss.str() );
     }
 
-    const IndexType offset = this->getDofsOffset();
-    const IndexType localDofs = this->getLocalDofs();
-    const IndexType dofs = this->getDofs();
-    const IndexType globalDofs = this->getGlobalDofs();
-    const TNL::Containers::Subrange< IndexType > localRange( offset, offset + localDofs );
-
-#ifdef HAVE_HYPRE
-    // Hypre needs global column indices
-    const IndexType columns = globalDofs;
-#else
-    // local columns indices are used otherwise
-    const IndexType columns = dofs;
-#endif
-
     // initialize the matrix
     distributedMatrixPointer = std::make_shared< DistributedMatrixType >();
-    distributedMatrixPointer->setDistribution( localRange, globalDofs, columns, distributedMeshPointer->getCommunicator() );
+    distributedMatrixPointer->setDistribution( localRange, globalDofs, dofs, distributedMeshPointer->getCommunicator() );
     TNL::Containers::DistributedVectorView< IndexType, DeviceType, IndexType > dist_rowLengths( localRange, 0, globalDofs, distributedMatrixPointer->getCommunicator(), rowLengths_vector );
     distributedMatrixPointer->setRowCapacities( dist_rowLengths );
 
-    // initialize the right hand side vector
-    rhsVector.setSize( dofs );
-
     // bind device pointer to the local matrix
     this->localMatrixPointer = LocalMatrixPointer( distributedMatrixPointer->getLocalMatrix() );
+#endif
 }
 
 
@@ -773,6 +841,31 @@ assembleLinearSystem( const RealType time,
 
     timer_assembleLinearSystem.start();
 
+#ifdef HAVE_HYPRE
+    const auto* _mesh = &localMeshPointer.template getData< DeviceType >();
+    const auto* _mdd = &mdd.template modifyData< DeviceType >();
+    const auto* _bc = &boundaryConditionsPointer.template getData< DeviceType >();
+    auto diag_view = csr_diag.getView();
+    auto offd_view = csr_offd.getView();
+    auto _b = rhsVector.getView();
+    auto kernel = [_mesh, _mdd, _bc, diag_view, offd_view, _b, time, tau] __cuda_callable__ ( IndexType E, int i ) mutable
+    {
+        TNL_ASSERT_FALSE( _mesh->template isGhostEntity< MeshType::getMeshDimension() - 1 >( E ),
+                          "A ghost face encountered while assembling the linear system." );
+        const IndexType rowIndex = _mdd->getRowIndex( i, E );
+        TNL_ASSERT_LT( rowIndex, diag_view.getRows(), "bug in getRowIndex" );
+        if( isBoundaryFace( *_mesh, E ) )
+            _bc->setMatrixElements( *_mesh, *_mdd, rowIndex, E, i, time + tau, tau, diag_view, offd_view, _b );
+        else {
+            const RealType diagonalValue = LinearSystem::setMatrixElements( *_mesh, *_mdd, rowIndex, E, i, time + tau, tau, diag_view, offd_view, _b );
+            _b[ rowIndex ] = LinearSystem::RHS::getValue( *_mesh, *_mdd, E, i ) / diagonalValue;
+        }
+    };
+    // mdd->Z_iF.forAll does not skip ghosts, so we use ParallelFor2D manually for the specific permutation of indices
+    TNL::Algorithms::ParallelFor2D< DeviceType >::exec( (IndexType) 0, (IndexType) 0,
+                                                        localFaces, (IndexType) MeshDependentDataType::NumberOfEquations,
+                                                        kernel );
+#else
     const auto* _mesh = &localMeshPointer.template getData< DeviceType >();
     const auto* _mdd = &mdd.template modifyData< DeviceType >();
     const auto* _bc = &boundaryConditionsPointer.template getData< DeviceType >();
@@ -787,7 +880,7 @@ assembleLinearSystem( const RealType time,
         if( isBoundaryFace( *_mesh, E ) )
             _bc->setMatrixElements( *_mesh, *_mdd, rowIndex, E, i, time + tau, tau, *_matrix, _b );
         else {
-            const auto diagonalValue = LinearSystem::setMatrixElements( *_mesh, *_mdd, rowIndex, E, i, time + tau, tau, *_matrix, _b );
+            const RealType diagonalValue = LinearSystem::setMatrixElements( *_mesh, *_mdd, rowIndex, E, i, time + tau, tau, *_matrix, _b );
             _b[ rowIndex ] = LinearSystem::RHS::getValue( *_mesh, *_mdd, E, i ) / diagonalValue;
         }
     };
@@ -796,6 +889,7 @@ assembleLinearSystem( const RealType time,
     TNL::Algorithms::ParallelFor2D< DeviceType >::exec( (IndexType) 0, (IndexType) 0,
                                                         localFaces, (IndexType) MeshDependentDataType::NumberOfEquations,
                                                         kernel );
+#endif
 
     timer_assembleLinearSystem.stop();
 }
@@ -833,80 +927,57 @@ solveLinearSystem( TNL::Solvers::IterativeSolverMonitor< RealType, IndexType >* 
     const TNL::Containers::Subrange< IndexType > localRange( offset, offset + localDofs );
 
 #ifdef HAVE_HYPRE
-    timer_hypre_conversion.start();
-        // Bind the local matrix to Hypre
-        TNL::Matrices::HypreCSRMatrix hypre_A;
-        hypre_A.bind( localMatrixPointer->getRows(),
-                      this->getGlobalDofs(),
-                      localMatrixPointer->getValues(),
-                      localMatrixPointer->getColumnIndexes(),
-                      localMatrixPointer->getSegments().getOffsets() );
+    // Check if the preconditioner should be reused
+    // TODO: figure out logging and better parametrization
+//    const bool reuse_preconditioner = hypre_last_iters <= 2 * hypre_updated_iters;
+    const bool reuse_preconditioner = hypre_last_iters <= TNL::min( 2 * hypre_updated_iters, hypre_updated_iters + 5 );
+//    std::cout << "reuse preconditioner: " << reuse_preconditioner << "  last iters: " << hypre_last_iters << " updated iters: " << hypre_updated_iters << std::endl;
 
-        // Assemble the distributed matrix in Hypre from the local blocks
-        // Note that this is a square matrix, so we indicate the row partition
-        // size twice (since number of rows = number of cols)
-        auto parcsr_A = TNL::Matrices::HypreParCSRMatrix::fromLocalBlocks(
-                            distributedMatrixPointer->getCommunicator(),
-                            globalDofs,
-                            globalDofs,
-                            localRange,
-                            localRange,
-                            hypre_A );
-    timer_hypre_conversion.stop();
+    // Set the matrix of the linear system
+    hypre_solver->setMatrix( parcsr_A, reuse_preconditioner );
 
-    {
-        // Check if the preconditioner should be reused
-        // TODO: figure out logging and better parametrization
-//        const bool reuse_preconditioner = hypre_last_iters <= 2 * hypre_updated_iters;
-        const bool reuse_preconditioner = hypre_last_iters <= TNL::min( 2 * hypre_updated_iters, hypre_updated_iters + 5 );
-//        std::cout << "reuse preconditioner: " << reuse_preconditioner << "  last iters: " << hypre_last_iters << " updated iters: " << hypre_updated_iters << std::endl;
+    // Prepare parallel vectors
+    DofViewType dofs_view = mdd->Z_iF.getStorageArray().getView( 0, localDofs );
+    TNL::Containers::DistributedVectorView< RealType, DeviceType, IndexType > dist_dofs( localRange, 0, globalDofs, distributedMeshPointer->getCommunicator(), dofs_view );
+    TNL::Containers::DistributedVectorView< RealType, DeviceType, IndexType > dist_rhs( localRange, 0, globalDofs, distributedMeshPointer->getCommunicator(), rhsVector.getView( 0, localDofs ) );
 
-        // Set the matrix of the linear system
-        hypre_solver->setMatrix( parcsr_A, reuse_preconditioner );
+    TNL::Containers::HypreParVector par_b;
+    TNL::Containers::HypreParVector par_x;
+    par_b.bind( dist_rhs );
+    par_x.bind( dist_dofs );
 
-        // Prepare parallel vectors
-        DofViewType dofs_view = mdd->Z_iF.getStorageArray().getView( 0, localDofs );
-        TNL::Containers::DistributedVectorView< RealType, DeviceType, IndexType > dist_dofs( localRange, 0, globalDofs, distributedMatrixPointer->getCommunicator(), dofs_view );
-        TNL::Containers::DistributedVectorView< RealType, DeviceType, IndexType > dist_rhs( localRange, 0, globalDofs, distributedMatrixPointer->getCommunicator(), rhsVector.getView( 0, localDofs ) );
-
-        TNL::Containers::HypreParVector par_b;
-        TNL::Containers::HypreParVector par_x;
-        par_b.bind( dist_rhs );
-        par_x.bind( dist_dofs );
-
-        // Solve the linear system
-        if( ! reuse_preconditioner ) {
-            timer_hypre_setup.start();
-            hypre_solver->setup( par_b, par_x );
-            timer_hypre_setup.stop();
-        }
-        timer_hypre_solve.start();
-        hypre_solver->solve( par_b, par_x );
-        timer_hypre_solve.stop();
-
-        // synchronize the solution
-        if( distributedMeshPointer->getCommunicator() != MPI_COMM_NULL
-            && TNL::MPI::GetSize( distributedMeshPointer->getCommunicator() ) > 1 )
-        {
-            auto dofs_view_with_ghosts = mdd->Z_iF.getStorageArray().getView();
-            faceSynchronizer->synchronizeArray( dofs_view_with_ghosts, MeshDependentDataType::NumberOfEquations );
-        }
-
-        const long long int num_iterations = hypre_solver->getNumIterations();
-        double final_res_norm;
-        HYPRE_BiCGSTABGetFinalRelativeResidualNorm( *hypre_solver, &final_res_norm );
-        if( solverMonitor ) {
-            solverMonitor->setIterations( num_iterations );
-            solverMonitor->setResidue( final_res_norm );
-        }
-        allIterations += num_iterations;
-
-        hypre_last_iters = num_iterations;
-        if( ! reuse_preconditioner || hypre_updated_iters == 0 )
-            hypre_updated_iters = num_iterations;
-        if( ! reuse_preconditioner )
-            hypre_setup_counter++;
+    // Solve the linear system
+    if( ! reuse_preconditioner ) {
+        timer_hypre_setup.start();
+        hypre_solver->setup( par_b, par_x );
+        timer_hypre_setup.stop();
     }
+    timer_hypre_solve.start();
+    hypre_solver->solve( par_b, par_x );
+    timer_hypre_solve.stop();
+
+    // synchronize the solution
+    if( distributedMeshPointer->getCommunicator() != MPI_COMM_NULL
+        && TNL::MPI::GetSize( distributedMeshPointer->getCommunicator() ) > 1 )
+    {
+        auto dofs_view_with_ghosts = mdd->Z_iF.getStorageArray().getView();
+        faceSynchronizer->synchronizeArray( dofs_view_with_ghosts, MeshDependentDataType::NumberOfEquations );
+    }
+
+    const long long int num_iterations = hypre_solver->getNumIterations();
+    double final_res_norm;
+    HYPRE_BiCGSTABGetFinalRelativeResidualNorm( *hypre_solver, &final_res_norm );
+    if( solverMonitor ) {
+        solverMonitor->setIterations( num_iterations );
+        solverMonitor->setResidue( final_res_norm );
+    }
+    allIterations += num_iterations;
+
+    hypre_last_iters = num_iterations;
+    if( ! reuse_preconditioner || hypre_updated_iters == 0 )
+        hypre_updated_iters = num_iterations;
+    if( ! reuse_preconditioner )
+        hypre_setup_counter++;
 #else
     if( solverMonitor )
         linearSystemSolver->setSolverMonitor( *solverMonitor );

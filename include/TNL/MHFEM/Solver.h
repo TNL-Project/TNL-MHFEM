@@ -132,6 +132,12 @@ protected:
 #ifdef HAVE_HYPRE
     TNL::Timer timer_hypre_conversion, timer_hypre_setup, timer_hypre_solve;
 
+    TNL::Matrices::HypreCSRMatrix csr_diag, csr_offd;
+    TNL::Matrices::HypreParCSRMatrix parcsr_A;
+    using ColMapOffdDeviceType = TNL::Containers::Array< HYPRE_Int, DeviceType, HYPRE_Int >;
+    using ColMapOffdType = TNL::Containers::Array< HYPRE_Int, TNL::Devices::Host, HYPRE_Int >;
+    ColMapOffdType col_map_offd;
+
     // Hypre solver and preconditioner
     // (we need std::unique_ptr to pass the MPI communicator later to the constructor)
     std::unique_ptr< TNL::Solvers::Linear::HypreBiCGSTAB > hypre_solver = nullptr;

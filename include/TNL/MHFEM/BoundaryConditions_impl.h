@@ -59,7 +59,14 @@ struct RowSetter
     template< typename MatrixRow, typename FaceIndexes, typename IndexType >
     __cuda_callable__
     static typename MeshDependentData::RealType
-    setRow( MatrixRow & matrixRow,
+    setRow(
+#ifdef HAVE_HYPRE
+            MatrixRow & diag_row,
+            MatrixRow & offd_row,
+            const Mesh & mesh,
+#else
+            MatrixRow & matrixRow,
+#endif
             const MeshDependentData & mdd,
             const FaceIndexes & faceIndexes,
             const int i,
@@ -68,6 +75,7 @@ struct RowSetter
             const int e )
     {
         using coeff = SecondaryCoefficients< MeshDependentData >;
+        using RealType = typename MeshDependentData::RealType;
         using LocalIndex = typename Mesh::LocalIndexType;
         using LocalIndexPermutation = TNL::Containers::StaticArray< FaceIndexes::getSize(), LocalIndex >;
 
@@ -83,16 +91,9 @@ struct RowSetter
 #endif
         for( LocalIndex j = 0; j < FaceIndexes::getSize(); j++ )
             localFaceIndexes[ j ] = j;
-#ifdef HAVE_HYPRE
-        // we must sort by global column indices
-        auto comparator = [&]( LocalIndex a, LocalIndex b ) {
-            return mdd.getDofIndex( 0, faceIndexes[ a ] ) < mdd.getDofIndex( 0, faceIndexes[ b ] );
-        };
-#else
         auto comparator = [&]( LocalIndex a, LocalIndex b ) {
             return faceIndexes[ a ] < faceIndexes[ b ];
         };
-#endif
         // We assume that the array size is small, so we sort it with bubble sort.
         for( LocalIndex k1 = FaceIndexes::getSize() - 1; k1 > 0; k1-- )
             for( LocalIndex k2 = 0; k2 < k1; k2++ )
@@ -100,24 +101,43 @@ struct RowSetter
                     TNL::swap( localFaceIndexes[ k2 ], localFaceIndexes[ k2+1 ] );
 
         // we will scale the row such that the diagonal element equals one
-        const auto diagonalValue = coeff::A_ijKEF( mdd, i, i, K, E, e, E, e ) + AdditionalTerms::T_ijKef( mdd, i, i, K, E, e, E, e );
+        const RealType diagonalValue = coeff::A_ijKEF( mdd, i, i, K, E, e, E, e ) + AdditionalTerms::T_ijKef( mdd, i, i, K, E, e, E, e );
+        // the diagonal element should be positive
+        TNL_ASSERT_GT( diagonalValue, 0, "the diagonal matrix element is not positive" );
+
+#ifdef HAVE_HYPRE
+        const IndexType localDofs = MeshDependentData::NumberOfEquations * mesh.template getGhostEntitiesOffset< Mesh::getMeshDimension() - 1 >();
+        LocalIndex diagElements = 0;
+        LocalIndex offdElements = 0;
+#else
+        LocalIndex rowElements = 0;
+#endif
+
+#ifdef HAVE_HYPRE
+        // the diagonal element must be set first
+        diag_row.setElement( diagElements++, mdd.getDofIndex( i, E ), 1 );
+#endif
 
         for( LocalIndex g = 0; g < MeshDependentData::FacesPerCell; g++ ) {
             const LocalIndex f = localFaceIndexes[ g ];
             for( LocalIndex j = 0; j < MeshDependentData::NumberOfEquations; j++ ) {
                 // set the diagonal element
                 if( j == i && faceIndexes[ f ] == E ) {
-                    // NOTE: the local element index depends on the DOF vector ordering
-                    matrixRow.setElement( j + MeshDependentData::NumberOfEquations * g,
-                                          mdd.getDofIndex( j, faceIndexes[ f ] ),
-                                          1 );
+#ifndef HAVE_HYPRE
+                    matrixRow.setElement( rowElements++, mdd.getDofIndex( j, faceIndexes[ f ] ), 1 );
+#endif
                 }
                 else {
-                    const auto value = coeff::A_ijKEF( mdd, i, j, K, E, e, faceIndexes[ f ], f ) + AdditionalTerms::T_ijKef( mdd, i, j, K, E, e, faceIndexes[ f ], f );
-                    // NOTE: the local element index depends on the DOF vector ordering
-                    matrixRow.setElement( j + MeshDependentData::NumberOfEquations * g,
-                                          mdd.getDofIndex( j, faceIndexes[ f ] ),
-                                          value / diagonalValue );
+                    const RealType value = coeff::A_ijKEF( mdd, i, j, K, E, e, faceIndexes[ f ], f ) + AdditionalTerms::T_ijKef( mdd, i, j, K, E, e, faceIndexes[ f ], f );
+                    const IndexType dof = mdd.getDofIndex( j, faceIndexes[ f ] );
+#ifdef HAVE_HYPRE
+                    if( dof < localDofs )
+                        diag_row.setElement( diagElements++, dof, value / diagonalValue );
+                    else
+                        offd_row.setElement( offdElements++, dof - localDofs, value / diagonalValue );
+#else
+                    matrixRow.setElement( rowElements++, dof, value / diagonalValue );
+#endif
                 }
             }
         }
@@ -149,6 +169,8 @@ struct RowSetter< TNL::Meshes::Grid< Dimension, MeshReal, Device, MeshIndex >, M
 
         // we will scale the row such that the diagonal element equals one
         const auto diagonalValue = coeff::A_ijKEF( mdd, i, i, K, E, e, E, e ) + AdditionalTerms::T_ijKef( mdd, i, i, K, E, e, E, e );
+        // the diagonal element should be positive
+        TNL_ASSERT_GT( diagonalValue, 0, "the diagonal matrix element is not positive" );
 
         for( int j = 0; j < MeshDependentData::NumberOfEquations; j++ ) {
             for( int f = 0; f < MeshDependentData::FacesPerCell; f++ ) {
@@ -205,6 +227,40 @@ getLinearSystemRowLength( const MeshType & mesh,
 
 template< typename MeshDependentData,
           typename BoundaryModel >
+__cuda_callable__
+typename MeshDependentData::IndexType
+BoundaryConditions< MeshDependentData, BoundaryModel >::
+getLinearSystemRowLengthDiag( const MeshType & mesh,
+                              const IndexType E,
+                              const int i ) const
+{
+    TNL_ASSERT_TRUE( isBoundaryFace( mesh, E ), "" );
+
+    const IndexType faces = mesh.template getEntitiesCount< typename MeshType::Face >();
+    const BoundaryConditionsType type = tags[ i * faces + E ];
+    if( type == BoundaryConditionsType::FixedValue )
+        return 1;
+
+    // indexes of the right (cellIndexes[0]) and left (cellIndexes[1]) cells
+    IndexType cellIndexes[ 2 ];
+    const int numCells = getCellsForFace( mesh, E, cellIndexes );
+
+    TNL_ASSERT_EQ( numCells, 1, "assertion numCells == 1 failed" );
+    (void) numCells;  // silence unused-variable warning for Release build
+
+    const auto faceIndexes = getFacesForCell( mesh, cellIndexes[ 0 ] );
+
+    const IndexType localFaces = mesh.template getGhostEntitiesOffset< MeshType::getMeshDimension() - 1 >();
+    IndexType count = 0;
+    for( int f = 0; f < MeshDependentDataType::FacesPerCell; f++ )
+        if( faceIndexes[ f ] < localFaces )
+            count++;
+
+    return MeshDependentDataType::NumberOfEquations * count;
+}
+
+template< typename MeshDependentData,
+          typename BoundaryModel >
     template< typename Matrix, typename Vector >
 __cuda_callable__
 void
@@ -216,14 +272,25 @@ setMatrixElements( const MeshType & mesh,
                    const int i,
                    const RealType time,
                    const RealType tau,
+#ifdef HAVE_HYPRE
+                   Matrix & diag,
+                   Matrix & offd,
+#else
                    Matrix & matrix,
+#endif
                    Vector & b ) const
 {
     TNL_ASSERT_TRUE( isBoundaryFace( mesh, E ), "" );
 
+#ifdef HAVE_HYPRE
+    auto diag_row = diag.getRow( rowIndex );
+    auto offd_row = offd.getRow( rowIndex );
+    TNL_ASSERT_GE( diag_row.getSize(), getLinearSystemRowLengthDiag( mesh, E, i ), "diag matrix row is too small" );
+    TNL_ASSERT_GE( offd_row.getSize(), getLinearSystemRowLength( mesh, E, i ) - diag_row.getSize(), "offd matrix row is too small" );
+#else
     auto matrixRow = matrix.getRow( rowIndex );
-
     TNL_ASSERT_GE( matrixRow.getSize(), getLinearSystemRowLength( mesh, E, i ), "matrix row is too small" );
+#endif
 
     const IndexType faces = mesh.template getEntitiesCount< typename MeshType::Face >();
     const BoundaryConditionsType type = tags[ i * faces + E ];
@@ -231,7 +298,11 @@ setMatrixElements( const MeshType & mesh,
     switch( type ) {
         // fixed-value (Dirichlet) boundary condition
         case BoundaryConditionsType::FixedValue:
+#ifdef HAVE_HYPRE
+            diag_row.setElement( 0, mdd.getDofIndex( i, E ), 1.0 );
+#else
             matrixRow.setElement( 0, mdd.getDofIndex( i, E ), 1.0 );
+#endif
             b[ rowIndex ] = getDirichletValue( mesh, i, E, time, tau );
             break;
 
@@ -257,7 +328,14 @@ setMatrixElements( const MeshType & mesh,
             // set non-zero elements and get the diagonal entry value
             const RealType diagonalValue =
                 RowSetter< MeshType, MeshDependentDataType, AdditionalTerms_FixedFlux< MeshDependentDataType > >::
-                    setRow( matrixRow,
+                    setRow(
+#ifdef HAVE_HYPRE
+                            diag_row,
+                            offd_row,
+                            mesh,
+#else
+                            matrixRow,
+#endif
                             mdd,
                             faceIndexes,
                             i, K, E, e );
@@ -298,7 +376,14 @@ setMatrixElements( const MeshType & mesh,
             // set non-zero elements
             const RealType diagonalValue =
                 RowSetter< MeshType, MeshDependentDataType, AdditionalTerms_AdvectiveOutflow< MeshDependentDataType > >::
-                    setRow( matrixRow,
+                    setRow(
+#ifdef HAVE_HYPRE
+                            diag_row,
+                            offd_row,
+                            mesh,
+#else
+                            matrixRow,
+#endif
                             mdd,
                             faceIndexes,
                             i, K, E, e );
@@ -320,20 +405,6 @@ setMatrixElements( const MeshType & mesh,
             TNL_ASSERT_TRUE( false, "unknown boundary condition type was encountered" );
             break;
     }
-
-#ifndef NDEBUG
-    // the diagonal element should be positive
-    if( matrix.getElement( rowIndex, mdd.getDofIndex( i, E ) ) <= 0 ) {
-#ifndef __CUDA_ARCH__
-        const auto center = getEntityCenter( mesh, mesh.template getEntity< typename MeshType::Face >( E ) );
-        std::cerr << "error BC (type = " << (int) type << "): E = " << E << ", rowIndex = " << rowIndex << ", dofIndex = " << mdd.getDofIndex( i, E )
-                  << "\nrow:  " << matrixRow
-                  << "\nface center = " << center
-                  << std::endl;
-#endif
-        TNL_ASSERT_TRUE( false, "the diagonal matrix element is not positive" );
-    }
-#endif
 }
 
 } // namespace mhfem

@@ -28,6 +28,11 @@ public:
                                         const IndexType E,
                                         const int i ) const;
 
+    __cuda_callable__
+    IndexType getLinearSystemRowLengthDiag( const MeshType & mesh,
+                                            const IndexType E,
+                                            const int i ) const;
+
     template< typename Matrix, typename Vector >
     __cuda_callable__
     void setMatrixElements( const MeshType & mesh,
@@ -37,7 +42,12 @@ public:
                             const int i,
                             const RealType time,
                             const RealType tau,
+#ifdef HAVE_HYPRE
+                            Matrix & diag,
+                            Matrix & offd,
+#else
                             Matrix & matrix,
+#endif
                             Vector & b ) const;
 
 
