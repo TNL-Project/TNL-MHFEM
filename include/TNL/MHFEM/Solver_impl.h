@@ -118,8 +118,25 @@ setup( const TNL::Config::ParameterContainer & parameters,
 //    HYPRE_BiCGSTABSetPrintLevel( *hypre_solver, 2 );  // print solve info
 
     // Set some parameters (See Reference Manual for more parameters)
-//    HYPRE_BoomerAMGSetPrintLevel( *hypre_precond, 1 );    // Print setup info + parameters
+    HYPRE_BoomerAMGSetPrintLevel( *hypre_precond, 1 );    // Print setup info + parameters
     hypre_precond->setSystemsOptions( MeshDependentData::NumberOfEquations, false );
+    // setSystemsOptions also disables aggressive coarsening and sets the strong threshold to 0.5
+    HYPRE_BoomerAMGSetAggNumLevels( *hypre_precond, 1 );
+    // for MHFEM, 0.25 seems to be a good choice regardless of the dimension (2D and 3D)
+    HYPRE_BoomerAMGSetStrongThreshold( *hypre_precond, 0.25 );
+//    if( MeshType::getMeshDimension() == 2 )
+//        HYPRE_BoomerAMGSetStrongThreshold( *hypre_precond, 0.25 );
+//    if( MeshType::getMeshDimension() == 3 )
+//        HYPRE_BoomerAMGSetStrongThreshold( *hypre_precond, 0.5 );
+#ifndef HYPRE_USING_GPU
+    // truncation factor for the interpolation (higher value means more truncation, default is 0)
+    // (on GPUs this may destroy convergence - value tuned for HMIS coarsening on CPU)
+    HYPRE_BoomerAMGSetTruncFactor( *hypre_precond, 0.3 );
+#endif
+    // AMG coarsening algorithm: 10 = HMIS, 8 = PMIS, 6 = Falgout, 0 = CLJP
+//    HYPRE_BoomerAMGSetCoarsenType( *hypre_precond, 8 );
+    // AMG relaxation algorithm: 8 = l1-GS, 6 = symm. GS, 3 = GS, 18 = l1-Jacobi, 16 = Chebyshev
+//    HYPRE_BoomerAMGSetRelaxType( *hypre_precond, 18 );
 #else
     // set up the linear solver
     const TNL::String& linearSolverName = parameters.getParameter< TNL::String >( "linear-solver" );
@@ -978,6 +995,9 @@ solveLinearSystem( TNL::Solvers::IterativeSolverMonitor< RealType, IndexType >* 
         hypre_updated_iters = num_iterations;
     if( ! reuse_preconditioner )
         hypre_setup_counter++;
+
+    // disable printing setup info + parameters after the first time step
+    HYPRE_BoomerAMGSetPrintLevel( *hypre_precond, 0 );
 #else
     if( solverMonitor )
         linearSystemSolver->setSolverMonitor( *solverMonitor );
