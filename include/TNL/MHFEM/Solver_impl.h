@@ -185,6 +185,7 @@ setup( const TNL::Config::ParameterContainer & parameters,
     timer_hypre_conversion.reset();
     timer_hypre_setup.reset();
     timer_hypre_solve.reset();
+    timer_hypre_synchronization.reset();
     hypre_updated_iters = 0;
     hypre_last_iters = 1;
     hypre_setup_counter = 0;
@@ -977,8 +978,10 @@ solveLinearSystem( TNL::Solvers::IterativeSolverMonitor< RealType, IndexType >* 
     if( distributedMeshPointer->getCommunicator() != MPI_COMM_NULL
         && TNL::MPI::GetSize( distributedMeshPointer->getCommunicator() ) > 1 )
     {
+        timer_hypre_synchronization.start();
         auto dofs_view_with_ghosts = mdd->Z_iF.getStorageArray().getView();
         faceSynchronizer->synchronizeArray( dofs_view_with_ghosts, MeshDependentDataType::NumberOfEquations );
+        timer_hypre_synchronization.stop();
     }
 
     const long long int num_iterations = hypre_solver->getNumIterations();
@@ -1130,22 +1133,23 @@ writeEpilog( TNL::Logger & logger ) const
     log_mpi_value( "Hypre matrix conversion time:", timer_hypre_conversion.getRealTime() );
     log_mpi_value( "Hypre setup time:", timer_hypre_setup.getRealTime() );
     log_mpi_value( "Hypre solve time:", timer_hypre_solve.getRealTime() );
+    log_mpi_value( "Hypre result MPI synchronization time:", timer_hypre_synchronization.getRealTime() );
 #else
     log_mpi_value( "Linear preconditioner update time:", timer_linearPreconditioner.getRealTime() );
     log_mpi_value( "Linear system solver time:", timer_linearSolver.getRealTime() );
-#endif
     if( distributedMeshPointer->getCommunicator() != MPI_COMM_NULL
         && TNL::MPI::GetSize( distributedMeshPointer->getCommunicator() ) > 1 )
     {
         const double total_mpi_time = faceSynchronizer->async_wait_before_start_timer.getRealTime()
                                     + faceSynchronizer->async_start_timer.getRealTime()
                                     + faceSynchronizer->async_wait_timer.getRealTime();
-        logger.writeParameter< std::size_t >( "  MPI synchronizations count:", faceSynchronizer->async_ops_count );
-        log_mpi_value( "  MPI synchronization time:", total_mpi_time );
+        logger.writeParameter< std::size_t >( "  faceSynchronizer async operations count:", faceSynchronizer->async_ops_count );
+        log_mpi_value( "  faceSynchronizer async operations time:", total_mpi_time );
         log_mpi_value( "    async wait before start time:", faceSynchronizer->async_wait_before_start_timer.getRealTime() );
         log_mpi_value( "    async start time:", faceSynchronizer->async_start_timer.getRealTime() );
         log_mpi_value( "    async wait time:", faceSynchronizer->async_wait_timer.getRealTime() );
     }
+#endif
     log_mpi_value( "Post-iterate time:", timer_postIterate.getRealTime() );
     log_mpi_value( "  Z_iF -> Z_iK update time:", timer_explicit.getRealTime() );
     log_mpi_value( "  velocities update time:", timer_velocities.getRealTime() );

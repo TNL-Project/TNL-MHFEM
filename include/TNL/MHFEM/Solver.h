@@ -130,7 +130,7 @@ protected:
                // MPI synchronization
                timer_mpi_upwind;
 #ifdef HAVE_HYPRE
-    TNL::Timer timer_hypre_conversion, timer_hypre_setup, timer_hypre_solve;
+    TNL::Timer timer_hypre_conversion, timer_hypre_setup, timer_hypre_solve, timer_hypre_synchronization;
 
     TNL::Matrices::HypreCSRMatrix csr_diag, csr_offd;
     TNL::Matrices::HypreParCSRMatrix parcsr_A;
