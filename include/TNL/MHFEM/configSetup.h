@@ -42,6 +42,7 @@ configSetup( TNL::Config::ConfigDescription& config,
     TNL::Solvers::Linear::BICGStabL< MatrixType >::configSetup( config );
     TNL::Solvers::Linear::GMRES< MatrixType >::configSetup( config );
     TNL::Solvers::Linear::TFQMR< MatrixType >::configSetup( config );
+    TNL::Solvers::Linear::IDRs< MatrixType >::configSetup( config );
     TNL::Solvers::Linear::SOR< MatrixType >::configSetup( config );
     TNL::Solvers::Linear::Preconditioners::Diagonal< MatrixType >::configSetup( config );
     TNL::Solvers::Linear::Preconditioners::ILU0< MatrixType >::configSetup( config );
