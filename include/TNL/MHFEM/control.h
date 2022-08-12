@@ -159,6 +159,9 @@ void writeProlog( TNL::Logger& logger, bool writeSystemInformation = true )
     logger.writeHeader( Problem::getPrologHeader() );
     if( TNL::MPI::isInitialized() )
         logger.writeParameter( "MPI processes:", TNL::MPI::GetSize() );
+#ifdef HAVE_HYPRE
+    logger.writeParameter< TNL::String >( "HAVE_HYPRE:", "yes" );
+#endif
     logger.writeParameter< TNL::String >( "Device type:",   TNL::getType< typename Problem::DeviceType >() );
     if( ! printGPUs ) {
         if( TNL::Devices::Host::isOMPEnabled() ) {

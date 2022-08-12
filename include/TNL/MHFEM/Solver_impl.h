@@ -98,15 +98,14 @@ setup( const TNL::Config::ParameterContainer & parameters,
     outputDirectory = parameters.getParameter< TNL::String >( "output-directory" );
 
 #ifdef HAVE_HYPRE
-    // create new solver and preconditioner
-    hypre_solver = std::make_unique< TNL::Solvers::Linear::HypreBiCGSTAB >( distributedMeshPointer->getCommunicator() );
-    hypre_precond = std::make_unique< TNL::Solvers::Linear::HypreBoomerAMG >();
+    // check the dynamic configuration
+    const std::string solver_name = parameters.getParameter< std::string >( "linear-solver" );
+    if( solver_name != "bicgstab" )
+        throw std::logic_error( "invalid solver name for Hypre: " + solver_name );
+    const std::string preconditioner_name = parameters.getParameter< std::string >( "preconditioner" );
+    if( preconditioner_name != "BoomerAMG" )
+        throw std::logic_error( "invalid preconditioner name for Hypre: " + preconditioner_name );
 
-    // set the preconditioner to the solver
-    hypre_solver->setPreconditioner( *hypre_precond );
-
-    // Set some parameters (See Reference Manual for more parameters)
-    HYPRE_BiCGSTABSetMaxIter( *hypre_solver, 1000 );  // max iterations
     // NOTE: Hypre uses right-preconditioning in all solvers, which means that
     // *original* (i.e. unpreconditioned) residuals are used in the stopping
     // criteria. Hence, the stopping threshold is fundamentally different from
@@ -114,8 +113,18 @@ setup( const TNL::Config::ParameterContainer & parameters,
     // preconditioner in TNL and the MHFEM matrix assembler was updated to apply
     // the diagonal scaling manually, so the threshold value should be on the
     // same scale now.
-    HYPRE_BiCGSTABSetTol( *hypre_solver, parameters.getParameter< double >( "convergence-residue" ) );
+    const double convergence_residue = parameters.getParameter< double >( "convergence-residue" );
+
+    // create and configure the solver
+    hypre_solver = std::make_unique< TNL::Solvers::Linear::HypreBiCGSTAB >( distributedMeshPointer->getCommunicator() );
+    // Set some parameters (See Reference Manual for more parameters)
+    HYPRE_BiCGSTABSetMaxIter( *hypre_solver, 1000 );  // max iterations
+    HYPRE_BiCGSTABSetTol( *hypre_solver, convergence_residue );
 //    HYPRE_BiCGSTABSetPrintLevel( *hypre_solver, 2 );  // print solve info
+
+    // create the preconditioner and set it to the solver
+    hypre_precond = std::make_unique< TNL::Solvers::Linear::HypreBoomerAMG >();
+    hypre_solver->setPreconditioner( *hypre_precond );
 
     // Set some parameters (See Reference Manual for more parameters)
     HYPRE_BoomerAMGSetPrintLevel( *hypre_precond, 1 );    // Print setup info + parameters
