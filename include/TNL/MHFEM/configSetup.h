@@ -30,14 +30,19 @@ configSetup( TNL::Config::ConfigDescription& config,
 
     config.addDelimiter( sectionPrefix + " linear system solver" );
     config.addRequiredEntry< TNL::String >( "linear-solver", "The linear system solver:" );
-#ifdef HAVE_HYPRE
+#if defined( HAVE_GINKGO ) || defined( HAVE_HYPRE )
         config.addEntryEnum( "bicgstab" );
 #else
     for( auto o : TNL::Solvers::getLinearSolverOptions() )
         config.addEntryEnum( TNL::String( o ) );
 #endif
     config.addEntry< TNL::String >( "preconditioner", "The preconditioner for the linear system solver:", "none" );
-#ifdef HAVE_HYPRE
+#if defined( HAVE_GINKGO )
+        config.addEntryEnum( "AMGX" );
+        config.addEntryEnum( "ILU_ISAI" );
+        config.addEntryEnum( "PARILU_ISAI" );
+        config.addEntryEnum( "PARILUT_ISAI" );
+#elif defined( HAVE_HYPRE )
         config.addEntryEnum( "BoomerAMG" );
 #else
     for( auto o : TNL::Solvers::getPreconditionerOptions() )

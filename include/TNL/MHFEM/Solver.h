@@ -13,6 +13,11 @@
 #include <TNL/Containers/HypreParVector.h>
 #include <TNL/Matrices/HypreParCSRMatrix.h>
 #include <TNL/Solvers/Linear/Hypre.h>
+#ifdef HAVE_GINKGO
+    #include <TNL/Containers/GinkgoVector.h>
+    #include <TNL/Matrices/GinkgoOperator.h>
+    #include <TNL/Solvers/GinkgoConvergenceLoggerMonitor.h>
+#endif
 
 #include "LinearSystem.h"
 #include "BoundaryConditions.h"
@@ -129,6 +134,30 @@ protected:
                timer_explicit, timer_velocities, timer_model_postIterate,
                // MPI synchronization
                timer_mpi_upwind;
+
+#ifdef HAVE_GINKGO
+    // enum of implemented Ginkgo preconditioner types
+    enum GKO_PRECONDITIONER_TYPE { AMGX, ILU_ISAI, PARILU_ISAI, PARILUT_ISAI };
+    GKO_PRECONDITIONER_TYPE gko_preconditioner_type = AMGX;
+
+    // Ginkgo executor
+    std::shared_ptr< gko::Executor > gko_exec = nullptr;
+
+    // Ginkgo convergence logger
+    std::shared_ptr< TNL::Solvers::GinkgoConvergenceLoggerMonitor< RealType, IndexType > > gko_convergence_logger = nullptr;
+
+    // Ginkgo stopping criteria
+    std::shared_ptr< gko::stop::CriterionFactory > gko_stop_iter = nullptr;
+    std::shared_ptr< gko::stop::CriterionFactory > gko_stop_tol = nullptr;
+
+    // Ginkgo preconditioner
+    std::shared_ptr< gko::LinOp > gko_preconditioner = nullptr;
+
+    long long int gko_updated_iters = 0;
+    long long int gko_last_iters = 1;
+    long long int gko_setup_counter = 0;
+#endif
+
 #ifdef HAVE_HYPRE
     TNL::Timer timer_hypre_conversion, timer_hypre_setup, timer_hypre_solve, timer_hypre_synchronization;
 

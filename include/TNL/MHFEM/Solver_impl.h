@@ -97,12 +97,54 @@ setup( const TNL::Config::ParameterContainer & parameters,
     // prefix for snapshots
     outputDirectory = parameters.getParameter< TNL::String >( "output-directory" );
 
-#ifdef HAVE_HYPRE
-    // check the dynamic configuration
     const std::string solver_name = parameters.getParameter< std::string >( "linear-solver" );
+    const std::string preconditioner_name = parameters.getParameter< std::string >( "preconditioner" );
+
+#if defined( HAVE_GINKGO )
+    // check the dynamic configuration
+    if( solver_name != "bicgstab" )
+        throw std::logic_error( "invalid solver name for Ginkgo: " + solver_name );
+    if( preconditioner_name == "AMGX" )
+        gko_preconditioner_type = AMGX;
+    else if( preconditioner_name == "ILU_ISAI" )
+        gko_preconditioner_type = ILU_ISAI;
+    else if( preconditioner_name == "PARILU_ISAI" )
+        gko_preconditioner_type = PARILU_ISAI;
+    else if( preconditioner_name == "PARILUT_ISAI" )
+        gko_preconditioner_type = PARILUT_ISAI;
+    else
+        throw std::logic_error( "invalid preconditioner name for Ginkgo: " + preconditioner_name );
+
+    if( gko_exec == nullptr ) {
+        #ifdef HAVE_CUDA
+        // NOTE: false here disables device reset in the executor's destructor
+        gko_exec = gko::CudaExecutor::create( 0, gko::OmpExecutor::create(), false );
+        #else
+        gko_exec = gko::OmpExecutor::create();
+        #endif
+    }
+
+    // Create the convergence logger
+    gko_convergence_logger = gko::share( TNL::Solvers::GinkgoConvergenceLoggerMonitor< RealType, IndexType >::create() );
+
+    // Create stopping criteria
+    gko_stop_iter = gko::share(
+            gko::stop::Iteration::build()
+                .with_max_iters( 1000 )
+                .on( gko_exec ) );
+    const double convergence_residue = parameters.getParameter< double >( "convergence-residue" );
+    gko_stop_tol = gko::share(
+            gko::stop::ResidualNorm< RealType >::build()
+                .with_baseline( gko::stop::mode::rhs_norm )
+                .with_reduction_factor( convergence_residue )
+                .on( gko_exec ) );
+    // missing chaining member:  https://github.com/ginkgo-project/ginkgo/discussions/1099#discussioncomment-3439954
+    gko_stop_iter->add_logger( gko_convergence_logger );
+    gko_stop_tol->add_logger( gko_convergence_logger );
+#elif defined( HAVE_HYPRE )
+    // check the dynamic configuration
     if( solver_name != "bicgstab" )
         throw std::logic_error( "invalid solver name for Hypre: " + solver_name );
-    const std::string preconditioner_name = parameters.getParameter< std::string >( "preconditioner" );
     if( preconditioner_name != "BoomerAMG" )
         throw std::logic_error( "invalid preconditioner name for Hypre: " + preconditioner_name );
 
@@ -148,16 +190,14 @@ setup( const TNL::Config::ParameterContainer & parameters,
 //    HYPRE_BoomerAMGSetRelaxType( *hypre_precond, 18 );
 #else
     // set up the linear solver
-    const TNL::String& linearSolverName = parameters.getParameter< TNL::String >( "linear-solver" );
-    linearSystemSolver = TNL::Solvers::getLinearSolver< DistributedMatrixType >( linearSolverName );
+    linearSystemSolver = TNL::Solvers::getLinearSolver< DistributedMatrixType >( solver_name );
     if( ! linearSystemSolver )
         return false;
     if( ! linearSystemSolver->setup( parameters ) )
         return false;
 
     // set up the preconditioner
-    const TNL::String& preconditionerName = parameters.getParameter< TNL::String >( "preconditioner" );
-    preconditioner = TNL::Solvers::getPreconditioner< DistributedMatrixType >( preconditionerName );
+    preconditioner = TNL::Solvers::getPreconditioner< DistributedMatrixType >( preconditioner_name );
     if( preconditioner ) {
         linearSystemSolver->setPreconditioner( preconditioner );
         if( ! preconditioner->setup( parameters ) )
@@ -953,7 +993,183 @@ solveLinearSystem( TNL::Solvers::IterativeSolverMonitor< RealType, IndexType >* 
     const IndexType globalDofs = this->getGlobalDofs();
     const TNL::Containers::Subrange< IndexType > localRange( offset, offset + localDofs );
 
-#ifdef HAVE_HYPRE
+#if defined( HAVE_GINKGO )
+    // Avoid compiler warning since Ginkgo is non-MPI
+    (void) globalDofs;
+
+    // Create a Ginkgo Csr view
+    auto gko_A = gko::share( TNL::Matrices::getGinkgoMatrixCsrView( gko_exec, distributedMatrixPointer->getLocalMatrix() ) );
+
+    // Wrap the vectors
+    DofViewType dofs_view = mdd->Z_iF.getStorageArray().getView();
+    auto gko_b = TNL::Containers::GinkgoVector< RealType, DeviceType >::create( gko_exec, rhsVector.getView() );
+    auto gko_x = TNL::Containers::GinkgoVector< RealType, DeviceType >::create( gko_exec, dofs_view );
+
+    // Output the initial guess (NOTE: debug only)
+//    gko::write( std::ofstream( outputDirectory + "/x0.mtx" ), gko::lend( gko_x ) );
+
+    // Pass the solver monitor to the logger
+    gko_convergence_logger->set_solver_monitor( solverMonitor );
+
+    // Check if the preconditioner should be reused
+    // TODO: figure out logging and better parametrization
+//    const bool reuse_preconditioner = gko_last_iters <= 2 * gko_updated_iters;
+    const bool reuse_preconditioner = gko_last_iters <= TNL::min( 2 * gko_updated_iters, gko_updated_iters + 5 );
+//    std::cout << "reuse preconditioner: " << reuse_preconditioner << "  last iters: " << gko_last_iters << " updated iters: " << gko_updated_iters << std::endl;
+
+    if( ! reuse_preconditioner ) {
+        timer_linearPreconditioner.start();
+        // clear the previous preconditioner before allocating storage for the new one
+        gko_preconditioner = nullptr;
+        switch( gko_preconditioner_type ) {
+            case AMGX:
+            {
+                // Create smoother factory (ir with bj)
+                auto inner_solver_gen = gko::share(
+                    gko::preconditioner::Jacobi< RealType, IndexType >::build()
+                        .with_max_block_size( MeshDependentDataType::NumberOfEquations )
+                        .on( gko_exec )
+                );
+                auto smoother_gen = gko::share(
+                    gko::solver::Ir< RealType >::build()
+                        .with_solver( inner_solver_gen )
+                        .with_relaxation_factor( 0.9 )
+                        .with_criteria(
+                            gko::stop::Iteration::build().with_max_iters( 2 ).on( gko_exec ) )
+                        .on( gko_exec )
+                );
+                // Create MultigridLevel factory
+                auto mg_level_gen = gko::share(
+                    gko::multigrid::AmgxPgm< RealType, IndexType >::build()
+                        .with_deterministic( true )
+                        .with_max_iterations( 15 )  // default: 15
+                        .with_max_unassigned_ratio( 0.1 )  // default: 0.05
+                        .on( gko_exec )
+                );
+                // Create CoarsestSolver factory
+                auto coarsest_gen = gko::share(
+                    gko::solver::Ir< RealType >::build()
+                        .with_solver( inner_solver_gen )
+                        .with_relaxation_factor( 0.9 )
+                        .with_criteria(
+                            gko::stop::Iteration::build().with_max_iters( 4 ).on( gko_exec ) )
+                        .on( gko_exec )
+                );
+                // Create multigrid factory
+                auto multigrid_gen = gko::share(
+                    gko::solver::Multigrid::build()
+                        .with_max_levels( 25 )
+                        .with_min_coarse_rows( 4 )
+                        .with_pre_smoother( smoother_gen )
+                        .with_post_uses_pre( true )
+                        .with_mg_level( mg_level_gen )
+                        .with_coarsest_solver( coarsest_gen )
+                        .with_zero_guess( true )  // does not convergence when disabled
+                        .with_criteria(
+                            gko::stop::Iteration::build().with_max_iters( 1 ).on( gko_exec ) )
+                        .on( gko_exec )
+                );
+                gko_preconditioner = gko::share( multigrid_gen->generate( gko_A ) );
+                break;
+            }
+            case ILU_ISAI:
+            case PARILU_ISAI:
+            case PARILUT_ISAI:
+            {
+                std::shared_ptr< gko::LinOpFactory > fact_factory = nullptr;
+                if( gko_preconditioner_type == ILU_ISAI )
+                    // Generate incomplete factors using ILU
+                    fact_factory = gko::share(
+                        gko::factorization::Ilu< RealType, IndexType >::build()
+                            .on( gko_exec )
+                    );
+                else if( gko_preconditioner_type == PARILU_ISAI )
+                    // Generate incomplete factors using ParILU
+                    fact_factory = gko::share(
+                        gko::factorization::ParIlu< RealType, IndexType >::build()
+                            // TODO: parameters: iterations
+                            .on( gko_exec )
+                    );
+                else if( gko_preconditioner_type == PARILUT_ISAI )
+                    // Generate incomplete factors using ParILUT
+                    fact_factory = gko::share(
+                        gko::factorization::ParIlut< RealType, IndexType >::build()
+                            // TODO: parameters: fill-in limit, iterations
+                            .on( gko_exec )
+                    );
+
+                // Generate an ILU preconditioner factory by setting lower and upper triangular solver
+#if 0
+                // exact triangular solves
+                auto ilu_pre_factory =
+                    gko::preconditioner::Ilu< gko::solver::LowerTrs< RealType, IndexType >,
+                                              gko::solver::UpperTrs< RealType, IndexType > >::build()
+                        .on( gko_exec );
+#endif
+                // incomplete sparse approximate inverse
+                const int sparsity_power = 2; // TODO: parametrize
+                auto ilu_pre_factory =
+                    gko::preconditioner::Ilu< gko::preconditioner::LowerIsai< RealType, IndexType >,
+                                              gko::preconditioner::UpperIsai< RealType, IndexType > >::build()
+                        .with_factorization_factory( fact_factory )
+                        .with_l_solver_factory(
+                            gko::preconditioner::LowerIsai< RealType, IndexType >::build()
+                                .with_sparsity_power( sparsity_power )
+                                .on( gko_exec )
+                            )
+                        .with_u_solver_factory(
+                            gko::preconditioner::UpperIsai< RealType, IndexType >::build()
+                                .with_sparsity_power( sparsity_power )
+                                .on( gko_exec )
+                            )
+                        .on( gko_exec );
+
+                // Use incomplete factors to generate ILU preconditioner
+                gko_preconditioner = gko::share( ilu_pre_factory->generate( gko_A ) );
+                break;
+            }
+        }
+        timer_linearPreconditioner.stop();
+    }
+
+    timer_linearSolver.start();
+
+    // Create the solver
+    auto solver_factory =
+            gko::solver::Bicgstab< RealType >::build()
+//                .with_preconditioner(
+//                    gko::preconditioner::Jacobi< RealType, IndexType >::build()
+//                        .on( gko_exec ) )
+                .with_generated_preconditioner( gko_preconditioner )
+                .with_criteria( gko_stop_iter, gko_stop_tol )
+                .on( gko_exec );
+    auto solver = solver_factory->generate( gko_A );
+
+    // Solve the system
+    solver->apply( lend( gko_b ), lend( gko_x ) );
+    timer_linearSolver.stop();
+
+    // Check the result
+    const bool converged = gko_convergence_logger->has_converged();
+    const std::size_t num_iterations = gko_convergence_logger->get_num_iterations();
+    allIterations += num_iterations;
+
+    gko_last_iters = num_iterations;
+    if( ! reuse_preconditioner || gko_updated_iters == 0 )
+        gko_updated_iters = num_iterations;
+    if( ! reuse_preconditioner )
+        gko_setup_counter++;
+
+    if( ! converged ) {
+        // save the linear system for debugging
+        // TODO: save the distributed system
+        gko::write( std::ofstream( outputDirectory + "/A.mtx" ), gko::lend( gko_A ) );
+        gko::write( std::ofstream( outputDirectory + "/x.mtx" ), gko::lend( gko_x ) );
+        gko::write( std::ofstream( outputDirectory + "/b.mtx" ), gko::lend( gko_b ) );
+        std::cerr << "The linear system has been saved to " << outputDirectory << "/{A,x,b}.mtx" << std::endl;
+        throw std::runtime_error( "MHFEM error: the linear system solver did not converge (" + std::to_string(num_iterations) + " iterations)." );
+    }
+#elif defined( HAVE_HYPRE )
     // Check if the preconditioner should be reused
     // TODO: figure out logging and better parametrization
 //    const bool reuse_preconditioner = hypre_last_iters <= 2 * hypre_updated_iters;
@@ -1126,7 +1342,9 @@ writeEpilog( TNL::Logger & logger ) const
 
     logger.writeParameter< long long int >( "Total number of linear solver iterations:", allIterations );
     logger.writeParameter< long long int >( "Total number of time steps:", allTimeSteps );
-#ifdef HAVE_HYPRE
+#if defined( HAVE_GINKGO )
+    logger.writeParameter< long long int >( "Number of time steps in which the preconditioner was updated:", gko_setup_counter );
+#elif defined( HAVE_HYPRE )
     logger.writeParameter< long long int >( "Number of time steps in which the preconditioner was updated:", hypre_setup_counter );
 #endif
     log_mpi_value( "Pre-iterate time:", timer_preIterate.getRealTime() );
