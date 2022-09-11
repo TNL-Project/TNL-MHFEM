@@ -16,20 +16,20 @@ struct FacesPerCell
     static constexpr int value = MeshEntity::template SubentityTraits< MeshEntity::MeshType::getMeshDimension() - 1 >::count;
 };
 
-template< typename Grid, typename Config >
-struct FacesPerCell< TNL::Meshes::GridEntity< Grid, 1, Config > >
+template< typename Grid >
+struct FacesPerCell< TNL::Meshes::GridEntity< Grid, 1 > >
 {
     static constexpr int value = 2;
 };
 
-template< typename Grid, typename Config >
-struct FacesPerCell< TNL::Meshes::GridEntity< Grid, 2, Config > >
+template< typename Grid >
+struct FacesPerCell< TNL::Meshes::GridEntity< Grid, 2 > >
 {
     static constexpr int value = 4;
 };
 
-template< typename Grid, typename Config >
-struct FacesPerCell< TNL::Meshes::GridEntity< Grid, 3, Config > >
+template< typename Grid >
+struct FacesPerCell< TNL::Meshes::GridEntity< Grid, 3 > >
 {
     static constexpr int value = 6;
 };
@@ -275,20 +275,20 @@ struct HostMesh< TNL::Meshes::Grid< Dim, Real, Device, Index > >
 
 
 
-template< typename Grid, typename Config >
+template< typename Grid >
 __cuda_callable__
 typename Grid::RealType
 getMinEdgeLength( const Grid & grid,
-                  const TNL::Meshes::GridEntity< Grid, 0, Config > & entity )
+                  const TNL::Meshes::GridEntity< Grid, 0 > & entity )
 {
     return 0.0;
 }
 
-template< typename Grid, int EntityDimension, typename Config >
+template< typename Grid, int EntityDimension >
 __cuda_callable__
 typename Grid::RealType
 getMinEdgeLength( const Grid & grid,
-                  const TNL::Meshes::GridEntity< Grid, EntityDimension, Config > & entity )
+                  const TNL::Meshes::GridEntity< Grid, EntityDimension > & entity )
 {
     return grid.getSmallestSpaceStep();
 }
