@@ -1040,7 +1040,7 @@ solveLinearSystem( TNL::Solvers::IterativeSolverMonitor< RealType, IndexType >* 
                 );
                 // Create MultigridLevel factory
                 auto mg_level_gen = gko::share(
-                    gko::multigrid::AmgxPgm< RealType, IndexType >::build()
+                    gko::multigrid::Pgm< RealType, IndexType >::build()
                         .with_deterministic( true )
                         .with_max_iterations( 15 )  // default: 15
                         .with_max_unassigned_ratio( 0.1 )  // default: 0.05
@@ -1064,7 +1064,8 @@ solveLinearSystem( TNL::Solvers::IterativeSolverMonitor< RealType, IndexType >* 
                         .with_post_uses_pre( true )
                         .with_mg_level( mg_level_gen )
                         .with_coarsest_solver( coarsest_gen )
-                        .with_zero_guess( true )  // does not convergence when disabled
+                        // convergence only with zero initial guess
+                        .with_default_initial_guess( gko::solver::initial_guess_mode::zero )
                         .with_criteria(
                             gko::stop::Iteration::build().with_max_iters( 1 ).on( gko_exec ) )
                         .on( gko_exec )
