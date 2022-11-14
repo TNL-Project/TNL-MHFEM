@@ -1,6 +1,7 @@
 #pragma once
 
-#include <experimental/filesystem>
+#include <filesystem>
+#include <variant>
 
 #include <TNL/Meshes/Readers/getMeshReader.h>
 #include <TNL/Matrices/StaticMatrix.h>
@@ -263,7 +264,7 @@ setInitialCondition( const TNL::Config::ParameterContainer & parameters )
     if( parameters.checkParameter( "boundary-conditions-file" ) ) {
         std::string boundaryConditionsFile = parameters.getParameter< std::string >( "boundary-conditions-file" );
         if( TNL::MPI::GetSize( distributedMeshPointer->getCommunicator() ) > 1 ) {
-            namespace fs = std::experimental::filesystem;
+            namespace fs = std::filesystem;
             fs::path path( boundaryConditionsFile );
             std::string ext = path.extension();
             ext = "." + std::to_string( TNL::MPI::GetRank( distributedMeshPointer->getCommunicator() ) ) + ext;
@@ -301,7 +302,7 @@ setInitialCondition( const TNL::Config::ParameterContainer & parameters )
         for( int i = 0; i < MeshDependentDataType::NumberOfEquations; i++ ) {
             const std::string name = "InitialCondition[Z" + std::to_string(i) + "]";
             const auto variant_vec = reader->readCellData( name );
-            using mpark::visit;
+            using std::visit;
             visit( [this, i](auto&& vector) { this->mdd->setInitialCondition( i, vector ); }, variant_vec );
         }
     }
