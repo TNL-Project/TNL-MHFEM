@@ -34,11 +34,10 @@ struct DefaultArrayTypes
                                                                   HostPermutation >,
                                               DeviceType >;
     // host NDArray - intended for output/buffering only
-    template< typename SizesHolder,
-              typename HostPermutation >
+    template< typename NDArray >
     using HostNDArray = TNL::Containers::NDArray< RealType,
-                                                  SizesHolder,
-                                                  HostPermutation,
+                                                  typename NDArray::SizesHolderType,
+                                                  typename NDArray::PermutationType,
                                                   TNL::Devices::Host >;
 
     // main and auxiliary dofs
