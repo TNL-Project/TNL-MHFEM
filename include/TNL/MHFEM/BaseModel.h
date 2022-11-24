@@ -12,7 +12,7 @@ namespace mhfem
 template< typename Mesh,
           typename Real,
           int NumberOfEquations,
-          typename MassLumpingTag >
+          MassLumping massLumping >
 struct DefaultArrayTypes
 {
     using MeshType = Mesh;
@@ -20,7 +20,7 @@ struct DefaultArrayTypes
     using DeviceType = typename MeshType::DeviceType;
     using IndexType = typename MeshType::GlobalIndexType;
 
-    using MassMatrix = mhfem::MassMatrix< typename MeshType::Cell, MassLumpingTag::lumping >;
+    using MassMatrix = mhfem::MassMatrix< typename MeshType::Cell, massLumping >;
 
     using FPC = ::FacesPerCell< typename MeshType::Cell >;
     static constexpr int FacesPerCell = FPC::value;
@@ -121,9 +121,8 @@ struct DefaultArrayTypes
 template< typename Mesh,
           typename Real,
           int NumberOfEquations,
-          // this is not a non-typename parameter due to deficiency in TypeResolver
-          typename MassLumpingTag = MassLumpingEnabledTag,
-          typename ArrayTypes_ = DefaultArrayTypes< Mesh, Real, NumberOfEquations, MassLumpingTag > >
+          MassLumping massLumping = MassLumping::enabled,
+          typename ArrayTypes_ = DefaultArrayTypes< Mesh, Real, NumberOfEquations, massLumping > >
 class BaseModel
 {
 public:
@@ -297,11 +296,11 @@ setInitialCondition_fuck_you_nvcc( const int i, const Array & sourceArray, NDArr
 template< typename Mesh,
           typename Real,
           int NumberOfEquations,
-          typename MassMatrix,
+          MassLumping massLumping,
           typename ArrayTypes >
     template< typename StdVector >
 void
-BaseModel< Mesh, Real, NumberOfEquations, MassMatrix, ArrayTypes >::
+BaseModel< Mesh, Real, NumberOfEquations, massLumping, ArrayTypes >::
 setInitialCondition( const int i, const StdVector & vector )
 {
     if( (IndexType) vector.size() != numberOfCells )
