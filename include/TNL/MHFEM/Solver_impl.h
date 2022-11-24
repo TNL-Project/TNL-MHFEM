@@ -719,7 +719,7 @@ preIterate( const RealType time,
             // write into the global memory after all branches have converged
             _mdd->m_iE_upw( i, E ) = m_iE_upw;
         };
-        if( MeshDependentDataType::do_mobility_upwind )
+        if constexpr( MeshDependentDataType::do_mobility_upwind )
             // mdd->m_iE_upw.forAll does not skip ghosts, so we use ParallelFor2D manually for the specific permutation of indices
             TNL::Algorithms::ParallelFor2D< DeviceType >::exec( (IndexType) 0, (IndexType) 0,
                                                                 localFaces, (IndexType) MeshDependentDataType::NumberOfEquations,
@@ -758,10 +758,12 @@ preIterate( const RealType time,
             // write into the global memory after all branches have converged
             _mdd->Z_ijE_upw( i, j, E ) = Z_ijE_upw;
         };
-        // mdd->Z_ijE_upw.forAll does not skip ghosts, so we use ParallelFor3D manually for the specific permutation of indices
-        TNL::Algorithms::ParallelFor3D< DeviceType >::exec( (IndexType) 0, (IndexType) 0, (IndexType) 0,
-                                                            localFaces, (IndexType) MeshDependentDataType::NumberOfEquations, (IndexType) MeshDependentDataType::NumberOfEquations,
-                                                            kernel_Z_ijE );
+        if constexpr( MeshDependentData::AdvectionDiscretization == AdvectionDiscretization::explicit_upwind ) {
+            // mdd->Z_ijE_upw.forAll does not skip ghosts, so we use ParallelFor3D manually for the specific permutation of indices
+            TNL::Algorithms::ParallelFor3D< DeviceType >::exec( (IndexType) 0, (IndexType) 0, (IndexType) 0,
+                                                                localFaces, (IndexType) MeshDependentDataType::NumberOfEquations, (IndexType) MeshDependentDataType::NumberOfEquations,
+                                                                kernel_Z_ijE );
+        }
     }
     timer_upwind.stop();
 
@@ -772,13 +774,15 @@ preIterate( const RealType time,
         timer_mpi_upwind.start();
 
         // NOTE: this is specific to how the ndarrays are ordered
-        if( MeshDependentDataType::do_mobility_upwind ) {
+        if constexpr( MeshDependentDataType::do_mobility_upwind ) {
             auto m_upw_view = mdd->m_iE_upw.getStorageArray().getView();
             faceSynchronizer->synchronizeArray( m_upw_view, MeshDependentDataType::NumberOfEquations );
         }
 
-        auto Z_upw_view = mdd->Z_ijE_upw.getStorageArray().getView();
-        faceSynchronizer->synchronizeArray( Z_upw_view, MeshDependentDataType::NumberOfEquations * MeshDependentDataType::NumberOfEquations );
+        if constexpr( MeshDependentData::AdvectionDiscretization == AdvectionDiscretization::explicit_upwind ) {
+            auto Z_upw_view = mdd->Z_ijE_upw.getStorageArray().getView();
+            faceSynchronizer->synchronizeArray( Z_upw_view, MeshDependentDataType::NumberOfEquations * MeshDependentDataType::NumberOfEquations );
+        }
 
         timer_mpi_upwind.stop();
     }

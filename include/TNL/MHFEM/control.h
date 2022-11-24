@@ -10,6 +10,7 @@
 #endif
 
 #include "MassMatrix.h"
+#include "BaseModel.h"
 
 namespace mhfem {
 
@@ -177,12 +178,22 @@ void writeProlog( TNL::Logger& logger, bool writeSystemInformation = true )
     logger.writeParameter< TNL::String >( "Index type:",    TNL::getType< typename Problem::IndexType >() );
     logger.writeParameter< TNL::String >( "Mesh type:",     TNL::getType< typename Problem::MeshType >() );
     logger.writeParameter< TNL::String >( "Sparse matrix:", TNL::getType< typename Problem::MatrixType >() );
+
     TNL::String massLumping;
     if( Problem::MeshDependentDataType::MassMatrix::lumping == mhfem::MassLumping::enabled )
         massLumping = "enabled";
     else
         massLumping = "disabled";
     logger.writeParameter< TNL::String >( "Mass lumping:", massLumping );
+
+
+    TNL::String advection;
+    if( Problem::MeshDependentDataType::AdvectionDiscretization == mhfem::AdvectionDiscretization::explicit_upwind )
+        advection = "explicit upwind";
+    else
+        advection = "implicit upwind";
+    logger.writeParameter< TNL::String >( "Advection discretization:", advection );
+
     Problem::MeshDependentDataType::writeProlog( logger );
     logger.writeSeparator();
     if( writeSystemInformation ) {

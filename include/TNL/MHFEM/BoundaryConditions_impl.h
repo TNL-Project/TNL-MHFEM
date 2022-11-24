@@ -9,14 +9,14 @@
 namespace mhfem {
 
 template< typename MeshDependentData >
-struct AdditionalTerms_AdvectiveOutflow
+struct BoundaryCoefficients_AdvectiveOutflow
 {
     using RealType = typename MeshDependentData::RealType;
     using IndexType = typename MeshDependentData::IndexType;
 
     __cuda_callable__
     static RealType
-    T_ijKef( const MeshDependentData & mdd,
+    A_ijKEF( const MeshDependentData & mdd,
              const int i,
              const int j,
              const IndexType K,
@@ -25,19 +25,46 @@ struct AdditionalTerms_AdvectiveOutflow
              const IndexType F,
              const int f )
     {
+        const RealType vel = mdd.a_ijKe( i, i, K, e ) + mdd.u_ijKe( i, i, K, e );
+        if( vel >= 0 ) {
+            using coeff = SecondaryCoefficients< MeshDependentData >;
+            return coeff::A_ijKEF_no_advection( mdd, i, j, K, E, e, F, f );
+        }
+
+        // inflow: prescribe current Z_iK using Dirichlet condition
+        if( i == j && E == F )
+            return 1;
         return 0;
+    }
+
+    __cuda_callable__
+    static RealType
+    RHS_iKE( const MeshDependentData & mdd,
+             const int i,
+             const IndexType K,
+             const IndexType E,
+             const int e )
+    {
+        const RealType vel = mdd.a_ijKe( i, i, K, e ) + mdd.u_ijKe( i, i, K, e );
+        if( vel >= 0 ) {
+            using coeff = SecondaryCoefficients< MeshDependentData >;
+            return coeff::RHS_iKE_no_advection( mdd, i, K, E, e );
+        }
+
+        // inflow: prescribe current Z_iK using Dirichlet condition
+        return mdd.Z_iK( i, K );
     }
 };
 
 template< typename MeshDependentData >
-struct AdditionalTerms_FixedFlux
+struct BoundaryCoefficients_FixedFlux
 {
     using RealType = typename MeshDependentData::RealType;
     using IndexType = typename MeshDependentData::IndexType;
 
     __cuda_callable__
     static RealType
-    T_ijKef( const MeshDependentData & mdd,
+    A_ijKEF( const MeshDependentData & mdd,
              const int i,
              const int j,
              const IndexType K,
@@ -46,14 +73,24 @@ struct AdditionalTerms_FixedFlux
              const IndexType F,
              const int f )
     {
-        if( e == f )
-            // TODO: the effect of u_ij and a_ij in boundary conditions is still very experimental!
-            return - mdd.Z_ijE_upw( i, j, E ) * ( mdd.u_ijKe( i, j, K, e ) + mdd.a_ijKe( i, j, K, e ) );
-        return 0;
+        using coeff = SecondaryCoefficients< MeshDependentData >;
+        return coeff::A_ijKEF_advection( mdd, i, j, K, E, e, F, f );
+    }
+
+    __cuda_callable__
+    static RealType
+    RHS_iKE( const MeshDependentData & mdd,
+             const int i,
+             const IndexType K,
+             const IndexType E,
+             const int e )
+    {
+        using coeff = SecondaryCoefficients< MeshDependentData >;
+        return coeff::RHS_iKE_advection( mdd, i, K, E, e );
     }
 };
 
-template< typename Mesh, typename MeshDependentData, typename AdditionalTerms >
+template< typename Mesh, typename MeshDependentData, typename BoundaryCoefficients >
 struct RowSetter
 {
     template< typename MatrixRow, typename FaceIndexes, typename IndexType >
@@ -74,7 +111,6 @@ struct RowSetter
             const IndexType E,
             const int e )
     {
-        using coeff = SecondaryCoefficients< MeshDependentData >;
         using RealType = typename MeshDependentData::RealType;
         using LocalIndex = typename Mesh::LocalIndexType;
         using LocalIndexPermutation = TNL::Containers::StaticArray< FaceIndexes::getSize(), LocalIndex >;
@@ -101,7 +137,7 @@ struct RowSetter
                     TNL::swap( localFaceIndexes[ k2 ], localFaceIndexes[ k2+1 ] );
 
         // we will scale the row such that the diagonal element equals one
-        const RealType diagonalValue = coeff::A_ijKEF( mdd, i, i, K, E, e, E, e ) + AdditionalTerms::T_ijKef( mdd, i, i, K, E, e, E, e );
+        const RealType diagonalValue = BoundaryCoefficients::A_ijKEF( mdd, i, i, K, E, e, E, e );
         // the diagonal element should be positive
         TNL_ASSERT_GT( diagonalValue, 0, "the diagonal matrix element is not positive" );
 
@@ -128,7 +164,7 @@ struct RowSetter
 #endif
                 }
                 else {
-                    const RealType value = coeff::A_ijKEF( mdd, i, j, K, E, e, faceIndexes[ f ], f ) + AdditionalTerms::T_ijKef( mdd, i, j, K, E, e, faceIndexes[ f ], f );
+                    const RealType value = BoundaryCoefficients::A_ijKEF( mdd, i, j, K, E, e, faceIndexes[ f ], f );
                     const IndexType dof = mdd.getDofIndex( j, faceIndexes[ f ] );
 #ifdef HAVE_HYPRE
                     if( dof < localDofs )
@@ -151,8 +187,8 @@ template< int Dimension,
           typename Device,
           typename MeshIndex,
           typename MeshDependentData,
-          typename AdditionalTerms >
-struct RowSetter< TNL::Meshes::Grid< Dimension, MeshReal, Device, MeshIndex >, MeshDependentData, AdditionalTerms >
+          typename BoundaryCoefficients >
+struct RowSetter< TNL::Meshes::Grid< Dimension, MeshReal, Device, MeshIndex >, MeshDependentData, BoundaryCoefficients >
 {
     template< typename MatrixRow, typename FaceIndexes, typename IndexType >
     __cuda_callable__
@@ -165,10 +201,8 @@ struct RowSetter< TNL::Meshes::Grid< Dimension, MeshReal, Device, MeshIndex >, M
             const IndexType E,
             const int e )
     {
-        using coeff = SecondaryCoefficients< MeshDependentData >;
-
         // we will scale the row such that the diagonal element equals one
-        const auto diagonalValue = coeff::A_ijKEF( mdd, i, i, K, E, e, E, e ) + AdditionalTerms::T_ijKef( mdd, i, i, K, E, e, E, e );
+        const auto diagonalValue = BoundaryCoefficients::A_ijKEF( mdd, i, i, K, E, e, E, e );
         // the diagonal element should be positive
         TNL_ASSERT_GT( diagonalValue, 0, "the diagonal matrix element is not positive" );
 
@@ -182,7 +216,7 @@ struct RowSetter< TNL::Meshes::Grid< Dimension, MeshReal, Device, MeshIndex >, M
                                           1 );
                 }
                 else {
-                    const auto value = coeff::A_ijKEF( mdd, i, j, K, E, e, faceIndexes[ f ], f ) + AdditionalTerms::T_ijKef( mdd, i, j, K, E, e, faceIndexes[ f ], f );
+                    const auto value = BoundaryCoefficients::A_ijKEF( mdd, i, j, K, E, e, faceIndexes[ f ], f );
                     // NOTE: the local element index depends on the DOF vector ordering
                     matrixRow.setElement( j + MeshDependentData::NumberOfEquations * f,
                                           mdd.getDofIndex( j, faceIndexes[ f ] ),
@@ -327,7 +361,7 @@ setMatrixElements( const MeshType & mesh,
 
             // set non-zero elements and get the diagonal entry value
             const RealType diagonalValue =
-                RowSetter< MeshType, MeshDependentDataType, AdditionalTerms_FixedFlux< MeshDependentDataType > >::
+                RowSetter< MeshType, MeshDependentDataType, BoundaryCoefficients_FixedFlux< MeshDependentDataType > >::
                     setRow(
 #ifdef HAVE_HYPRE
                             diag_row,
@@ -343,11 +377,8 @@ setMatrixElements( const MeshType & mesh,
             // set right hand side value
             const auto& entity = mesh.template getEntity< typename MeshType::Face >( E );
             RealType bValue = - getNeumannValue( mesh, i, E, time, tau ) * getEntityMeasure( mesh, entity );
-
-            bValue += mdd.w_iKe( i, K, e );
-            for( int j = 0; j < MeshDependentDataType::NumberOfEquations; j++ ) {
-                bValue += MeshDependentDataType::MassMatrix::b_ijKe( mdd, i, j, K, e ) * mdd.R_iK( j, K );
-            }
+            // add terms from the MHFEM scheme
+            bValue += BoundaryCoefficients_FixedFlux< MeshDependentDataType >::RHS_iKE( mdd, i, K, E, e );
             // scale the right hand side value by the matrix diagonal
             b[ rowIndex ] = bValue / diagonalValue;
 
@@ -375,7 +406,7 @@ setMatrixElements( const MeshType & mesh,
 
             // set non-zero elements
             const RealType diagonalValue =
-                RowSetter< MeshType, MeshDependentDataType, AdditionalTerms_AdvectiveOutflow< MeshDependentDataType > >::
+                RowSetter< MeshType, MeshDependentDataType, BoundaryCoefficients_AdvectiveOutflow< MeshDependentDataType > >::
                     setRow(
 #ifdef HAVE_HYPRE
                             diag_row,
@@ -388,13 +419,10 @@ setMatrixElements( const MeshType & mesh,
                             faceIndexes,
                             i, K, E, e );
 
-            // set right hand side value
+            // set right hand side value - zero diffusive flux
             RealType bValue = 0;
-
-            bValue += mdd.w_iKe( i, K, e );
-            for( int j = 0; j < MeshDependentDataType::NumberOfEquations; j++ ) {
-                bValue += MeshDependentDataType::MassMatrix::b_ijKe( mdd, i, j, K, e ) * mdd.R_iK( j, K );
-            }
+            // add terms from the MHFEM scheme
+            bValue += BoundaryCoefficients_AdvectiveOutflow< MeshDependentDataType >::RHS_iKE( mdd, i, K, E, e );
             // scale the right hand side value by the matrix diagonal
             b[ rowIndex ] = bValue / diagonalValue;
 

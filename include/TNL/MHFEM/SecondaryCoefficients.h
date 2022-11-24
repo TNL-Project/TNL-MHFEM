@@ -1,6 +1,7 @@
 #pragma once
 
 #include "MassMatrix.h"
+#include "BaseModel.h"
 
 namespace mhfem {
 
@@ -46,30 +47,6 @@ struct SecondaryCoefficients
         return sum_K - sum_E + mdd.w_iKe( i, K, e );
     }
 
-    __cuda_callable__
-    static RealType
-    A_ijKEF( const MeshDependentData & mdd,
-             const int i,
-             const int j,
-             const IndexType K,
-             const IndexType E,
-             const int e,
-             const IndexType F,
-             const int f )
-    {
-//        RealType value = MassMatrix::b_ijKef( mdd, i, j, K, e, f );
-//        for( int xxx = 0; xxx < MeshDependentData::NumberOfEquations; xxx++ ) {
-//            value -= MassMatrix::b_ijKe( mdd, i, xxx, K, e ) * mdd.R_ijKe( xxx, j, K, f );
-//        }
-//        return value;
-        // more careful version with only one subtraction to avoid catastrophic truncation
-        RealType sum = 0.0;
-        for( int xxx = 0; xxx < MeshDependentData::NumberOfEquations; xxx++ ) {
-            sum += MassMatrix::b_ijKe( mdd, i, xxx, K, e ) * mdd.R_ijKe( xxx, j, K, f );
-        }
-        return MassMatrix::b_ijKef( mdd, i, j, K, e, f ) - sum;
-    }
-
     template< typename FaceVectorType >
     __cuda_callable__
     static inline RealType
@@ -83,18 +60,25 @@ struct SecondaryCoefficients
     {
         static_assert( FaceVectorType::getSize() == MeshDependentData::FacesPerCell );
 
+        RealType R = 0;
         if constexpr( MeshDependentData::MassMatrix::is_diagonal ) {
             const IndexType & E = faceIndexes[ e ];
-            return mdd.m_iE_upw( i, E ) * MassMatrix::b_ijKe( mdd, i, j, K, e );
+            R = mdd.m_iE_upw( i, E ) * MassMatrix::b_ijKe( mdd, i, j, K, e );
         }
         else {
-            RealType R = 0;
             for( int f = 0; f < MeshDependentData::FacesPerCell; f++ ) {
                 const IndexType & F = faceIndexes[ f ];
                 R += mdd.m_iE_upw( i, F ) * MassMatrix::b_ijKef( mdd, i, j, K, f, e );
             }
-            return R;
         }
+
+        if constexpr( MeshDependentData::AdvectionDiscretization == AdvectionDiscretization::implicit_upwind ) {
+            const RealType vel = mdd.a_ijKe( i, j, K, e ) + mdd.u_ijKe( i, j, K, e );
+            if( vel < 0 )
+                R -= 2 * vel;
+        }
+
+        return R;
     }
 
     template< typename FaceVectorType >
@@ -123,15 +107,17 @@ struct SecondaryCoefficients
             R -= mdd.m_iE_upw( i, E ) * mdd.w_iKe( i, K, e );
         }
 
-        // sum into separate variable to do only one subtraction (avoids catastrophic truncation)
-        RealType aux = 0;
-        for( int j = 0; j < MeshDependentData::NumberOfEquations; j++ )
-            for( int e = 0; e < MeshDependentData::FacesPerCell; e++ ) {
-                const IndexType & E = faceIndexes[ e ];
-                aux += ( mdd.a_ijKe( i, j, K, e ) + mdd.u_ijKe( i, j, K, e ) )
-                       * mdd.Z_ijE_upw( i, j, E );
-            }
-        R -= aux;
+        if constexpr( MeshDependentData::AdvectionDiscretization == AdvectionDiscretization::explicit_upwind ) {
+            // sum into separate variable to do only one subtraction (avoids catastrophic truncation)
+            RealType aux = 0;
+            for( int j = 0; j < MeshDependentData::NumberOfEquations; j++ )
+                for( int e = 0; e < MeshDependentData::FacesPerCell; e++ ) {
+                    const IndexType & E = faceIndexes[ e ];
+                    aux += ( mdd.a_ijKe( i, j, K, e ) + mdd.u_ijKe( i, j, K, e ) )
+                           * mdd.Z_ijE_upw( i, j, E );
+                }
+            R -= aux;
+        }
 
         return R;
     }
@@ -156,6 +142,13 @@ struct SecondaryCoefficients
         for( int e = 0; e < MeshDependentData::FacesPerCell; e++ ) {
             const IndexType & E = faceIndexes[ e ];
             Q += mdd.m_iE_upw( i, E ) * MassMatrix::b_ijKe( mdd, i, j, K, e ) - mdd.u_ijKe( i, j, K, e );
+            if constexpr( MeshDependentData::AdvectionDiscretization == AdvectionDiscretization::implicit_upwind ) {
+                const RealType vel = mdd.a_ijKe( i, j, K, e ) + mdd.u_ijKe( i, j, K, e );
+                if( vel >= 0 )
+                    Q += vel;
+                else
+                    Q -= vel;
+            }
         }
         Q += measure_K / tau * mdd.N_ijK( i, j, K ) + measure_K * mdd.r_ijK( i, j, K );
         return Q;
@@ -185,6 +178,158 @@ struct SecondaryCoefficients
         Z += mdd.R_iK( i, K );
 
         return Z;
+    }
+
+    // for use in BCs without the advective flux, and for balancing on interior faces
+    // when the explicit upwind for advection is used
+    __cuda_callable__
+    static RealType
+    A_ijKEF_no_advection( const MeshDependentData & mdd,
+             const int i,
+             const int j,
+             const IndexType K,
+             const IndexType E,
+             const int e,
+             const IndexType F,
+             const int f )
+    {
+        // SQinvR = S * Q^{-1} * R, where Q^{-1} * R is already computed in mdd.R_ijKe
+        RealType SQinvR = 0;
+        for( int xxx = 0; xxx < MeshDependentData::NumberOfEquations; xxx++ ) {
+            RealType S = MassMatrix::b_ijKe( mdd, i, xxx, K, e );
+            SQinvR += S * mdd.R_ijKe( xxx, j, K, f );
+        }
+
+        RealType T = MassMatrix::b_ijKef( mdd, i, j, K, e, f );
+
+        // A = T - S * Q^{-1} * R
+        return T - SQinvR;
+    }
+
+    // for use in BCs including the advective flux, and for balancing on interior faces
+    // when the implicit upwind for advection is used
+    __cuda_callable__
+    static RealType
+    A_ijKEF_advection( const MeshDependentData & mdd,
+                       const int i,
+                       const int j,
+                       const IndexType K,
+                       const IndexType E,
+                       const int e,
+                       const IndexType F,
+                       const int f )
+    {
+        // SQinvR = S * Q^{-1} * R, where Q^{-1} * R is already computed in mdd.R_ijKe
+        RealType SQinvR = 0;
+        for( int xxx = 0; xxx < MeshDependentData::NumberOfEquations; xxx++ ) {
+            RealType S = mdd.m_iE_upw( i, E ) * MassMatrix::b_ijKe( mdd, i, xxx, K, e );
+            if constexpr( MeshDependentData::AdvectionDiscretization == AdvectionDiscretization::implicit_upwind ) {
+                const RealType vel = mdd.a_ijKe( i, xxx, K, e ) + mdd.u_ijKe( i, xxx, K, e );
+                if( vel >= 0 )
+                    S += vel;
+                else
+                    S -= vel;
+            }
+            SQinvR += S * mdd.R_ijKe( xxx, j, K, f );
+        }
+
+        RealType T = mdd.m_iE_upw( i, E ) * MassMatrix::b_ijKef( mdd, i, j, K, e, f );
+        if constexpr( MeshDependentData::AdvectionDiscretization == AdvectionDiscretization::implicit_upwind ) {
+            if( E == F ) {
+                const RealType vel = mdd.a_ijKe( i, j, K, e ) + mdd.u_ijKe( i, j, K, e );
+                if( vel < 0 )
+                    T -= 2 * vel;
+            }
+        }
+
+        // A = T - S * Q^{-1} * R
+        return T - SQinvR;
+    }
+
+    // used for the balancing on the interior faces
+    // (checks if the advection term is implicit or explicit)
+    __cuda_callable__
+    static RealType
+    A_ijKEF( const MeshDependentData & mdd,
+             const int i,
+             const int j,
+             const IndexType K,
+             const IndexType E,
+             const int e,
+             const IndexType F,
+             const int f )
+    {
+        if constexpr( MeshDependentData::AdvectionDiscretization == AdvectionDiscretization::implicit_upwind )
+            return A_ijKEF_advection( mdd, i, j, K, E, e, F, f );
+        return A_ijKEF_no_advection( mdd, i, j, K, E, e, F, f );
+    }
+
+    // for use in BCs without the advective flux, and for balancing on interior faces
+    // when the explicit upwind for advection is used
+    __cuda_callable__
+    static RealType
+    RHS_iKE_no_advection( const MeshDependentData & mdd,
+                          const int i,
+                          const IndexType K,
+                          const IndexType E,
+                          const int e )
+    {
+        // start with the matrix H = w
+        RealType value = mdd.w_iKe( i, K, e );
+        for( int j = 0; j < MeshDependentData::NumberOfEquations; j++ ) {
+            // add S * Q^{-1} * G, where Q^{-1} * G is already computed in mdd.R_iK
+            value += MeshDependentData::MassMatrix::b_ijKe( mdd, i, j, K, e ) * mdd.R_iK( j, K );
+        }
+        return value;
+    }
+
+    // for use in BCs including the advective flux, and for balancing on interior faces
+    // when the implicit upwind for advection is used
+    __cuda_callable__
+    static RealType
+    RHS_iKE_advection( const MeshDependentData & mdd,
+                       const int i,
+                       const IndexType K,
+                       const IndexType E,
+                       const int e )
+    {
+        // start with the matrix H = m * w
+        RealType value = mdd.m_iE_upw( i, E ) * mdd.w_iKe( i, K, e );
+
+        for( int j = 0; j < MeshDependentData::NumberOfEquations; j++ ) {
+            // add S * Q^{-1} * G, where Q^{-1} * G is already computed in mdd.R_iK
+            RealType S = mdd.m_iE_upw( i, E ) * MeshDependentData::MassMatrix::b_ijKe( mdd, i, j, K, e );
+            const RealType vel = mdd.a_ijKe( i, j, K, e ) + mdd.u_ijKe( i, j, K, e );
+            if constexpr( MeshDependentData::AdvectionDiscretization == AdvectionDiscretization::implicit_upwind ) {
+                if( vel >= 0 )
+                    S += vel;
+                else
+                    S -= vel;
+            }
+            value += S * mdd.R_iK( j, K );
+
+            // add the explicit advection
+            if constexpr( MeshDependentData::AdvectionDiscretization == AdvectionDiscretization::explicit_upwind ) {
+                value += mdd.Z_ijE_upw( i, j, E ) * vel;
+            }
+        }
+
+        return value;
+    }
+
+    // used for the balancing on the interior faces
+    // (checks if the advection term is implicit or explicit)
+    __cuda_callable__
+    static RealType
+    RHS_iKE( const MeshDependentData & mdd,
+             const int i,
+             const IndexType K,
+             const IndexType E,
+             const int e )
+    {
+        if constexpr( MeshDependentData::AdvectionDiscretization == AdvectionDiscretization::implicit_upwind )
+            return RHS_iKE_advection( mdd, i, K, E, e );
+        return RHS_iKE_no_advection( mdd, i, K, E, e );
     }
 };
 

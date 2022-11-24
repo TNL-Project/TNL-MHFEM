@@ -1,6 +1,7 @@
 #pragma once
 
 #include "mesh_helpers.h"
+#include "SecondaryCoefficients.h"
 
 namespace mhfem
 {
@@ -38,10 +39,8 @@ struct RightHandSide
             const auto faceIndexes = getFacesForCell( mesh, K );
             const int e = getLocalIndex( faceIndexes, E );
 
-            result += mdd.w_iKe( i, K, e );
-            for( int j = 0; j < MeshDependentDataType::NumberOfEquations; j++ ) {
-                result += MeshDependentDataType::MassMatrix::b_ijKe( mdd, i, j, K, e ) * mdd.R_iK( j, K );
-            }
+            using coeff = SecondaryCoefficients< MeshDependentData >;
+            result += coeff::RHS_iKE( mdd, i, K, E, e );
         }
         return result;
     }

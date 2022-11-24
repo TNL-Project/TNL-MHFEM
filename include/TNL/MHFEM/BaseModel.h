@@ -9,6 +9,11 @@
 namespace mhfem
 {
 
+enum class AdvectionDiscretization {
+    explicit_upwind,
+    implicit_upwind
+};
+
 template< typename Mesh,
           typename Real,
           int NumberOfEquations,
@@ -122,6 +127,7 @@ template< typename Mesh,
           typename Real,
           int NumberOfEquations,
           MassLumping massLumping = MassLumping::enabled,
+          AdvectionDiscretization advection = AdvectionDiscretization::explicit_upwind,
           typename ArrayTypes_ = DefaultArrayTypes< Mesh, Real, NumberOfEquations, massLumping > >
 class BaseModel
 {
@@ -131,6 +137,8 @@ public:
     using DeviceType = typename MeshType::DeviceType;
     using IndexType = typename MeshType::GlobalIndexType;
     using ArrayTypes = ArrayTypes_;
+
+    static constexpr mhfem::AdvectionDiscretization AdvectionDiscretization = advection;
 
     using MassMatrix = typename ArrayTypes::MassMatrix;
     static constexpr int FacesPerCell = ArrayTypes::FacesPerCell;
@@ -177,7 +185,8 @@ public:
 
         v_iKe.setSizes( 0, numberOfCells, 0 );
         m_iE_upw.setSizes( 0, numberOfFaces );
-        Z_ijE_upw.setSizes( 0, 0, numberOfFaces );
+        if constexpr( AdvectionDiscretization == AdvectionDiscretization::explicit_upwind )
+            Z_ijE_upw.setSizes( 0, 0, numberOfFaces );
 
         b_ijK_storage.setSizes( 0, 0, numberOfCells, 0 );
         R_ijKe.setSizes( 0, 0, numberOfCells, 0 );
@@ -216,8 +225,6 @@ public:
             + NumberOfEquations * cells * FacesPerCell
             // m_iE_upw
             + NumberOfEquations * faces
-            // Z_ijE_upw
-            + NumberOfEquations * NumberOfEquations * faces
             // b_ijK_storage
             + NumberOfEquations * NumberOfEquations * cells * MassMatrix::size
             // R_ijKe
@@ -225,6 +232,11 @@ public:
             // R_iK
             + NumberOfEquations * cells
         ;
+
+        if constexpr( AdvectionDiscretization == AdvectionDiscretization::explicit_upwind )
+            // Z_ijE_upw
+            mdd_size += NumberOfEquations * NumberOfEquations * faces;
+
         mdd_size *= sizeof(RealType);
         return mdd_size;
     }
@@ -297,10 +309,11 @@ template< typename Mesh,
           typename Real,
           int NumberOfEquations,
           MassLumping massLumping,
+          AdvectionDiscretization advection,
           typename ArrayTypes >
     template< typename StdVector >
 void
-BaseModel< Mesh, Real, NumberOfEquations, massLumping, ArrayTypes >::
+BaseModel< Mesh, Real, NumberOfEquations, massLumping, advection, ArrayTypes >::
 setInitialCondition( const int i, const StdVector & vector )
 {
     if( (IndexType) vector.size() != numberOfCells )
