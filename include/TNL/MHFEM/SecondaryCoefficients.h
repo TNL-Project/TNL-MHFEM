@@ -85,7 +85,7 @@ struct SecondaryCoefficients
 
         if constexpr( MeshDependentData::MassMatrix::is_diagonal ) {
             const IndexType & E = faceIndexes[ e ];
-            return mdd.m_iE_upw( i, E ) * MassMatrix::b_ijKe( mdd, i, j, K, e ) * tau;
+            return mdd.m_iE_upw( i, E ) * MassMatrix::b_ijKe( mdd, i, j, K, e );
         }
         else {
             RealType R = 0;
@@ -93,7 +93,7 @@ struct SecondaryCoefficients
                 const IndexType & F = faceIndexes[ f ];
                 R += mdd.m_iE_upw( i, F ) * MassMatrix::b_ijKef( mdd, i, j, K, f, e );
             }
-            return R * tau;
+            return R;
         }
     }
 
@@ -108,24 +108,28 @@ struct SecondaryCoefficients
           const IndexType K,
           const RealType tau )
     {
-        RealType R = 0.0;
-        for( int j = 0; j < mdd.NumberOfEquations; j++ ) {
+        static_assert( FaceVectorType::getSize() == MeshDependentData::FacesPerCell );
+
+        const RealType measure_K = getEntityMeasure( mesh, entity );
+
+        RealType R = 0;
+        for( int j = 0; j < MeshDependentData::NumberOfEquations; j++ ) {
             R += mdd.N_ijK( i, j, K ) * mdd.Z_iK( j, K );
         }
-        R += mdd.f_iK( i, K ) * tau;
-        R *= getEntityMeasure( mesh, entity );
-        for( int e = 0; e < mdd.FacesPerCell; e++ ) {
+        R *= measure_K / tau;
+        R += measure_K * mdd.f_iK( i, K );
+        for( int e = 0; e < MeshDependentData::FacesPerCell; e++ ) {
             const IndexType & E = faceIndexes[ e ];
-            R -= mdd.m_iE_upw( i, E ) * mdd.w_iKe( i, K, e ) * tau;
+            R -= mdd.m_iE_upw( i, E ) * mdd.w_iKe( i, K, e );
         }
 
         // sum into separate variable to do only one subtraction (avoids catastrophic truncation)
-        RealType aux = 0.0;
-        for( int j = 0; j < mdd.NumberOfEquations; j++ )
-            for( int e = 0; e < mdd.FacesPerCell; e++ ) {
+        RealType aux = 0;
+        for( int j = 0; j < MeshDependentData::NumberOfEquations; j++ )
+            for( int e = 0; e < MeshDependentData::FacesPerCell; e++ ) {
                 const IndexType & E = faceIndexes[ e ];
                 aux += ( mdd.a_ijKe( i, j, K, e ) + mdd.u_ijKe( i, j, K, e ) )
-                       * mdd.Z_ijE_upw( i, j, E ) * tau;
+                       * mdd.Z_ijE_upw( i, j, E );
             }
         R -= aux;
 
@@ -144,13 +148,16 @@ struct SecondaryCoefficients
            const IndexType K,
            const RealType tau )
     {
-        RealType Q = 0.0;
-        for( int e = 0; e < mdd.FacesPerCell; e++ ) {
+        static_assert( FaceVectorType::getSize() == MeshDependentData::FacesPerCell );
+
+        const RealType measure_K = getEntityMeasure( mesh, entity );
+
+        RealType Q = 0;
+        for( int e = 0; e < MeshDependentData::FacesPerCell; e++ ) {
             const IndexType & E = faceIndexes[ e ];
             Q += mdd.m_iE_upw( i, E ) * MassMatrix::b_ijKe( mdd, i, j, K, e ) - mdd.u_ijKe( i, j, K, e );
         }
-        Q *= tau;
-        Q += getEntityMeasure( mesh, entity ) * ( mdd.N_ijK( i, j, K ) + mdd.r_ijK( i, j, K ) * tau );
+        Q += measure_K / tau * mdd.N_ijK( i, j, K ) + measure_K * mdd.r_ijK( i, j, K );
         return Q;
     }
 
@@ -164,18 +171,20 @@ struct SecondaryCoefficients
           const int i,
           const IndexType K )
     {
-        RealType result = 0.0;
+        static_assert( FaceVectorType::getSize() == MeshDependentData::FacesPerCell );
+
+        RealType Z = 0;
 
         for( int f = 0; f < MeshDependentData::FacesPerCell; f++ ) {
             const IndexType F = faceIndexes[ f ];
             for( int j = 0; j < MeshDependentData::NumberOfEquations; j++ ) {
-                result += mdd.R_ijKe( i, j, K, f ) * mdd.Z_iF( j, F );
+                Z += mdd.R_ijKe( i, j, K, f ) * mdd.Z_iF( j, F );
             }
         }
 
-        result += mdd.R_iK( i, K );
+        Z += mdd.R_iK( i, K );
 
-        return result;
+        return Z;
     }
 };
 
