@@ -190,8 +190,10 @@ void writeProlog( TNL::Logger& logger, bool writeSystemInformation = true )
     TNL::String advection;
     if( Problem::MeshDependentDataType::AdvectionDiscretization == mhfem::AdvectionDiscretization::explicit_upwind )
         advection = "explicit upwind";
-    else
+    if( Problem::MeshDependentDataType::AdvectionDiscretization == mhfem::AdvectionDiscretization::implicit_upwind )
         advection = "implicit upwind";
+    if( Problem::MeshDependentDataType::AdvectionDiscretization == mhfem::AdvectionDiscretization::implicit_trace )
+        advection = "implicit trace";
     logger.writeParameter< TNL::String >( "Advection discretization:", advection );
 
     Problem::MeshDependentDataType::writeProlog( logger );

@@ -77,6 +77,10 @@ struct SecondaryCoefficients
             if( vel < 0 )
                 R -= 2 * vel;
         }
+        if constexpr( MeshDependentData::AdvectionDiscretization == AdvectionDiscretization::implicit_trace ) {
+            const RealType vel = mdd.a_ijKe( i, j, K, e ) + mdd.u_ijKe( i, j, K, e );
+            R -= vel;
+        }
 
         return R;
     }
@@ -241,6 +245,12 @@ struct SecondaryCoefficients
                     T -= 2 * vel;
             }
         }
+        if constexpr( MeshDependentData::AdvectionDiscretization == AdvectionDiscretization::implicit_trace ) {
+            if( E == F ) {
+                const RealType vel = mdd.a_ijKe( i, j, K, e ) + mdd.u_ijKe( i, j, K, e );
+                T -= vel;
+            }
+        }
 
         // A = T - S * Q^{-1} * R
         return T - SQinvR;
@@ -259,9 +269,10 @@ struct SecondaryCoefficients
              const IndexType F,
              const int f )
     {
-        if constexpr( MeshDependentData::AdvectionDiscretization == AdvectionDiscretization::implicit_upwind )
-            return A_ijKEF_advection( mdd, i, j, K, E, e, F, f );
-        return A_ijKEF_no_advection( mdd, i, j, K, E, e, F, f );
+        if constexpr( MeshDependentData::AdvectionDiscretization == AdvectionDiscretization::explicit_upwind )
+            return A_ijKEF_no_advection( mdd, i, j, K, E, e, F, f );
+        // implicit discretizations: upwind, trace
+        return A_ijKEF_advection( mdd, i, j, K, E, e, F, f );
     }
 
     // for use in BCs without the advective flux, and for balancing on interior faces
@@ -327,9 +338,10 @@ struct SecondaryCoefficients
              const IndexType E,
              const int e )
     {
-        if constexpr( MeshDependentData::AdvectionDiscretization == AdvectionDiscretization::implicit_upwind )
-            return RHS_iKE_advection( mdd, i, K, E, e );
-        return RHS_iKE_no_advection( mdd, i, K, E, e );
+        if constexpr( MeshDependentData::AdvectionDiscretization == AdvectionDiscretization::explicit_upwind )
+            return RHS_iKE_no_advection( mdd, i, K, E, e );
+        // implicit discretizations: upwind, trace
+        return RHS_iKE_advection( mdd, i, K, E, e );
     }
 };
 

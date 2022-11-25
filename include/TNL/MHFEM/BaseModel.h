@@ -11,7 +11,8 @@ namespace mhfem
 
 enum class AdvectionDiscretization {
     explicit_upwind,
-    implicit_upwind
+    implicit_upwind,
+    implicit_trace
 };
 
 template< typename Mesh,
