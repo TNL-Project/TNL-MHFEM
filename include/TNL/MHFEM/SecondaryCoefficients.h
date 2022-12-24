@@ -223,10 +223,12 @@ struct SecondaryCoefficients
                        const IndexType F,
                        const int f )
     {
+        const RealType m_iE_upw = mdd.m_iE_upw( i, E );
+
         // SQinvR = S * Q^{-1} * R, where Q^{-1} * R is already computed in mdd.R_ijKe
         RealType SQinvR = 0;
         for( int xxx = 0; xxx < MeshDependentData::NumberOfEquations; xxx++ ) {
-            RealType S = mdd.m_iE_upw( i, E ) * MassMatrix::b_ijKe( mdd, i, xxx, K, e );
+            RealType S = m_iE_upw * MassMatrix::b_ijKe( mdd, i, xxx, K, e );
             if constexpr( MeshDependentData::AdvectionDiscretization == AdvectionDiscretization::implicit_upwind ) {
                 const RealType vel = mdd.a_ijKe( i, xxx, K, e ) + mdd.u_ijKe( i, xxx, K, e );
                 if( vel >= 0 )
@@ -237,7 +239,7 @@ struct SecondaryCoefficients
             SQinvR += S * mdd.R_ijKe( xxx, j, K, f );
         }
 
-        RealType T = mdd.m_iE_upw( i, E ) * MassMatrix::b_ijKef( mdd, i, j, K, e, f );
+        RealType T = m_iE_upw * MassMatrix::b_ijKef( mdd, i, j, K, e, f );
         if constexpr( MeshDependentData::AdvectionDiscretization == AdvectionDiscretization::implicit_upwind ) {
             if( E == F ) {
                 const RealType vel = mdd.a_ijKe( i, j, K, e ) + mdd.u_ijKe( i, j, K, e );
@@ -304,12 +306,14 @@ struct SecondaryCoefficients
                        const IndexType E,
                        const int e )
     {
+        const RealType m_iE_upw = mdd.m_iE_upw( i, E );
+
         // start with the matrix H = m * w
-        RealType value = mdd.m_iE_upw( i, E ) * mdd.w_iKe( i, K, e );
+        RealType value = m_iE_upw * mdd.w_iKe( i, K, e );
 
         for( int j = 0; j < MeshDependentData::NumberOfEquations; j++ ) {
             // add S * Q^{-1} * G, where Q^{-1} * G is already computed in mdd.R_iK
-            RealType S = mdd.m_iE_upw( i, E ) * MeshDependentData::MassMatrix::b_ijKe( mdd, i, j, K, e );
+            RealType S = m_iE_upw * MeshDependentData::MassMatrix::b_ijKe( mdd, i, j, K, e );
             const RealType vel = mdd.a_ijKe( i, j, K, e ) + mdd.u_ijKe( i, j, K, e );
             if constexpr( MeshDependentData::AdvectionDiscretization == AdvectionDiscretization::implicit_upwind ) {
                 if( vel >= 0 )
