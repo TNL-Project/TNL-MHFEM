@@ -435,7 +435,7 @@ setupLinearSystem()
             col_map_view( i, E - localFaces ) = globalDof;
         }
     };
-    TNL::Algorithms::ParallelFor< DeviceType >::exec( localFaces, faces, kernel_col_map );
+    TNL::Algorithms::parallelFor< DeviceType >( localFaces, faces, kernel_col_map );
     col_map_offd = col_map_device.getStorageArray();
 
     // initialize the parcsr matrix
@@ -622,21 +622,21 @@ preIterate( const RealType time,
         {
             _mdd->updateNonLinearTerms( *_mesh, K, time );
         };
-        TNL::Algorithms::ParallelFor< DeviceType >::exec( (IndexType) 0, cells, kernel );
+        TNL::Algorithms::parallelFor< DeviceType >( 0, cells, kernel );
     }
     timer_nonlinear.stop();
 
     // update coefficients b_ijKEF
     timer_b.start();
     {
-        auto kernel = [_mdd, _mesh] __cuda_callable__ ( IndexType K, int i, int j ) mutable
+        auto kernel = [_mdd, _mesh] __cuda_callable__ ( const Index3D& idx ) mutable
         {
             using MassMatrix = typename MeshDependentDataType::MassMatrix;
-            MassMatrix::update( *_mesh, *_mdd, K, i, j );
+            MassMatrix::update( *_mesh, *_mdd, idx[ 0 ], idx[ 1 ], idx[ 2 ] );
         };
-        TNL::Algorithms::ParallelFor3D< DeviceType >::exec( (IndexType) 0, (IndexType) 0, (IndexType) 0,
-                                                            cells, (IndexType) MeshDependentDataType::NumberOfEquations, (IndexType) MeshDependentDataType::NumberOfEquations,
-                                                            kernel );
+        const Index3D begin( 0, 0, 0 );
+        const Index3D end( cells, MeshDependentDataType::NumberOfEquations, MeshDependentDataType::NumberOfEquations );
+        TNL::Algorithms::parallelFor< DeviceType >( begin, end, kernel );
     }
     timer_b.stop();
 
@@ -644,13 +644,13 @@ preIterate( const RealType time,
     // generally depends on the b_ijKEF coefficients
     timer_nonlinear.start();
     {
-        auto kernel = [_mdd, _mesh] __cuda_callable__ ( IndexType K, int i ) mutable
+        auto kernel = [_mdd, _mesh] __cuda_callable__ ( const Index2D& idx ) mutable
         {
-            _mdd->updateVectorCoefficients( *_mesh, K, i );
+            _mdd->updateVectorCoefficients( *_mesh, idx[ 0 ], idx[ 1 ] );
         };
-        TNL::Algorithms::ParallelFor2D< DeviceType >::exec( (IndexType) 0, (IndexType) 0,
-                                                            cells, (IndexType) MeshDependentDataType::NumberOfEquations,
-                                                            kernel );
+        const Index2D begin( 0, 0 );
+        const Index2D end( cells, (IndexType) MeshDependentDataType::NumberOfEquations );
+        TNL::Algorithms::parallelFor< DeviceType >( begin, end, kernel );
     }
     timer_nonlinear.stop();
 
@@ -662,8 +662,11 @@ preIterate( const RealType time,
     {
         const auto* _bc = &boundaryConditionsPointer.template getData< DeviceType >();
 
-        auto kernel_m_iE = [_mdd, _mesh, _bc, time, tau] __cuda_callable__ ( IndexType E, int i ) mutable
+        auto kernel_m_iE = [_mdd, _mesh, _bc, time, tau] __cuda_callable__ ( const Index2D& idx ) mutable
         {
+            const IndexType& E = idx[ 0 ];
+            const IndexType& i = idx[ 1 ];
+
             IndexType cellIndexes[ 2 ];
             const int numCells = getCellsForFace( *_mesh, E, cellIndexes );
 
@@ -719,14 +722,19 @@ preIterate( const RealType time,
             // write into the global memory after all branches have converged
             _mdd->m_iE_upw( i, E ) = m_iE_upw;
         };
-        if constexpr( MeshDependentDataType::do_mobility_upwind )
-            // mdd->m_iE_upw.forAll does not skip ghosts, so we use ParallelFor2D manually for the specific permutation of indices
-            TNL::Algorithms::ParallelFor2D< DeviceType >::exec( (IndexType) 0, (IndexType) 0,
-                                                                localFaces, (IndexType) MeshDependentDataType::NumberOfEquations,
-                                                                kernel_m_iE );
+        if constexpr( MeshDependentDataType::do_mobility_upwind ) {
+            // mdd->m_iE_upw.forAll does not skip ghosts, so we use parallelFor manually for the specific permutation of indices
+            const Index2D begin( 0, 0 );
+            const Index2D end( localFaces, MeshDependentDataType::NumberOfEquations );
+            TNL::Algorithms::parallelFor< DeviceType >( begin, end, kernel_m_iE );
+        }
 
-        auto kernel_Z_ijE = [_mdd, _mesh] __cuda_callable__ ( IndexType E, int j, int i ) mutable
+        auto kernel_Z_ijE = [_mdd, _mesh] __cuda_callable__ ( const Index3D& idx ) mutable
         {
+            const IndexType& E = idx[ 0 ];
+            const IndexType& j = idx[ 1 ];
+            const IndexType& i = idx[ 2 ];
+
             IndexType cellIndexes[ 2 ];
             const int numCells = getCellsForFace( *_mesh, E, cellIndexes );
 
@@ -759,10 +767,10 @@ preIterate( const RealType time,
             _mdd->Z_ijE_upw( i, j, E ) = Z_ijE_upw;
         };
         if constexpr( MeshDependentData::AdvectionDiscretization == AdvectionDiscretization::explicit_upwind ) {
-            // mdd->Z_ijE_upw.forAll does not skip ghosts, so we use ParallelFor3D manually for the specific permutation of indices
-            TNL::Algorithms::ParallelFor3D< DeviceType >::exec( (IndexType) 0, (IndexType) 0, (IndexType) 0,
-                                                                localFaces, (IndexType) MeshDependentDataType::NumberOfEquations, (IndexType) MeshDependentDataType::NumberOfEquations,
-                                                                kernel_Z_ijE );
+            // mdd->Z_ijE_upw.forAll does not skip ghosts, so we use parallelFor manually for the specific permutation of indices
+            const Index3D begin( 0, 0, 0 );
+            const Index3D end( localFaces, MeshDependentDataType::NumberOfEquations, MeshDependentDataType::NumberOfEquations );
+            TNL::Algorithms::parallelFor< DeviceType >( begin, end, kernel_Z_ijE );
         }
     }
     timer_upwind.stop();
@@ -789,8 +797,11 @@ preIterate( const RealType time,
 
     timer_R.start();
     {
-        auto kernel = [_mdd, _mesh, tau] __cuda_callable__ ( IndexType K, int i ) mutable
+        auto kernel = [_mdd, _mesh, tau] __cuda_callable__ ( const Index2D& idx ) mutable
         {
+            const IndexType& K = idx[ 0 ];
+            const IndexType& i = idx[ 1 ];
+
             // get face indexes
             const auto faceIndexes = getFacesForCell( *_mesh, K );
 
@@ -803,9 +814,9 @@ preIterate( const RealType time,
             const auto& entity = _mesh->template getEntity< typename MeshType::Cell >( K );
             _mdd->R_iK( i, K ) = coeff::R_iK( *_mdd, *_mesh, entity, faceIndexes, i, K, tau );
         };
-        TNL::Algorithms::ParallelFor2D< DeviceType >::exec( (IndexType) 0, (IndexType) 0,
-                                                            cells, (IndexType) MeshDependentDataType::NumberOfEquations,
-                                                            kernel );
+        const Index2D begin( 0, 0 );
+        const Index2D end( cells, MeshDependentDataType::NumberOfEquations );
+        TNL::Algorithms::parallelFor< DeviceType >( begin, end, kernel );
     }
     timer_R.stop();
 
@@ -823,8 +834,8 @@ preIterate( const RealType time,
 //            RealType rhs[ MeshDependentDataType::NumberOfEquations ];
 #else
             // TODO: use dynamic allocation via Devices::Cuda::getSharedMemory
-            // (we'll need to pass custom launch configuration to the ParallelFor)
-            // Now we just assume that the ParallelFor kernel uses 256 threads per block.
+            // (we'll need to pass custom launch configuration to the parallelFor)
+            // Now we just assume that the parallelFor kernel uses 256 threads per block.
             __shared__ LocalMatrixType __Qs[ 256 ];
             LocalMatrixType& Q = __Qs[ ( ( threadIdx.z * blockDim.y ) + threadIdx.y ) * blockDim.x + threadIdx.x ];
 
@@ -875,7 +886,7 @@ preIterate( const RealType time,
                         _mdd->R_ijKe( i, j, K, e ) = rhs[ i ];
                 }
         };
-        TNL::Algorithms::ParallelFor< DeviceType >::exec( (IndexType) 0, cells, kernel );
+        TNL::Algorithms::parallelFor< DeviceType >( 0, cells, kernel );
     }
     timer_Q.stop();
 
@@ -920,8 +931,11 @@ assembleLinearSystem( const RealType time,
     auto diag_view = csr_diag.getView();
     auto offd_view = csr_offd.getView();
     auto _b = rhsVector.getView();
-    auto kernel = [_mesh, _mdd, _bc, diag_view, offd_view, _b, time, tau] __cuda_callable__ ( IndexType E, int i ) mutable
+    auto kernel = [_mesh, _mdd, _bc, diag_view, offd_view, _b, time, tau] __cuda_callable__ ( const Index2D& idx ) mutable
     {
+        const IndexType& E = idx[ 0 ];
+        const IndexType& i = idx[ 1 ];
+
         TNL_ASSERT_FALSE( _mesh->template isGhostEntity< MeshType::getMeshDimension() - 1 >( E ),
                           "A ghost face encountered while assembling the linear system." );
         const IndexType rowIndex = _mdd->getRowIndex( i, E );
@@ -933,18 +947,21 @@ assembleLinearSystem( const RealType time,
             _b[ rowIndex ] = LinearSystem::RHS::getValue( *_mesh, *_mdd, E, i ) / diagonalValue;
         }
     };
-    // mdd->Z_iF.forAll does not skip ghosts, so we use ParallelFor2D manually for the specific permutation of indices
-    TNL::Algorithms::ParallelFor2D< DeviceType >::exec( (IndexType) 0, (IndexType) 0,
-                                                        localFaces, (IndexType) MeshDependentDataType::NumberOfEquations,
-                                                        kernel );
+    // mdd->Z_iF.forAll does not skip ghosts, so we use parallelFor manually for the specific permutation of indices
+    const Index2D begin( 0, 0 );
+    const Index2D end( localFaces, MeshDependentDataType::NumberOfEquations );
+    TNL::Algorithms::parallelFor< DeviceType >( begin, end, kernel );
 #else
     const auto* _mesh = &localMeshPointer.template getData< DeviceType >();
     const auto* _mdd = &mdd.template modifyData< DeviceType >();
     const auto* _bc = &boundaryConditionsPointer.template getData< DeviceType >();
     auto* _matrix = &localMatrixPointer.template modifyData< DeviceType >();
     auto _b = rhsVector.getView();
-    auto kernel = [_mesh, _mdd, _bc, _matrix, _b, time, tau] __cuda_callable__ ( IndexType E, int i ) mutable
+    auto kernel = [_mesh, _mdd, _bc, _matrix, _b, time, tau] __cuda_callable__ ( const Index2D& idx ) mutable
     {
+        const IndexType& E = idx[ 0 ];
+        const IndexType& i = idx[ 1 ];
+
         TNL_ASSERT_FALSE( _mesh->template isGhostEntity< MeshType::getMeshDimension() - 1 >( E ),
                           "A ghost face encountered while assembling the linear system." );
         const IndexType rowIndex = _mdd->getRowIndex( i, E );
@@ -957,10 +974,10 @@ assembleLinearSystem( const RealType time,
         }
     };
     TNL_ASSERT_EQ( localMatrixPointer->getRows(), MeshDependentDataType::NumberOfEquations * localFaces, "BUG: wrong matrix size" );
-    // mdd->Z_iF.forAll does not skip ghosts, so we use ParallelFor2D manually for the specific permutation of indices
-    TNL::Algorithms::ParallelFor2D< DeviceType >::exec( (IndexType) 0, (IndexType) 0,
-                                                        localFaces, (IndexType) MeshDependentDataType::NumberOfEquations,
-                                                        kernel );
+    // mdd->Z_iF.forAll does not skip ghosts, so we use parallelFor manually for the specific permutation of indices
+    const Index2D begin( 0, 0 );
+    const Index2D end( localFaces, MeshDependentDataType::NumberOfEquations );
+    TNL::Algorithms::parallelFor< DeviceType >( begin, end, kernel );
 #endif
 
     timer_assembleLinearSystem.stop();
@@ -1303,15 +1320,18 @@ postIterate( const RealType time,
     timer_velocities.start();
     if( MeshDependentDataType::do_mobility_upwind )
     {
-        auto kernel = [_mdd, _mesh] __cuda_callable__ ( IndexType K, int i ) mutable
+        auto kernel = [_mdd, _mesh] __cuda_callable__ ( const Index2D idx ) mutable
         {
+            const IndexType& K = idx[ 0 ];
+            const IndexType& i = idx[ 1 ];
+
             const auto faceIndexes = getFacesForCell( *_mesh, K );
             for( int e = 0; e < MeshDependentDataType::FacesPerCell; e++ )
                 _mdd->v_iKe( i, K, e ) = coeff::v_iKE( *_mdd, faceIndexes, i, K, faceIndexes[ e ], e );
         };
-        TNL::Algorithms::ParallelFor2D< DeviceType >::exec( (IndexType) 0, (IndexType) 0,
-                                                            cells, (IndexType) MeshDependentDataType::NumberOfEquations,
-                                                            kernel );
+        const Index2D begin( 0, 0 );
+        const Index2D end( cells, MeshDependentDataType::NumberOfEquations );
+        TNL::Algorithms::parallelFor< DeviceType >( begin, end, kernel );
     }
     timer_velocities.stop();
 

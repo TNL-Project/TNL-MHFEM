@@ -36,6 +36,8 @@ public:
     using RealType = typename MeshDependentData::RealType;
     using DeviceType = typename MeshDependentData::DeviceType;
     using IndexType = typename MeshDependentData::IndexType;
+    using Index2D = TNL::Containers::StaticArray< 2, IndexType >;
+    using Index3D = TNL::Containers::StaticArray< 3, IndexType >;
 
     using MeshType = typename MeshDependentData::MeshType;
     using HostMeshType = typename HostMesh< MeshType >::type;

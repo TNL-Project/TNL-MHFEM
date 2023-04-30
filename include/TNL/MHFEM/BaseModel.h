@@ -301,7 +301,7 @@ setInitialCondition_fuck_you_nvcc( const int i, const Array & sourceArray, NDArr
     const auto source_view = sourceArray.getConstView();
     auto view = localArray.getView();
 
-    TNL::Algorithms::ParallelFor< DeviceType >::exec( (IndexType) 0, source_view.getSize(),
+    TNL::Algorithms::parallelFor< DeviceType >( 0, source_view.getSize(),
         [=] __cuda_callable__ ( IndexType K ) mutable {
             view( i, K ) = source_view[ K ];
     });
