@@ -664,8 +664,7 @@ preIterate( const RealType time,
 
         auto kernel_m_iE = [_mdd, _mesh, _bc, time, tau] __cuda_callable__ ( const Index2D& idx ) mutable
         {
-            const IndexType& E = idx[ 0 ];
-            const IndexType& i = idx[ 1 ];
+            const auto& [E, i] = idx;
 
             IndexType cellIndexes[ 2 ];
             const int numCells = getCellsForFace( *_mesh, E, cellIndexes );
@@ -731,9 +730,7 @@ preIterate( const RealType time,
 
         auto kernel_Z_ijE = [_mdd, _mesh] __cuda_callable__ ( const Index3D& idx ) mutable
         {
-            const IndexType& E = idx[ 0 ];
-            const IndexType& j = idx[ 1 ];
-            const IndexType& i = idx[ 2 ];
+            const auto& [E, j, i] = idx;
 
             IndexType cellIndexes[ 2 ];
             const int numCells = getCellsForFace( *_mesh, E, cellIndexes );
@@ -799,8 +796,7 @@ preIterate( const RealType time,
     {
         auto kernel = [_mdd, _mesh, tau] __cuda_callable__ ( const Index2D& idx ) mutable
         {
-            const IndexType& K = idx[ 0 ];
-            const IndexType& i = idx[ 1 ];
+            const auto& [K, i] = idx;
 
             // get face indexes
             const auto faceIndexes = getFacesForCell( *_mesh, K );
@@ -933,8 +929,7 @@ assembleLinearSystem( const RealType time,
     auto _b = rhsVector.getView();
     auto kernel = [_mesh, _mdd, _bc, diag_view, offd_view, _b, time, tau] __cuda_callable__ ( const Index2D& idx ) mutable
     {
-        const IndexType& E = idx[ 0 ];
-        const IndexType& i = idx[ 1 ];
+        const auto& [E, i] = idx;
 
         TNL_ASSERT_FALSE( _mesh->template isGhostEntity< MeshType::getMeshDimension() - 1 >( E ),
                           "A ghost face encountered while assembling the linear system." );
@@ -959,8 +954,7 @@ assembleLinearSystem( const RealType time,
     auto _b = rhsVector.getView();
     auto kernel = [_mesh, _mdd, _bc, _matrix, _b, time, tau] __cuda_callable__ ( const Index2D& idx ) mutable
     {
-        const IndexType& E = idx[ 0 ];
-        const IndexType& i = idx[ 1 ];
+        const auto& [E, i] = idx;
 
         TNL_ASSERT_FALSE( _mesh->template isGhostEntity< MeshType::getMeshDimension() - 1 >( E ),
                           "A ghost face encountered while assembling the linear system." );
@@ -1322,8 +1316,7 @@ postIterate( const RealType time,
     {
         auto kernel = [_mdd, _mesh] __cuda_callable__ ( const Index2D idx ) mutable
         {
-            const IndexType& K = idx[ 0 ];
-            const IndexType& i = idx[ 1 ];
+            const auto& [K, i] = idx;
 
             const auto faceIndexes = getFacesForCell( *_mesh, K );
             for( int e = 0; e < MeshDependentDataType::FacesPerCell; e++ )
