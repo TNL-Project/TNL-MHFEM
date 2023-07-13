@@ -12,7 +12,7 @@
 #include "MassMatrix.h"
 #include "BaseModel.h"
 
-namespace mhfem {
+namespace TNL::MHFEM {
 
 #ifdef HAVE_MPI
 template< typename DistributedMesh,
@@ -180,7 +180,7 @@ void writeProlog( TNL::Logger& logger, bool writeSystemInformation = true )
     logger.writeParameter< TNL::String >( "Sparse matrix:", TNL::getType< typename Problem::MatrixType >() );
 
     TNL::String massLumping;
-    if( Problem::MeshDependentDataType::MassMatrix::lumping == mhfem::MassLumping::enabled )
+    if( Problem::MeshDependentDataType::MassMatrix::lumping == MHFEM::MassLumping::enabled )
         massLumping = "enabled";
     else
         massLumping = "disabled";
@@ -188,11 +188,11 @@ void writeProlog( TNL::Logger& logger, bool writeSystemInformation = true )
 
 
     TNL::String advection;
-    if( Problem::MeshDependentDataType::AdvectionDiscretization == mhfem::AdvectionDiscretization::explicit_upwind )
+    if( Problem::MeshDependentDataType::AdvectionDiscretization == MHFEM::AdvectionDiscretization::explicit_upwind )
         advection = "explicit upwind";
-    if( Problem::MeshDependentDataType::AdvectionDiscretization == mhfem::AdvectionDiscretization::implicit_upwind )
+    if( Problem::MeshDependentDataType::AdvectionDiscretization == MHFEM::AdvectionDiscretization::implicit_upwind )
         advection = "implicit upwind";
-    if( Problem::MeshDependentDataType::AdvectionDiscretization == mhfem::AdvectionDiscretization::implicit_trace )
+    if( Problem::MeshDependentDataType::AdvectionDiscretization == MHFEM::AdvectionDiscretization::implicit_trace )
         advection = "implicit trace";
     logger.writeParameter< TNL::String >( "Advection discretization:", advection );
 
@@ -259,7 +259,7 @@ bool execute( const TNL::Config::ParameterContainer& controlParameters,
     auto run = [&] ()
     {
         stage = "MHFEM initialization";
-        mhfem::init( problem, meshPointer, solverParameters );
+        MHFEM::init( problem, meshPointer, solverParameters );
 
         // write a prolog
         if( verbose )
@@ -274,7 +274,7 @@ bool execute( const TNL::Config::ParameterContainer& controlParameters,
         TNL::Solvers::SolverMonitorThread t( solverMonitor );
 
         stage = "MHFEM solver";
-        mhfem::solve( problem, solverParameters, computeTimer, ioTimer, &solverMonitor );
+        MHFEM::solve( problem, solverParameters, computeTimer, ioTimer, &solverMonitor );
 
         // stop timers
         computeTimer.stop();
@@ -315,4 +315,4 @@ bool execute( const TNL::Config::ParameterContainer& controlParameters,
     return true;
 }
 
-} // namespace mhfem
+} // namespace TNL::MHFEM

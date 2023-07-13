@@ -2,7 +2,7 @@
 
 #include <cstdint>
 
-namespace mhfem {
+namespace TNL::MHFEM {
 
 enum class BoundaryConditionsType
 : std::uint8_t
@@ -25,4 +25,4 @@ enum class BoundaryConditionsType
     AdvectiveOutflow = 2
 };
 
-} // namespace mhfem
+} // namespace TNL::MHFEM

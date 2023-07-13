@@ -6,7 +6,7 @@
 #include "mesh_helpers.h"
 #include "SecondaryCoefficients.h"
 
-namespace mhfem {
+namespace TNL::MHFEM {
 
 template< typename MeshDependentData >
 struct BoundaryCoefficients_AdvectiveOutflow
@@ -435,4 +435,4 @@ setMatrixElements( const MeshType & mesh,
     }
 }
 
-} // namespace mhfem
+} // namespace TNL::MHFEM

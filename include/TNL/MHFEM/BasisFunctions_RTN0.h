@@ -10,7 +10,7 @@
 
 #include "mesh_helpers.h"
 
-namespace mhfem {
+namespace TNL::MHFEM {
 namespace BasisFunctions {
 
 template< typename CellType >
@@ -120,4 +120,4 @@ struct RTN0< TNL::Meshes::MeshEntity< MeshConfig, Device, TNL::Meshes::Topologie
 };
 
 } // namespace BasisFunctions
-} // namespace mhfem
+} // namespace TNL::MHFEM

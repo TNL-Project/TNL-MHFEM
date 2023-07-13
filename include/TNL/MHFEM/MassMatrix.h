@@ -11,7 +11,7 @@
 
 #include "mesh_helpers.h"
 
-namespace mhfem {
+namespace TNL::MHFEM {
 
 enum class MassLumping {
     enabled,
@@ -1039,4 +1039,4 @@ public:
     }
 };
 
-} // namespace mhfem
+} // namespace TNL::MHFEM

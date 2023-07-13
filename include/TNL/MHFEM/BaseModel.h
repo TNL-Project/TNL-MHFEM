@@ -6,7 +6,7 @@
 #include "MassMatrix.h"
 #include "mesh_helpers.h"
 
-namespace mhfem
+namespace TNL::MHFEM
 {
 
 enum class AdvectionDiscretization {
@@ -26,9 +26,9 @@ struct DefaultArrayTypes
     using DeviceType = typename MeshType::DeviceType;
     using IndexType = typename MeshType::GlobalIndexType;
 
-    using MassMatrix = mhfem::MassMatrix< typename MeshType::Cell, massLumping >;
+    using MassMatrix = MHFEM::MassMatrix< typename MeshType::Cell, massLumping >;
 
-    using FPC = ::FacesPerCell< typename MeshType::Cell >;
+    using FPC = MHFEM::FacesPerCell< typename MeshType::Cell >;
     static constexpr int FacesPerCell = FPC::value;
     template< typename SizesHolder,
               typename HostPermutation,
@@ -139,7 +139,7 @@ public:
     using IndexType = typename MeshType::GlobalIndexType;
     using ArrayTypes = ArrayTypes_;
 
-    static constexpr mhfem::AdvectionDiscretization AdvectionDiscretization = advection;
+    static constexpr MHFEM::AdvectionDiscretization AdvectionDiscretization = advection;
 
     using MassMatrix = typename ArrayTypes::MassMatrix;
     static constexpr int FacesPerCell = ArrayTypes::FacesPerCell;
@@ -325,4 +325,4 @@ setInitialCondition( const int i, const StdVector & vector )
     setInitialCondition_fuck_you_nvcc( i, deviceArray, this->Z_iK );
 }
 
-} // namespace mhfem
+} // namespace TNL::MHFEM

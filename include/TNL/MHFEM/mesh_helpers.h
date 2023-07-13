@@ -6,6 +6,9 @@
 #include <TNL/Meshes/Geometry/getEntityCenter.h>
 #include <TNL/Meshes/Geometry/getEntityMeasure.h>
 
+namespace TNL::MHFEM
+{
+
 using TNL::Meshes::getEntityCenter;
 using TNL::Meshes::getEntityMeasure;
 
@@ -406,3 +409,5 @@ getMinEdgeLength( const TNL::Meshes::Mesh< MeshConfig, Device > & mesh,
 
     return TNL::min( e0, e1, e2, e3, e4, e5, e6, e7, e8, e9, e10, e11 );
 }
+
+} // namespace TNL::MHFEM

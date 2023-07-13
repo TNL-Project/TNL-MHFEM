@@ -22,7 +22,7 @@
 #include "LinearSystem.h"
 #include "BoundaryConditions.h"
 
-namespace mhfem
+namespace TNL::MHFEM
 {
 
 template< typename MeshDependentData,
@@ -51,8 +51,8 @@ public:
     using MeshDependentDataPointer = TNL::Pointers::SharedPointer< MeshDependentDataType, DeviceType >;
     using DofVectorType = TNL::Containers::Vector< RealType, DeviceType, IndexType >;
     using DofViewType = TNL::Containers::VectorView< RealType, DeviceType, IndexType >;
-    using LinearSystem = mhfem::LinearSystem< MeshType, MeshDependentDataType >;
-    using BoundaryConditions = mhfem::BoundaryConditions< MeshDependentDataType, BoundaryModel >;
+    using LinearSystem = MHFEM::LinearSystem< MeshType, MeshDependentDataType >;
+    using BoundaryConditions = MHFEM::BoundaryConditions< MeshDependentDataType, BoundaryModel >;
     using BoundaryConditionsPointer = TNL::Pointers::SharedPointer< BoundaryConditions >;
 
     using MatrixType = Matrix;
@@ -207,6 +207,6 @@ protected:
     std::shared_ptr< FaceSynchronizerType > faceSynchronizer;
 };
 
-} // namespace mhfem
+} // namespace TNL::MHFEM
 
 #include "Solver_impl.h"

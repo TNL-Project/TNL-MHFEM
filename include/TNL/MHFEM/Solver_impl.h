@@ -10,7 +10,7 @@
 #include "mesh_helpers.h"
 #include "Solver.h"
 
-namespace mhfem
+namespace TNL::MHFEM
 {
 
 template< typename MeshDependentData,
@@ -1493,4 +1493,4 @@ estimateMemoryDemands( const DistributedHostMeshType & mesh, std::ostream & out 
     out.flush();
 }
 
-} // namespace mhfem
+} // namespace TNL::MHFEM

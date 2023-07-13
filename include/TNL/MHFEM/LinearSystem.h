@@ -5,7 +5,7 @@
 #include "SecondaryCoefficients.h"
 #include "mesh_helpers.h"
 
-namespace mhfem
+namespace TNL::MHFEM
 {
 
 template< typename Mesh,
@@ -547,4 +547,4 @@ public:
     }
 };
 
-} // namespace mhfem
+} // namespace TNL::MHFEM

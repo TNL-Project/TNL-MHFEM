@@ -3,7 +3,7 @@
 #include <TNL/Config/ConfigDescription.h>
 #include <TNL/Solvers/LinearSolverTypeResolver.h>
 
-namespace mhfem
+namespace TNL::MHFEM
 {
 
 inline void
@@ -62,4 +62,4 @@ configSetup( TNL::Config::ConfigDescription& config,
     TNL::Solvers::Linear::Preconditioners::ILUT< MatrixType >::configSetup( config );
 }
 
-} // namespace mhfem
+} // namespace TNL::MHFEM

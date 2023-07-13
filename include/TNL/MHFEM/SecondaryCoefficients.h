@@ -3,7 +3,7 @@
 #include "MassMatrix.h"
 #include "BaseModel.h"
 
-namespace mhfem {
+namespace TNL::MHFEM {
 
 template< typename MeshDependentData >
 struct SecondaryCoefficients
@@ -349,4 +349,4 @@ struct SecondaryCoefficients
     }
 };
 
-} // namespace mhfem
+} // namespace TNL::MHFEM

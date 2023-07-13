@@ -3,7 +3,7 @@
 #include "mesh_helpers.h"
 #include "SecondaryCoefficients.h"
 
-namespace mhfem
+namespace TNL::MHFEM
 {
 
 template< typename MeshDependentData >
@@ -46,4 +46,4 @@ struct RightHandSide
     }
 };
 
-} // namespace mhfem
+} // namespace TNL::MHFEM

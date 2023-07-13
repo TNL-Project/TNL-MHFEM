@@ -4,14 +4,14 @@
 
 #include "BoundaryConditionsType.h"
 
-namespace mhfem {
+namespace TNL::MHFEM {
 
 template< typename Real >
 struct BoundaryConditionsStorage
     : public TNL::Object
 {
     std::int64_t dofSize = 0;
-    TNL::Containers::Array< mhfem::BoundaryConditionsType, TNL::Devices::Host, std::int64_t > tags;
+    TNL::Containers::Array< MHFEM::BoundaryConditionsType, TNL::Devices::Host, std::int64_t > tags;
     TNL::Containers::Array< Real, TNL::Devices::Host, std::int64_t > values, dirichletValues;
 
     void save( const TNL::String & fileName ) const
@@ -61,4 +61,4 @@ struct BoundaryConditionsStorage
     }
 };
 
-} // namespace mhfem
+} // namespace TNL::MHFEM

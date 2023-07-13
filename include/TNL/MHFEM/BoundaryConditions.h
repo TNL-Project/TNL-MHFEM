@@ -5,7 +5,7 @@
 #include "BoundaryConditionsType.h"
 #include "BoundaryConditionsStorage.h"
 
-namespace mhfem
+namespace TNL::MHFEM
 {
 
 template< typename MeshDependentData,
@@ -82,6 +82,6 @@ public:
     ValueArrayType dirichletValues;
 };
 
-} // namespace mhfem
+} // namespace TNL::MHFEM
 
 #include "BoundaryConditions_impl.h"

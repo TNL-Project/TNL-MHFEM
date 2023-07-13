@@ -2,6 +2,8 @@
 
 #include <TNL/Containers/Array.h>
 
+namespace TNL::MHFEM {
+
 template< typename Value, typename Device, int Dimension >
 class UniformCoefficient
 {
@@ -49,3 +51,5 @@ public:
 private:
     StorageArray storage;
 };
+
+} // namespace TNL::MHFEM
