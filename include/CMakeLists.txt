@@ -1,0 +1,2 @@
+install( DIRECTORY TNL TYPE INCLUDE
+         FILES_MATCHING PATTERN "*.h" PATTERN "*.hpp" )
