@@ -61,13 +61,13 @@ public:
 
     using FaceSynchronizerType = TNL::Meshes::DistributedMeshes::DistributedMeshSynchronizer< DistributedMeshType, MeshType::getMeshDimension() - 1 >;
 
-    static TNL::String getPrologHeader();
+    static std::string getPrologHeader();
 
     // initialization methods
     void setMesh( DistributedHostMeshPointer & meshPointer );
 
     bool setup( const TNL::Config::ParameterContainer & parameters,
-                const TNL::String & prefix = "" );
+                const std::string & prefix = "" );
 
     bool setInitialCondition( const TNL::Config::ParameterContainer & parameters );
 
@@ -118,7 +118,7 @@ public:
 
 protected:
     // prefix for snapshots
-    TNL::String outputDirectory;
+    std::string outputDirectory;
     IndexType facesOffset = 0;
     IndexType globalFaces = 0;
     IndexType globalCells = 0;

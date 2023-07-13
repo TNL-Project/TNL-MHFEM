@@ -35,8 +35,8 @@ void init( Problem& problem,
            const TNL::Config::ParameterContainer& parameters,
            const TNL::MPI::Comm& communicator = MPI_COMM_WORLD )
 {
-    const TNL::String meshFile = parameters.getParameter< TNL::String >( "mesh" );
-    const TNL::String meshFileFormat = parameters.getParameter< TNL::String >( "mesh-format" );
+    const std::string meshFile = parameters.getParameter< std::string >( "mesh" );
+    const std::string meshFileFormat = parameters.getParameter< std::string >( "mesh-format" );
 #ifdef HAVE_MPI
     if( ! TNL::Meshes::loadDistributedMesh( *meshPointer, meshFile, meshFileFormat, communicator ) )
         throw std::runtime_error( "failed to load the distributed mesh from file " + meshFile );
@@ -161,40 +161,40 @@ void writeProlog( TNL::Logger& logger, bool writeSystemInformation = true )
     if( TNL::MPI::isInitialized() )
         logger.writeParameter( "MPI processes:", TNL::MPI::GetSize() );
 #if defined( HAVE_GINKGO )
-    logger.writeParameter< TNL::String >( "HAVE_GINKGO:", "yes" );
+    logger.writeParameter( "HAVE_GINKGO:", "yes" );
 #elif defined( HAVE_HYPRE )
-    logger.writeParameter< TNL::String >( "HAVE_HYPRE:", "yes" );
+    logger.writeParameter( "HAVE_HYPRE:", "yes" );
 #endif
-    logger.writeParameter< TNL::String >( "Device type:",   TNL::getType< typename Problem::DeviceType >() );
+    logger.writeParameter( "Device type:", TNL::getType< typename Problem::DeviceType >() );
     if( ! printGPUs ) {
         if( TNL::Devices::Host::isOMPEnabled() ) {
-            logger.writeParameter< TNL::String >( "OMP enabled:", "yes", 1 );
-            logger.writeParameter< int >( "OMP threads:", TNL::Devices::Host::getMaxThreadsCount(), 1 );
+            logger.writeParameter( "OMP enabled:", "yes", 1 );
+            logger.writeParameter( "OMP threads:", TNL::Devices::Host::getMaxThreadsCount(), 1 );
         }
         else
-            logger.writeParameter< TNL::String >( "OMP enabled:", "no", 1 );
+            logger.writeParameter( "OMP enabled:", "no", 1 );
     }
-    logger.writeParameter< TNL::String >( "Real type:",     TNL::getType< typename Problem::RealType >() );
-    logger.writeParameter< TNL::String >( "Index type:",    TNL::getType< typename Problem::IndexType >() );
-    logger.writeParameter< TNL::String >( "Mesh type:",     TNL::getType< typename Problem::MeshType >() );
-    logger.writeParameter< TNL::String >( "Sparse matrix:", TNL::getType< typename Problem::MatrixType >() );
+    logger.writeParameter( "Real type:",     TNL::getType< typename Problem::RealType >() );
+    logger.writeParameter( "Index type:",    TNL::getType< typename Problem::IndexType >() );
+    logger.writeParameter( "Mesh type:",     TNL::getType< typename Problem::MeshType >() );
+    logger.writeParameter( "Sparse matrix:", TNL::getType< typename Problem::MatrixType >() );
 
-    TNL::String massLumping;
+    std::string massLumping;
     if( Problem::MeshDependentDataType::MassMatrix::lumping == MHFEM::MassLumping::enabled )
         massLumping = "enabled";
     else
         massLumping = "disabled";
-    logger.writeParameter< TNL::String >( "Mass lumping:", massLumping );
+    logger.writeParameter( "Mass lumping:", massLumping );
 
 
-    TNL::String advection;
+    std::string advection;
     if( Problem::MeshDependentDataType::AdvectionDiscretization == MHFEM::AdvectionDiscretization::explicit_upwind )
         advection = "explicit upwind";
     if( Problem::MeshDependentDataType::AdvectionDiscretization == MHFEM::AdvectionDiscretization::implicit_upwind )
         advection = "implicit upwind";
     if( Problem::MeshDependentDataType::AdvectionDiscretization == MHFEM::AdvectionDiscretization::implicit_trace )
         advection = "implicit trace";
-    logger.writeParameter< TNL::String >( "Advection discretization:", advection );
+    logger.writeParameter( "Advection discretization:", advection );
 
     Problem::MeshDependentDataType::writeProlog( logger );
     logger.writeSeparator();
@@ -240,8 +240,8 @@ bool execute( const TNL::Config::ParameterContainer& controlParameters,
     solverMonitor.setTimer( totalTimer );
 
     // open the log file
-    const TNL::String logFileName = controlParameters.getParameter< TNL::String >( "log-file" );
-    std::ofstream logFile( logFileName.getString() );
+    const std::string logFileName = controlParameters.getParameter< std::string >( "log-file" );
+    std::ofstream logFile( logFileName );
     if( ! logFile ) {
         std::cerr << "Unable to open the log file " << logFileName << "." << std::endl;
         return false;
@@ -254,7 +254,7 @@ bool execute( const TNL::Config::ParameterContainer& controlParameters,
 
     Problem problem;
     auto meshPointer = std::make_shared< typename Problem::DistributedHostMeshType >();
-    TNL::String stage;
+    std::string stage;
 
     auto run = [&] ()
     {

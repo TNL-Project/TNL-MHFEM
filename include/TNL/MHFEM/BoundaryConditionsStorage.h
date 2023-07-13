@@ -14,17 +14,11 @@ struct BoundaryConditionsStorage
     TNL::Containers::Array< MHFEM::BoundaryConditionsType, TNL::Devices::Host, std::int64_t > tags;
     TNL::Containers::Array< Real, TNL::Devices::Host, std::int64_t > values, dirichletValues;
 
-    void save( const TNL::String & fileName ) const
-    {
-        TNL::Object::save( fileName );
-    }
+    using TNL::Object::save;
 
-    void load( const TNL::String & fileName )
-    {
-        TNL::Object::load( fileName );
-    }
+    using TNL::Object::load;
 
-    void save( TNL::File & file ) const
+    void save( TNL::File & file ) const override
     {
         // save serialization type
         TNL::Object::save( file );
@@ -36,7 +30,7 @@ struct BoundaryConditionsStorage
         file << tags << values << dirichletValues;
     }
 
-    void load( TNL::File & file )
+    void load( TNL::File & file ) override
     {
         // check serialization type
         TNL::Object::load( file );

@@ -157,7 +157,7 @@ public:
 //    bool makeSnapshot( const RealType time,
 //                       const IndexType step,
 //                       const MeshType & mesh,
-//                       const TNL::String & outputPrefix ) const
+//                       const std::string & outputPrefix ) const
 
     // this can be overridden in child classes which use a constant mobility coefficient
     static constexpr bool do_mobility_upwind = true;

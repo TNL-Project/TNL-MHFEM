@@ -16,11 +16,11 @@ namespace TNL::MHFEM
 template< typename MeshDependentData,
           typename BoundaryModel,
           typename Matrix >
-TNL::String
+std::string
 Solver< MeshDependentData, BoundaryModel, Matrix >::
 getPrologHeader()
 {
-    return TNL::String( "NumDwarf solver" );
+    return "NumDwarf solver";
 }
 
 template< typename MeshDependentData,
@@ -88,7 +88,7 @@ template< typename MeshDependentData,
 bool
 Solver< MeshDependentData, BoundaryModel, Matrix >::
 setup( const TNL::Config::ParameterContainer & parameters,
-       const TNL::String & prefix )
+       const std::string & prefix )
 {
     if( ! distributedMeshPointer ) {
         std::cerr << "The distributedMeshPointer is NULL, the setMesh method must be called first." << std::endl;
@@ -96,7 +96,7 @@ setup( const TNL::Config::ParameterContainer & parameters,
     }
 
     // prefix for snapshots
-    outputDirectory = parameters.getParameter< TNL::String >( "output-directory" );
+    outputDirectory = parameters.getParameter< std::string >( "output-directory" );
 
     const std::string solver_name = parameters.getParameter< std::string >( "linear-solver" );
     const std::string preconditioner_name = parameters.getParameter< std::string >( "preconditioner" );
@@ -296,7 +296,7 @@ setInitialCondition( const TNL::Config::ParameterContainer & parameters )
     }
 
     if( parameters.checkParameter( "initial-condition" ) ) {
-        const TNL::String & initialConditionFile = parameters.getParameter< TNL::String >( "initial-condition" );
+        const std::string & initialConditionFile = parameters.getParameter< std::string >( "initial-condition" );
         auto reader = TNL::Meshes::Readers::getMeshReader( initialConditionFile, "auto" );
         reader->detectMesh();
         for( int i = 0; i < MeshDependentDataType::NumberOfEquations; i++ ) {
