@@ -1,6 +1,6 @@
 [submodule "libs/tnl"]
 	path = libs/tnl
-	url = https://gitlab.com/tnl-project/tnl.git
+	url = ../tnl.git
 [submodule "libs/pytnl"]
 	path = libs/pytnl
-	url = https://gitlab.com/tnl-project/pytnl.git
+	url = ../pytnl.git
