@@ -41,9 +41,25 @@ endif()
 # Set the project's include path
 include_directories(include)
 
-# Set up TNL
-add_subdirectory(libs/tnl)
+# Set the install path for Python modules
+# FIXME: for some reason relying on find_package from libs/pytnl fails (dependent target 'Python3::Module' is not defined)
+find_package(Python3 COMPONENTS Interpreter Development REQUIRED)
+set(PyTNL_PYTHON_SITE_PACKAGES_DIR lib/python${Python3_VERSION_MAJOR}.${Python3_VERSION_MINOR}/site-packages)
 
-# Add subdirectories
+# Add dependencies
+if(SYSTEM_TNL)
+    find_package(TNL REQUIRED)
+else()
+    add_subdirectory(libs/tnl)
+    set(SYSTEM_TNL TRUE)  # avoid further inclusion of libs/tnl from pytnl
+endif()
+if(SYSTEM_PYTNL)
+    find_package(PyTNL REQUIRED)
+else()
+    add_subdirectory(libs/pytnl)
+endif()
+
+# Add project subdirectories
 add_subdirectory(include)
+add_subdirectory(src)
 add_subdirectory(examples)
