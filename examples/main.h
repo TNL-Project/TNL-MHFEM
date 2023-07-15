@@ -2,9 +2,7 @@
 #include <TNL/Debugging/FPE.h>
 #endif
 
-#ifdef HAVE_MPI
 #include <TNL/MPI/ScopedInitializer.h>
-#endif
 #include <TNL/MPI/Config.h>
 
 #ifdef HAVE_HYPRE
@@ -24,9 +22,7 @@ int main( int argc, char* argv[] )
     TNL::Debugging::trackFloatingPointExceptions();
 #endif
 
-#ifdef HAVE_MPI
     TNL::MPI::ScopedInitializer mpi( argc, argv );
-#endif
 
 #ifdef HAVE_HYPRE
     TNL::Hypre hypre;

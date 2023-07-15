@@ -4,30 +4,13 @@
 #include <TNL/Solvers/IterativeSolverMonitor.h>
 #include <TNL/Pointers/SmartPointersRegister.h>
 #include <TNL/Meshes/TypeResolver/resolveMeshType.h>
-#ifdef HAVE_MPI
 #include <TNL/Meshes/TypeResolver/resolveDistributedMeshType.h>
 #include <TNL/Meshes/DistributedMeshes/distributeSubentities.h>
-#endif
 
 #include "MassMatrix.h"
 #include "BaseModel.h"
 
 namespace TNL::MHFEM {
-
-#ifdef HAVE_MPI
-template< typename DistributedMesh,
-          std::enable_if_t< (DistributedMesh::getMeshDimension() > 1), bool > = true >
-void distributeFaces( DistributedMesh& mesh )
-{
-    TNL::Meshes::DistributedMeshes::distributeSubentities< DistributedMesh::getMeshDimension() - 1 >( mesh );
-}
-
-template< typename DistributedMesh,
-          std::enable_if_t< DistributedMesh::getMeshDimension() == 1, bool > = true >
-void distributeFaces( DistributedMesh& mesh )
-{
-}
-#endif
 
 template< typename Problem >
 void init( Problem& problem,
@@ -37,18 +20,24 @@ void init( Problem& problem,
 {
     const std::string meshFile = parameters.getParameter< std::string >( "mesh" );
     const std::string meshFileFormat = parameters.getParameter< std::string >( "mesh-format" );
-#ifdef HAVE_MPI
-    if( ! TNL::Meshes::loadDistributedMesh( *meshPointer, meshFile, meshFileFormat, communicator ) )
-        throw std::runtime_error( "failed to load the distributed mesh from file " + meshFile );
 
-    if( meshPointer->getCommunicator() != MPI_COMM_NULL )
-        // distribute faces
-        distributeFaces( *meshPointer );
-#else
-    if( ! TNL::Meshes::loadMesh( meshPointer->getLocalMesh(), meshFile, meshFileFormat ) )
-        throw std::runtime_error( "failed to load the mesh from file " + meshFile );
-    meshPointer->setCommunicator( communicator );
-#endif
+    if( communicator.size() > 1 ) {
+        if( ! TNL::Meshes::loadDistributedMesh( *meshPointer, meshFile, meshFileFormat, communicator ) )
+            throw std::runtime_error( "failed to load the distributed mesh from file " + meshFile );
+
+        if( meshPointer->getCommunicator() != MPI_COMM_NULL ) {
+            constexpr int meshDimension = Problem::DistributedHostMeshType::getMeshDimension();
+            if constexpr( meshDimension > 1 ) {
+                // distribute faces
+                TNL::Meshes::DistributedMeshes::distributeSubentities< meshDimension - 1 >( *meshPointer );
+            }
+        }
+    }
+    else {
+        if( ! TNL::Meshes::loadMesh( meshPointer->getLocalMesh(), meshFile, meshFileFormat ) )
+            throw std::runtime_error( "failed to load the mesh from file " + meshFile );
+        meshPointer->setCommunicator( communicator );
+    }
 
     // estimate memory before further allocations
     problem.estimateMemoryDemands( *meshPointer );
