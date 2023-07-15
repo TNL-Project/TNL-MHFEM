@@ -115,7 +115,7 @@ setup( const TNL::Config::ParameterContainer & parameters,
         throw std::logic_error( "invalid preconditioner name for Ginkgo: " + preconditioner_name );
 
     if( gko_exec == nullptr ) {
-        #ifdef HAVE_CUDA
+        #ifdef __CUDACC__
         // NOTE: false here disables device reset in the executor's destructor
         gko_exec = gko::CudaExecutor::create( 0, gko::OmpExecutor::create(), false );
         #else
@@ -207,7 +207,7 @@ setup( const TNL::Config::ParameterContainer & parameters,
     // Our kernels for preIterate, postIterate and DifferentialOperator have many local memory spills,
     // so this helps a lot. It does not affect TNL's reduction and multireduction algorithms,
     // which set cudaFuncCachePreferShared manually per kernel.
-#ifdef HAVE_CUDA
+#ifdef __CUDACC__
     cudaDeviceSetCacheConfig( cudaFuncCachePreferL1 );
 #endif
 
@@ -311,7 +311,7 @@ setInitialCondition( const TNL::Config::ParameterContainer & parameters )
     if( ! mdd->init( parameters ) )
         return false;
 
-    #ifdef HAVE_CUDA
+    #ifdef __CUDACC__
     // make sure that TNL smart pointers are synchronized
     TNL::Pointers::synchronizeSmartPointersOnDevice< DeviceType >();
     #endif
@@ -604,7 +604,7 @@ preIterate( const RealType time,
     timer_preIterate.start();
 
     // not necessary for correctness, but for correct timings
-    #ifdef HAVE_CUDA
+    #ifdef __CUDACC__
     TNL::Pointers::synchronizeSmartPointersOnDevice< DeviceType >();
     #endif
 
@@ -1456,7 +1456,7 @@ estimateMemoryDemands( const DistributedHostMeshType & mesh, std::ostream & out 
     // GPU memory usage
     std::size_t gpu_total = 0;
     std::size_t gpu_free = 0;
-    #ifdef HAVE_CUDA
+    #ifdef __CUDACC__
     {
         int gpu_id;
         cudaGetDevice(&gpu_id);
