@@ -32,10 +32,8 @@ setMesh( DistributedHostMeshPointer & meshPointer )
 {
     // copy to device, initialize other mesh pointers
     this->distributedHostMeshPointer = meshPointer;
-    if( std::is_same< MeshType, HostMeshType >::value ) {
-        // in C++17 we would use constexpr if, before that we have to hack with static_cast
-        //this->distributedMeshPointer = this->distributedHostMeshPointer;
-        this->distributedMeshPointer = *(DistributedMeshPointer*)&this->distributedHostMeshPointer;
+    if constexpr( std::is_same< MeshType, HostMeshType >::value ) {
+        this->distributedMeshPointer = this->distributedHostMeshPointer;
     }
     else {
         this->distributedMeshPointer = std::make_shared< DistributedMeshType >();
