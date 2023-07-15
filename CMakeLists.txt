@@ -1,4 +1,10 @@
-cmake_minimum_required(VERSION 3.18)
+cmake_minimum_required(VERSION 3.24)
+
+# Set default CUDA architecture
+if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
+    set(CMAKE_CUDA_ARCHITECTURES "native")
+endif()
+
 project(TNL-MHFEM
     LANGUAGES CXX CUDA
 )
