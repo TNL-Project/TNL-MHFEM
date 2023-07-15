@@ -1,7 +1,7 @@
 # TNL-MHFEM
 
-TNL-MHFEM is an implementation of the Mixed Hybrid Finite Element Method using the
-[Template Numerical Library](https://gitlab.com/tnl-project/tnl).
+__TNL-MHFEM__ is an implementation of the __Mixed Hybrid Finite Element Method__ using the
+[__Template Numerical Library__](https://gitlab.com/tnl-project/tnl).
 This repository contains the complete general numerical scheme as described below and
 a few simple examples that show how to adapt the code for a particular problem.
 
