@@ -6,7 +6,10 @@ add_executable(HeatEquation_cuda HeatEquation_cuda.cu)
 target_link_libraries(HeatEquation_host PUBLIC TNL::TNL_CXX)
 target_link_libraries(HeatEquation_cuda PUBLIC TNL::TNL_CUDA)
 
-set(TARGETS HeatEquation_host)
+set(TARGETS
+        HeatEquation_host
+        HeatEquation_cuda
+)
 
 foreach(target IN ITEMS ${TARGETS})
     # enable zlib and tinyxml2 (used by mesh readers and writers)
