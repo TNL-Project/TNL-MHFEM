@@ -101,7 +101,11 @@ int main( int argc, char* argv[] )
     // --output-directory from the CLI overrides output-directory from the config
     if( cliParams.checkParameter( "output-directory" ) )
         parameters.setParameter< std::string >( "output-directory", cliParams.getParameter< std::string >( "output-directory" ) );
-
+    if( ! parameters.checkParameter("output-directory")) {
+        std::cerr << "The output-directory parameter was not found in the config and "
+                     "--output-directory was not given on the command line." << std::endl;
+        return EXIT_FAILURE;
+    }
 
     if( ! TNL::MHFEM::execute< Problem >( cliParams, parameters ) )
         return EXIT_FAILURE;
