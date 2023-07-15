@@ -26,7 +26,9 @@ foreach(target IN ITEMS ${TARGETS})
     endif()
 
     # enable MPI
-    target_compile_definitions(${target} PUBLIC "-DHAVE_MPI")
-    find_package(MPI COMPONENTS CXX REQUIRED)
-    target_link_libraries(${target} PUBLIC MPI::MPI_CXX)
+    find_package(MPI COMPONENTS CXX)
+    if(MPI_FOUND)
+        target_compile_definitions(${target} PUBLIC "-DHAVE_MPI")
+        target_link_libraries(${target} PUBLIC MPI::MPI_CXX)
+    endif()
 endforeach()
