@@ -84,4 +84,4 @@ public:
 
 } // namespace TNL::MHFEM
 
-#include "BoundaryConditions_impl.h"
+#include "BoundaryConditions.hpp"

@@ -19,6 +19,11 @@ enum class BoundaryConditionsType
     //  - the coefficient \vec u_ij is not included in this boundary condition
     FixedFlux = 1,
 
+    // fixed-flux (Neumann) boundary condition without advection terms
+    // (solves  -\vec v_i \cdot \vec n = J_Neu  on the face,
+    // where  \vec v_i = - \sum_j D_ij \grad Z_j + \vec w_i  is the diffusive velocity
+    FixedFluxNoAdvection = 3,
+
     // advective outflow boundary condition
     // (sets  \vec v_i = 0  on the face, where \vec v_i is the diffusive velocity
     // defined as  \vec v_i = - \sum_j D_ij \grad Z_j + \vec w_i)

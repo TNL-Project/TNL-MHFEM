@@ -647,7 +647,7 @@ preIterate( const RealType time,
             _mdd->updateVectorCoefficients( *_mesh, idx[ 0 ], idx[ 1 ] );
         };
         const Index2D begin( 0, 0 );
-        const Index2D end( cells, (IndexType) MeshDependentDataType::NumberOfEquations );
+        const Index2D end( cells, MeshDependentDataType::NumberOfEquations );
         TNL::Algorithms::parallelFor< DeviceType >( begin, end, kernel );
     }
     timer_nonlinear.stop();

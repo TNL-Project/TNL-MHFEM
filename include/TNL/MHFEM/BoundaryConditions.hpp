@@ -90,6 +90,45 @@ struct BoundaryCoefficients_FixedFlux
     }
 };
 
+/**
+ * Note that there is a difference between FixedFlux and FixedFluxNoAdvection
+ * even besides the advection terms: the FixedFlux terms include mobility
+ * which works only when the mobility is constant.
+ */
+template< typename MeshDependentData >
+struct BoundaryCoefficients_FixedFluxNoAdvection
+{
+    using RealType = typename MeshDependentData::RealType;
+    using IndexType = typename MeshDependentData::IndexType;
+
+    __cuda_callable__
+    static RealType
+    A_ijKEF( const MeshDependentData & mdd,
+             const int i,
+             const int j,
+             const IndexType K,
+             const IndexType E,
+             const int e,
+             const IndexType F,
+             const int f )
+    {
+        using coeff = SecondaryCoefficients< MeshDependentData >;
+        return coeff::A_ijKEF_no_advection( mdd, i, j, K, E, e, F, f );
+    }
+
+    __cuda_callable__
+    static RealType
+    RHS_iKE( const MeshDependentData & mdd,
+             const int i,
+             const IndexType K,
+             const IndexType E,
+             const int e )
+    {
+        using coeff = SecondaryCoefficients< MeshDependentData >;
+        return coeff::RHS_iKE_no_advection( mdd, i, K, E, e );
+    }
+};
+
 template< typename Mesh, typename MeshDependentData, typename BoundaryCoefficients >
 struct RowSetter
 {
@@ -379,6 +418,51 @@ setMatrixElements( const MeshType & mesh,
             RealType bValue = - getNeumannValue( mesh, i, E, time, tau ) * getEntityMeasure( mesh, entity );
             // add terms from the MHFEM scheme
             bValue += BoundaryCoefficients_FixedFlux< MeshDependentDataType >::RHS_iKE( mdd, i, K, E, e );
+            // scale the right hand side value by the matrix diagonal
+            b[ rowIndex ] = bValue / diagonalValue;
+
+            break;
+        }
+
+        // fixed-flux (Neumann) boundary condition
+        case BoundaryConditionsType::FixedFluxNoAdvection:
+        {
+            // for boundary faces returns only one valid cell index
+            IndexType cellIndexes[ 2 ];
+            const int numCells = getCellsForFace( mesh, E, cellIndexes );
+            const IndexType & K = cellIndexes[ 0 ];
+
+            TNL_ASSERT( numCells == 1,
+                        std::cerr << "assertion numCells == 1 failed" << std::endl
+                                  << "E = " << E << std::endl
+                                  << "K0 = " << cellIndexes[ 0 ] << std::endl
+                                  << "K1 = " << cellIndexes[ 1 ] << std::endl; );
+            (void) numCells;  // silence unused-variable warning for Release build
+
+            // prepare face indexes
+            const auto faceIndexes = getFacesForCell( mesh, K );
+            const int e = getLocalIndex( faceIndexes, E );
+
+            // set non-zero elements and get the diagonal entry value
+            const RealType diagonalValue =
+                RowSetter< MeshType, MeshDependentDataType, BoundaryCoefficients_FixedFluxNoAdvection< MeshDependentDataType > >::
+                    setRow(
+#ifdef HAVE_HYPRE
+                            diag_row,
+                            offd_row,
+                            mesh,
+#else
+                            matrixRow,
+#endif
+                            mdd,
+                            faceIndexes,
+                            i, K, E, e );
+
+            // set right hand side value
+            const auto& entity = mesh.template getEntity< typename MeshType::Face >( E );
+            RealType bValue = - getNeumannValue( mesh, i, E, time, tau ) * getEntityMeasure( mesh, entity );
+            // add terms from the MHFEM scheme
+            bValue += BoundaryCoefficients_FixedFluxNoAdvection< MeshDependentDataType >::RHS_iKE( mdd, i, K, E, e );
             // scale the right hand side value by the matrix diagonal
             b[ rowIndex ] = bValue / diagonalValue;
 

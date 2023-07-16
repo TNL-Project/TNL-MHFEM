@@ -21,6 +21,7 @@ void export_BoundaryConditionsStorage( py::module & m )
     py::enum_< TNL::MHFEM::BoundaryConditionsType >(m, "BoundaryConditionsType")
         .value("FixedValue", TNL::MHFEM::BoundaryConditionsType::FixedValue)
         .value("FixedFlux", TNL::MHFEM::BoundaryConditionsType::FixedFlux)
+        .value("FixedFluxNoAdvection", TNL::MHFEM::BoundaryConditionsType::FixedFluxNoAdvection)
         .value("AdvectiveOutflow", TNL::MHFEM::BoundaryConditionsType::AdvectiveOutflow)
     ;
 
