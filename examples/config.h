@@ -45,7 +45,7 @@ using Ellpack = TNL::Matrices::SparseMatrix< Real,
 
 #include <TNL/Algorithms/Segments/CSR.h>
 template< typename Device, typename Index, typename IndexAlocator >
-using CSRSegments = TNL::Algorithms::Segments::CSRLight< Device, Index, IndexAlocator >;
+using CSRSegments = TNL::Algorithms::Segments::CSR< Device, Index, IndexAlocator >;
 template< typename Real, typename Device, typename Index >
 using CSR = TNL::Matrices::SparseMatrix< Real,
                                              Device,

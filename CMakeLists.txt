@@ -49,8 +49,8 @@ include_directories(include)
 
 # Set the install path for Python modules
 # FIXME: for some reason relying on find_package from libs/pytnl fails (dependent target 'Python3::Module' is not defined)
-find_package(Python3 COMPONENTS Interpreter Development REQUIRED)
-set(PyTNL_PYTHON_SITE_PACKAGES_DIR lib/python${Python3_VERSION_MAJOR}.${Python3_VERSION_MINOR}/site-packages)
+find_package(Python 3 COMPONENTS Interpreter Development REQUIRED)
+set(PyTNL_PYTHON_SITE_PACKAGES_DIR lib/python${Python_VERSION_MAJOR}.${Python_VERSION_MINOR}/site-packages)
 
 # Add dependencies
 if(SYSTEM_TNL)
