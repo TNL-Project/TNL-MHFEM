@@ -27,8 +27,7 @@ struct RightHandSide
         IndexType cellIndexes[ 2 ];
         const int numCells = getCellsForFace( mesh, E, cellIndexes );
 
-        TNL_ASSERT( numCells == 2,
-                    std::cerr << "assertion numCells == 2 failed" << std::endl; );
+        TNL_ASSERT_EQ( numCells, 2, "this is a bug" );
 
         // prepare right hand side value
         RealType result = 0.0;

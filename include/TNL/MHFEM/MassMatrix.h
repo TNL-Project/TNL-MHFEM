@@ -63,7 +63,8 @@ public:
              const LocalIndex e,
              const LocalIndex f )
     {
-        TNL_ASSERT( e < FacesPerCell< MeshEntity >::value && f < FacesPerCell< MeshEntity >::value, );
+        TNL_ASSERT_LT( e, FacesPerCell< MeshEntity >::value, "" );
+        TNL_ASSERT_LT( f, FacesPerCell< MeshEntity >::value, "" );
 
         if( e == f )
             return mdd.b_ijK_storage( i, j, K, 0 );
@@ -79,7 +80,7 @@ public:
             const GlobalIndex K,
             const LocalIndex e )
     {
-        TNL_ASSERT( e < FacesPerCell< MeshEntity >::value, );
+        TNL_ASSERT_LT( e, FacesPerCell< MeshEntity >::value, "" );
 
         return mdd.b_ijK_storage( i, j, K, 0 );
     }
@@ -123,7 +124,8 @@ public:
              const LocalIndex e,
              const LocalIndex f )
     {
-        TNL_ASSERT( e < FacesPerCell< MeshEntity >::value && f < FacesPerCell< MeshEntity >::value, );
+        TNL_ASSERT_LT( e, FacesPerCell< MeshEntity >::value, "" );
+        TNL_ASSERT_LT( f, FacesPerCell< MeshEntity >::value, "" );
 
         if( e == f )
             return 2 * mdd.b_ijK_storage( i, j, K, 0 );
@@ -139,7 +141,7 @@ public:
             const GlobalIndex K,
             const LocalIndex e )
     {
-        TNL_ASSERT( e < FacesPerCell< MeshEntity >::value, );
+        TNL_ASSERT_LT( e, FacesPerCell< MeshEntity >::value, "" );
 
         return 3 * mdd.b_ijK_storage( i, j, K, 0 );
     }
@@ -195,7 +197,8 @@ public:
              const LocalIndex e,
              const LocalIndex f )
     {
-        TNL_ASSERT( e < FacesPerCell< MeshEntity >::value && f < FacesPerCell< MeshEntity >::value, );
+        TNL_ASSERT_LT( e, FacesPerCell< MeshEntity >::value, "" );
+        TNL_ASSERT_LT( f, FacesPerCell< MeshEntity >::value, "" );
 
         // non-diagonal entries
         if( e != f )
@@ -213,7 +216,7 @@ public:
             const GlobalIndex K,
             const LocalIndex e )
     {
-        TNL_ASSERT( e < FacesPerCell< MeshEntity >::value, );
+        TNL_ASSERT_LT( e, FacesPerCell< MeshEntity >::value, "" );
 
         // horizontal face (e=0, e=2)
         if( e % 2 == 0 )
@@ -272,7 +275,8 @@ public:
              const LocalIndex e,
              const LocalIndex f )
     {
-        TNL_ASSERT( e < FacesPerCell< MeshEntity >::value && f < FacesPerCell< MeshEntity >::value, );
+        TNL_ASSERT_LT( e, FacesPerCell< MeshEntity >::value, "" );
+        TNL_ASSERT_LT( f, FacesPerCell< MeshEntity >::value, "" );
 
         // horizontal faces (e,f = 0 or 2)
         if( e % 2 == 0 && f % 2 == 0 ) {
@@ -303,7 +307,7 @@ public:
             const GlobalIndex K,
             const LocalIndex e )
     {
-        TNL_ASSERT( e < FacesPerCell< MeshEntity >::value, );
+        TNL_ASSERT_LT( e, FacesPerCell< MeshEntity >::value, "" );
 
         // horizontal face (e=0, e=2)
         if( e % 2 == 0 )
@@ -366,7 +370,8 @@ public:
              const LocalIndex e,
              const LocalIndex f )
     {
-        TNL_ASSERT( e < FacesPerCell< MeshEntity >::value && f < FacesPerCell< MeshEntity >::value, );
+        TNL_ASSERT_LT( e, FacesPerCell< MeshEntity >::value, "" );
+        TNL_ASSERT_LT( f, FacesPerCell< MeshEntity >::value, "" );
 
         // non-diagonal entries
         if( e != f )
@@ -384,7 +389,7 @@ public:
             const GlobalIndex K,
             const LocalIndex e )
     {
-        TNL_ASSERT( e < FacesPerCell< MeshEntity >::value, );
+        TNL_ASSERT_LT( e, FacesPerCell< MeshEntity >::value, "" );
 
         // n_x face (e=2, e=4)
         if( e == 2 || e == 4 )
@@ -449,7 +454,8 @@ public:
              const LocalIndex e,
              const LocalIndex f )
     {
-        TNL_ASSERT( e < FacesPerCell< MeshEntity >::value && f < FacesPerCell< MeshEntity >::value, );
+        TNL_ASSERT_LT( e, FacesPerCell< MeshEntity >::value, "" );
+        TNL_ASSERT_LT( f, FacesPerCell< MeshEntity >::value, "" );
 
         // n_x faces (e,f = 2 or 4)
         if( (e == 2 || e == 4) && (f == 2 || f == 4) ) {
@@ -488,7 +494,7 @@ public:
             const GlobalIndex K,
             const LocalIndex e )
     {
-        TNL_ASSERT( e < FacesPerCell< MeshEntity >::value, );
+        TNL_ASSERT_LT( e, FacesPerCell< MeshEntity >::value, "" );
 
         // n_x face (e=2, e=4)
         if( e == 2 || e == 4 )
@@ -601,7 +607,8 @@ public:
              LocalIndex e,
              LocalIndex f )
     {
-        TNL_ASSERT( e < FacesPerCell< MeshEntity >::value && f < FacesPerCell< MeshEntity >::value, );
+        TNL_ASSERT_LT( e, FacesPerCell< MeshEntity >::value, "" );
+        TNL_ASSERT_LT( f, FacesPerCell< MeshEntity >::value, "" );
 
         if( e > f )
             TNL::swap( e, f );
@@ -618,7 +625,7 @@ public:
             const GlobalIndex K,
             const LocalIndex e )
     {
-        TNL_ASSERT( e < FacesPerCell< MeshEntity >::value, );
+        TNL_ASSERT_LT( e, FacesPerCell< MeshEntity >::value, "" );
 
         return mdd.b_ijK_storage( i, j, K, 6 + e );
     }
@@ -726,7 +733,8 @@ public:
              LocalIndex e,
              LocalIndex f )
     {
-        TNL_ASSERT( e < FacesPerCell< MeshEntity >::value && f < FacesPerCell< MeshEntity >::value, );
+        TNL_ASSERT_LT( e, FacesPerCell< MeshEntity >::value, "" );
+        TNL_ASSERT_LT( f, FacesPerCell< MeshEntity >::value, "" );
 
         if( e > f )
             TNL::swap( e, f );
@@ -743,7 +751,7 @@ public:
             const GlobalIndex K,
             const LocalIndex e )
     {
-        TNL_ASSERT( e < FacesPerCell< MeshEntity >::value, );
+        TNL_ASSERT_LT( e, FacesPerCell< MeshEntity >::value, "" );
 
         return mdd.b_ijK_storage( i, j, K, 6 + e );
     }
@@ -870,7 +878,8 @@ public:
              LocalIndex e,
              LocalIndex f )
     {
-        TNL_ASSERT( e < FacesPerCell< MeshEntity >::value && f < FacesPerCell< MeshEntity >::value, );
+        TNL_ASSERT_LT( e, FacesPerCell< MeshEntity >::value, "" );
+        TNL_ASSERT_LT( f, FacesPerCell< MeshEntity >::value, "" );
 
         if( e > f )
             TNL::swap( e, f );
@@ -887,7 +896,7 @@ public:
             const GlobalIndex K,
             const LocalIndex e )
     {
-        TNL_ASSERT( e < FacesPerCell< MeshEntity >::value, );
+        TNL_ASSERT_LT( e, FacesPerCell< MeshEntity >::value, "" );
 
         return mdd.b_ijK_storage( i, j, K, 10 + e );
     }
@@ -1016,7 +1025,8 @@ public:
              LocalIndex e,
              LocalIndex f )
     {
-        TNL_ASSERT( e < FacesPerCell< MeshEntity >::value && f < FacesPerCell< MeshEntity >::value, );
+        TNL_ASSERT_LT( e, FacesPerCell< MeshEntity >::value, "" );
+        TNL_ASSERT_LT( f, FacesPerCell< MeshEntity >::value, "" );
 
         if( e > f )
             TNL::swap( e, f );
@@ -1033,7 +1043,7 @@ public:
             const GlobalIndex K,
             const LocalIndex e )
     {
-        TNL_ASSERT( e < FacesPerCell< MeshEntity >::value, );
+        TNL_ASSERT_LT( e, FacesPerCell< MeshEntity >::value, "" );
 
         return mdd.b_ijK_storage( i, j, K, 10 + e );
     }

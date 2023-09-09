@@ -387,11 +387,7 @@ setMatrixElements( const MeshType & mesh,
             const int numCells = getCellsForFace( mesh, E, cellIndexes );
             const IndexType & K = cellIndexes[ 0 ];
 
-            TNL_ASSERT( numCells == 1,
-                        std::cerr << "assertion numCells == 1 failed" << std::endl
-                                  << "E = " << E << std::endl
-                                  << "K0 = " << cellIndexes[ 0 ] << std::endl
-                                  << "K1 = " << cellIndexes[ 1 ] << std::endl; );
+            TNL_ASSERT_EQ( numCells, 1, "this is a bug" );
             (void) numCells;  // silence unused-variable warning for Release build
 
             // prepare face indexes
@@ -432,11 +428,7 @@ setMatrixElements( const MeshType & mesh,
             const int numCells = getCellsForFace( mesh, E, cellIndexes );
             const IndexType & K = cellIndexes[ 0 ];
 
-            TNL_ASSERT( numCells == 1,
-                        std::cerr << "assertion numCells == 1 failed" << std::endl
-                                  << "E = " << E << std::endl
-                                  << "K0 = " << cellIndexes[ 0 ] << std::endl
-                                  << "K1 = " << cellIndexes[ 1 ] << std::endl; );
+            TNL_ASSERT_EQ( numCells, 1, "this is a bug" );
             (void) numCells;  // silence unused-variable warning for Release build
 
             // prepare face indexes
@@ -477,11 +469,7 @@ setMatrixElements( const MeshType & mesh,
             const int numCells = getCellsForFace( mesh, E, cellIndexes );
             const IndexType & K = cellIndexes[ 0 ];
 
-            TNL_ASSERT( numCells == 1,
-                        std::cerr << "assertion numCells == 1 failed" << std::endl
-                                  << "E = " << E << std::endl
-                                  << "K0 = " << cellIndexes[ 0 ] << std::endl
-                                  << "K1 = " << cellIndexes[ 1 ] << std::endl; );
+            TNL_ASSERT_EQ( numCells, 1, "this is a bug" );
             (void) numCells;  // silence unused-variable warning for Release build
 
             // prepare face indexes

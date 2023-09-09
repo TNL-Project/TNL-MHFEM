@@ -252,9 +252,7 @@ getLocalIndex( const StaticVector & vector, const Index & index )
             return i;
         }
     }
-    TNL_ASSERT( false,
-                std::cerr << "local index not found -- this is a BUG!" << std::endl
-                          << "vector = " << vector << ", index = " << index << std::endl; );
+    TNL_ASSERT_TRUE( false, "local index not found -- this is a BUG!" );
     return 0;
 }
 

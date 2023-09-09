@@ -190,7 +190,7 @@ public:
                     g0++;
                 }
                 else if( faceIndexesK0[ f0 ] == faceIndexesK1[ f1 ] ) {
-                    TNL_ASSERT( setDiag == false, );
+                    TNL_ASSERT_FALSE( setDiag, "" );
                     for( int j = 0; j < MeshDependentDataType::NumberOfEquations; j++ ) {
                         // set the diagonal element
                         if( j == i ) {
@@ -222,8 +222,7 @@ public:
                     g1++;
                 }
             }
-            TNL_ASSERT( setDiag == true,
-                        std::cerr << "faceIndexesK0 = " << faceIndexesK0 << ", faceIndexesK1 = " << faceIndexesK1 << std::endl; );
+            TNL_ASSERT_TRUE( setDiag == true, "" );
 
             while( g0 < MeshDependentDataType::FacesPerCell ) {
                 const LocalIndex f0 = localFaceIndexesK0[ g0 ];
