@@ -17,7 +17,7 @@ foreach(lang CXX CUDA)
 endforeach()
 
 # Set build flags for CXX
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread -Wall -Werror=vla")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Werror=vla")
 set(CMAKE_CXX_FLAGS_DEBUG "-g")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG")
 set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELEASE} ${CMAKE_CXX_FLAGS_DEBUG}")
@@ -26,22 +26,38 @@ set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELEASE} ${CMAKE_CXX_FLAGS
 set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -Wall")
 set(CMAKE_CUDA_FLAGS_DEBUG "-g")
 set(CMAKE_CUDA_FLAGS_RELEASE "-O3 -DNDEBUG")
-set(CMAKE_CUDA_FLAGS_RELWITHDEBINFO "${CMAKE_CUDA_FLAGS_RELEASE} ${CMAKE_CUDA_FLAGS_DEBUG} --generate-line-info")
+set(CMAKE_CUDA_FLAGS_RELWITHDEBINFO "${CMAKE_CUDA_FLAGS_RELEASE} ${CMAKE_CUDA_FLAGS_DEBUG}")
 
 # Enforce (more or less) warning-free builds
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror -Wno-error=deprecated -Wno-error=deprecated-declarations -Wno-error=uninitialized")
 
-# Warn about redundant semicolons
+if( CMAKE_CUDA_COMPILER_ID STREQUAL "NVIDIA" )
+   set( CMAKE_CUDA_FLAGS_RELWITHDEBINFO "${CMAKE_CUDA_FLAGS_RELWITHDEBINFO} --generate-line-info" )
+   if( NOT CMAKE_CXX_COMPILER_ID STREQUAL "NVHPC" )
+      # enforce (more or less) warning-free builds for host code
+      set( CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -Xcompiler -Werror -Xcompiler -Wno-error=deprecated -Xcompiler -Wno-error=deprecated-declarations" )
+   endif()
+endif()
+
+if( CMAKE_CUDA_COMPILER_ID STREQUAL "Clang" )
+    # enforce (more or less) warning-free builds
+    set( CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -Werror -Wno-error=deprecated -Wno-error=deprecated-declarations -Wno-error=unknown-cuda-version" )
+    # workaround for Clang 15
+    # https://github.com/llvm/llvm-project/issues/58491
+    set( CMAKE_CUDA_FLAGS_DEBUG "-g -Xarch_device -g0" )
+endif()
+
+# warn about redundant semicolons
 if( CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR
     CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR
-    CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang"
-)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wextra-semi")
-    if( CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR
-        CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang"
-    )
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wextra-semi-stmt")
-    endif()
+    CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang" OR
+    CMAKE_CXX_COMPILER_ID STREQUAL "IntelLLVM" )
+   set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wextra-semi" )
+   if( CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR
+       CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang" OR
+       CMAKE_CXX_COMPILER_ID STREQUAL "IntelLLVM" )
+      set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wextra-semi-stmt" )
+   endif()
 endif()
 
 # Set the project's include path
