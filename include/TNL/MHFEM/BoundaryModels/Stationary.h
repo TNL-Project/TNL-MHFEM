@@ -1,6 +1,6 @@
 #pragma once
 
-#include <TNL/Cuda/CudaCallable.h>
+#include <TNL/Backend.h>
 
 namespace TNL::MHFEM::BoundaryModels
 {

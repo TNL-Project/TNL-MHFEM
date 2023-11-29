@@ -1,7 +1,7 @@
 #pragma once
 
 #include <TNL/Assert.h>
-#include <TNL/Cuda/CudaCallable.h>
+#include <TNL/Backend.h>
 #include <TNL/Meshes/Grid.h>
 #include <TNL/Meshes/Geometry/getEntityCenter.h>
 #include <TNL/Meshes/Geometry/getEntityMeasure.h>
