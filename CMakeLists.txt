@@ -72,7 +72,7 @@ set(PyTNL_PYTHON_SITE_PACKAGES_DIR lib/python${Python_VERSION_MAJOR}.${Python_VE
 if(SYSTEM_TNL)
     find_package(TNL REQUIRED)
 else()
-    add_subdirectory(libs/tnl)
+    add_subdirectory(libs/tnl EXCLUDE_FROM_ALL)
     set(SYSTEM_TNL TRUE)  # avoid further inclusion of libs/tnl from pytnl
 endif()
 if(SYSTEM_PYTNL)
