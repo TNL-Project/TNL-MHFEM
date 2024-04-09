@@ -21,7 +21,16 @@ void init( Problem& problem,
     const std::string meshFile = parameters.getParameter< std::string >( "mesh" );
     const std::string meshFileFormat = parameters.getParameter< std::string >( "mesh-format" );
 
-    if( communicator.size() > 1 ) {
+    namespace fs = std::filesystem;
+    std::string format = meshFileFormat;
+    if( format == "auto" ) {
+        format = fs::path( meshFile ).extension().string();
+        if( format.length() > 0 )
+            // remove dot from the extension
+            format = format.substr( 1 );
+    }
+
+    if( communicator.size() > 1 || format == "pvtu" ) {
         if( ! TNL::Meshes::loadDistributedMesh( *meshPointer, meshFile, meshFileFormat, communicator ) )
             throw std::runtime_error( "failed to load the distributed mesh from file " + meshFile );
 
