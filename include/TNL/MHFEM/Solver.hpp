@@ -823,22 +823,8 @@ preIterate( const RealType time,
             const auto& entity = _mesh->template getEntity< typename MeshType::Cell >( K );
 
             using LocalMatrixType = TNL::Matrices::StaticMatrix< RealType, MeshDependentDataType::NumberOfEquations, MeshDependentDataType::NumberOfEquations >;
-#ifndef __CUDA_ARCH__
+            // NOTE: placing Q in shared memory does not help on modern GPUs
             LocalMatrixType Q;
-//            RealType rhs[ MeshDependentDataType::NumberOfEquations ];
-#else
-            // TODO: use dynamic allocation via Devices::Cuda::getSharedMemory
-            // (we'll need to pass custom launch configuration to the parallelFor)
-            // Now we just assume that the parallelFor kernel uses 256 threads per block.
-            __shared__ LocalMatrixType __Qs[ 256 ];
-            LocalMatrixType& Q = __Qs[ ( ( threadIdx.z * blockDim.y ) + threadIdx.y ) * blockDim.x + threadIdx.x ];
-
-            // TODO: this limits the kernel to 1 block on Fermi - maybe cudaFuncCachePreferShared specifically for this kernel would help
-//            __shared__ RealType __rhss[ MeshDependentDataType::NumberOfEquations * 256 ];
-//            RealType* rhs = &__rhss[ MeshDependentDataType::NumberOfEquations * (
-//                                        ( ( threadIdx.z * blockDim.y ) + threadIdx.y ) * blockDim.x + threadIdx.x
-//                                    ) ];
-#endif
 
             for( int i = 0; i < MeshDependentDataType::NumberOfEquations; i++ ) {
                 // Q is singular if it has a row with all elements equal to zero
