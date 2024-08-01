@@ -1,6 +1,0 @@
-[submodule "libs/tnl"]
-	path = libs/tnl
-	url = ../tnl.git
-[submodule "libs/pytnl"]
-	path = libs/pytnl
-	url = ../pytnl.git

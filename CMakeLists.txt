@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.24)
+cmake_minimum_required(VERSION 3.28)
 
 # Set default CUDA architecture
 if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
@@ -63,23 +63,31 @@ endif()
 # Set the project's include path
 include_directories(include)
 
+# Add dependencies
+include(FetchContent)
+FetchContent_Declare(TNL
+    GIT_REPOSITORY https://gitlab.com/tnl-project/tnl.git
+    GIT_TAG main
+    EXCLUDE_FROM_ALL
+)
+FetchContent_MakeAvailable(TNL)
+
+FetchContent_Declare(PyTNL
+    GIT_REPOSITORY https://gitlab.com/tnl-project/pytnl.git
+    GIT_TAG main
+)
+FetchContent_MakeAvailable(PyTNL)
+
+FetchContent_Declare(pybind11
+    GIT_REPOSITORY https://github.com/pybind/pybind11.git
+    GIT_TAG master
+    FIND_PACKAGE_ARGS
+)
+FetchContent_MakeAvailable(pybind11)
+
 # Set the install path for Python modules
-# FIXME: for some reason relying on find_package from libs/pytnl fails (dependent target 'Python3::Module' is not defined)
 find_package(Python 3 COMPONENTS Interpreter Development REQUIRED)
 set(PyTNL_PYTHON_SITE_PACKAGES_DIR lib/python${Python_VERSION_MAJOR}.${Python_VERSION_MINOR}/site-packages)
-
-# Add dependencies
-if(SYSTEM_TNL)
-    find_package(TNL REQUIRED)
-else()
-    add_subdirectory(libs/tnl EXCLUDE_FROM_ALL)
-    set(SYSTEM_TNL TRUE)  # avoid further inclusion of libs/tnl from pytnl
-endif()
-if(SYSTEM_PYTNL)
-    find_package(PyTNL REQUIRED)
-else()
-    add_subdirectory(libs/pytnl)
-endif()
 
 # Add project subdirectories
 add_subdirectory(include)

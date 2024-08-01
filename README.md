@@ -43,14 +43,9 @@ Most notably, the solver supports MPI computations on distributed unstructured m
 
 1. Install [Git](https://git-scm.com/) and [Git LFS](https://git-lfs.com/).
 
-2. Clone the repository, making sure that Git submodules are initialized:
+2. Clone the repository:
 
-       git clone --recurse-submodules <this_repo_url>
-
-   If you cloned the repository without the `--recurse-submodules` option,
-   the submodules can be initialized subsequently:
-
-       git submodule update --init --recursive
+       git clone https://gitlab.com/tnl-project/tnl-mhfem.git
 
 3. Install the necessary tools and dependencies:
 
@@ -74,10 +69,6 @@ Most notably, the solver supports MPI computations on distributed unstructured m
 
    This will use `build` in the current path as the build directory.
    The path for the `-S` option corresponds to the root path of the project.
-   You may use additional options to configure the build:
-
-   - `-DSYSTEM_TNL` – to use TNL installed on the system instead of the Git submodule
-   - `-DSYSTEM_PYTNL` – to use PyTNL installed on the system instead of the Git submodule
 
 5. Build the targets using `cmake`:
 
