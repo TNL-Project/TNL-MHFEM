@@ -37,6 +37,14 @@ struct FacesPerCell< TNL::Meshes::GridEntity< Grid, 3 > >
     static constexpr int value = 6;
 };
 
+// needed as a workaround for a weird nvcc 12.5 bug
+// (complains that FacesPerCell< MeshEntity >::value is not available in device code)
+template< typename MeshEntity >
+constexpr int getFacesPerCell()
+{
+    return FacesPerCell< MeshEntity >::value;
+}
+
 
 template< typename Mesh >
 __cuda_callable__
