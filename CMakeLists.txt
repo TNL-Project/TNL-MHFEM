@@ -9,6 +9,9 @@ project(TNL-MHFEM
     LANGUAGES CXX CUDA
 )
 
+# Declare all CMake options for the project
+option(TNL_MHFEM_EXPORT_INTERFACE_TARGETS "Instruct CMake to generate rules to export the interface target" ${PROJECT_IS_TOP_LEVEL})
+
 # Require C++17, and disable compiler-specific extensions (if possible).
 foreach(lang CXX CUDA)
     set(CMAKE_${lang}_STANDARD 17)
@@ -31,53 +34,96 @@ set(CMAKE_CUDA_FLAGS_RELWITHDEBINFO "${CMAKE_CUDA_FLAGS_RELEASE} ${CMAKE_CUDA_FL
 # Enforce (more or less) warning-free builds
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror -Wno-error=deprecated -Wno-error=deprecated-declarations -Wno-error=uninitialized")
 
-if( CMAKE_CUDA_COMPILER_ID STREQUAL "NVIDIA" )
-   set( CMAKE_CUDA_FLAGS_RELWITHDEBINFO "${CMAKE_CUDA_FLAGS_RELWITHDEBINFO} --generate-line-info" )
-   if( NOT CMAKE_CXX_COMPILER_ID STREQUAL "NVHPC" )
-      # enforce (more or less) warning-free builds for host code
-      set( CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -Xcompiler -Werror -Xcompiler -Wno-error=deprecated -Xcompiler -Wno-error=deprecated-declarations" )
-   endif()
+if(CMAKE_CUDA_COMPILER_ID STREQUAL "NVIDIA")
+    set(CMAKE_CUDA_FLAGS_RELWITHDEBINFO "${CMAKE_CUDA_FLAGS_RELWITHDEBINFO} --generate-line-info")
+    if(NOT CMAKE_CXX_COMPILER_ID STREQUAL "NVHPC")
+        # Enforce (more or less) warning-free builds for host code
+        set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -Xcompiler -Werror -Xcompiler -Wno-error=deprecated -Xcompiler -Wno-error=deprecated-declarations")
+    endif()
+    # Force colorized output for nvcc's host compiler (assuming it is GCC...)
+    set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -Xcompiler -fdiagnostics-color")
 endif()
 
-if( CMAKE_CUDA_COMPILER_ID STREQUAL "Clang" )
-    # enforce (more or less) warning-free builds
-    set( CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -Werror -Wno-error=deprecated -Wno-error=deprecated-declarations -Wno-error=unknown-cuda-version" )
+if(CMAKE_CUDA_COMPILER_ID STREQUAL "Clang")
+    # Enforce (more or less) warning-free builds
+    set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -Werror -Wno-error=deprecated -Wno-error=deprecated-declarations -Wno-error=unknown-cuda-version")
     # workaround for Clang 15
     # https://github.com/llvm/llvm-project/issues/58491
-    set( CMAKE_CUDA_FLAGS_DEBUG "-g -Xarch_device -g0" )
+    set(CMAKE_CUDA_FLAGS_DEBUG "-g -Xarch_device -g0")
 endif()
 
-# warn about redundant semicolons
-if( CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR
-    CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR
-    CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang" OR
-    CMAKE_CXX_COMPILER_ID STREQUAL "IntelLLVM" )
-   set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wextra-semi" )
-   if( CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR
+# Disable GCC's infamous warnings (they produce many false positives)
+if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-maybe-uninitialized -Wno-stringop-overflow")
+    if(CMAKE_CUDA_COMPILER_ID STREQUAL "NVIDIA")
+        set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -Xcompiler -Wno-maybe-uninitialized -Wno-stringop-overflow")
+    endif()
+endif()
+
+# Warn about redundant semicolons
+if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR
+   CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR
+   CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang" OR
+   CMAKE_CXX_COMPILER_ID STREQUAL "IntelLLVM")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wextra-semi")
+    if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR
        CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang" OR
-       CMAKE_CXX_COMPILER_ID STREQUAL "IntelLLVM" )
-      set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wextra-semi-stmt" )
-   endif()
+       CMAKE_CXX_COMPILER_ID STREQUAL "IntelLLVM")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wextra-semi-stmt")
+    endif()
 endif()
 
-# Set the project's include path
-include_directories(include)
+# Make cache variable so it can be used in downstream projects
+set(TNL_MHFEM_INCLUDE_DIRS "${CMAKE_CURRENT_LIST_DIR}/include" CACHE INTERNAL "Directories where TNL-MHFEM headers are located")
 
-# Add dependencies
+# Create the exported targets
+add_library(TNL_MHFEM INTERFACE)
+# Create aliases to match exported targets
+add_library(TNL::TNL_MHFEM ALIAS TNL_MHFEM)
+
+if(TNL_MHFEM_EXPORT_INTERFACE_TARGETS)
+    # Export the interface targets
+    install(TARGETS TNL_MHFEM EXPORT "${PROJECT_NAME}Targets")
+    # Install a CMake file for the interface target
+    install(
+        EXPORT "${PROJECT_NAME}Targets"
+        NAMESPACE TNL::
+        DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}"
+    )
+    # Install the Config.cmake file
+    include(CMakePackageConfigHelpers)
+    configure_package_config_file(
+        Config.cmake.in "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake"
+        INSTALL_DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}"
+    )
+    install(FILES "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake"
+            DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}"
+    )
+endif()
+
+# Add the include directory to the interface
+if(PROJECT_IS_TOP_LEVEL)
+    set(TNL_MHFEM_SYSTEM "")
+else()
+    set(TNL_MHFEM_SYSTEM SYSTEM)
+endif()
+target_include_directories(
+    TNL_MHFEM ${TNL_MHFEM_SYSTEM} INTERFACE
+    $<BUILD_INTERFACE:${TNL_MHFEM_INCLUDE_DIRS}>
+    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+)
+
+# Find or fetch dependencies
 include(FetchContent)
 FetchContent_Declare(TNL
     GIT_REPOSITORY https://gitlab.com/tnl-project/tnl.git
     GIT_TAG main
     EXCLUDE_FROM_ALL
 )
+set(TNL_EXPORT_INTERFACE_TARGETS ON)  # needed for adding to the interface target
 FetchContent_MakeAvailable(TNL)
 
-FetchContent_Declare(PyTNL
-    GIT_REPOSITORY https://gitlab.com/tnl-project/pytnl.git
-    GIT_TAG main
-)
-FetchContent_MakeAvailable(PyTNL)
-
+# Need to find/fetch pybind11 before PyTNL to make CMake happy :-(
 FetchContent_Declare(pybind11
     GIT_REPOSITORY https://github.com/pybind/pybind11.git
     GIT_TAG master
@@ -86,9 +132,38 @@ FetchContent_Declare(pybind11
 )
 FetchContent_MakeAvailable(pybind11)
 
-# Set the install path for Python modules
-find_package(Python 3 COMPONENTS Interpreter Development REQUIRED)
-set(PyTNL_PYTHON_SITE_PACKAGES_DIR lib/python${Python_VERSION_MAJOR}.${Python_VERSION_MINOR}/site-packages)
+FetchContent_Declare(PyTNL
+    GIT_REPOSITORY https://gitlab.com/tnl-project/pytnl.git
+    GIT_TAG main
+)
+FetchContent_MakeAvailable(PyTNL)
+
+find_package(ZLIB)
+find_package(tinyxml2)
+find_package(OpenMP COMPONENTS CXX)
+find_package(MPI COMPONENTS CXX)
+
+# Add dependencies to the interface target
+target_link_libraries(TNL_MHFEM INTERFACE TNL::TNL)
+if(ZLIB_FOUND)
+    target_compile_definitions(TNL_MHFEM INTERFACE "-DHAVE_ZLIB")
+    target_link_libraries(TNL_MHFEM INTERFACE ZLIB::ZLIB)
+endif()
+if(tinyxml2_FOUND)
+    target_compile_definitions(TNL_MHFEM INTERFACE "-DHAVE_TINYXML2")
+    target_link_libraries(TNL_MHFEM INTERFACE tinyxml2::tinyxml2)
+endif()
+if(OPENMP_FOUND)
+    target_compile_definitions(TNL_MHFEM INTERFACE "-DHAVE_OPENMP")
+    target_link_libraries(TNL_MHFEM INTERFACE OpenMP::OpenMP_CXX)
+    target_compile_options(TNL_MHFEM INTERFACE $<$<COMPILE_LANG_AND_ID:CUDA,Clang>: ${OpenMP_CXX_FLAGS} >)
+    # nvcc needs -Xcompiler
+    target_compile_options(TNL_MHFEM INTERFACE $<$<COMPILE_LANG_AND_ID:CUDA,NVIDIA>: -Xcompiler=-fopenmp >)
+endif()
+if(MPI_FOUND)
+    target_compile_definitions(TNL_MHFEM INTERFACE "-DHAVE_MPI")
+    target_link_libraries(TNL_MHFEM INTERFACE MPI::MPI_CXX)
+endif()
 
 # Add project subdirectories
 add_subdirectory(include)
