@@ -41,8 +41,8 @@ set(TNL_MHFEM_SHARED_LINKER_FLAGS_RELEASE "@CMAKE_SHARED_LINKER_FLAGS_RELEASE@")
 # Find dependencies
 find_package(TNL REQUIRED)
 find_package(PyTNL REQUIRED)
-find_package(ZLIB)
-find_package(tinyxml2)
+find_package(ZLIB REQUIRED)
+find_package(tinyxml2 REQUIRED)
 find_package(OpenMP COMPONENTS CXX)
 find_package(MPI COMPONENTS CXX)
 
