@@ -1,10 +1,9 @@
 #include <pytnl/exceptions.h>
-#include <pytnl/typedefs.h>
-#include <pytnl/tnl_str_conversion.h>
+#include <pytnl/pytnl.h>
 
 #include "BoundaryConditionsStorage.h"
 
-PYBIND11_MODULE(tnl_mhfem, m)
+NB_MODULE(tnl_mhfem, m)
 {
     register_exceptions(m);
 

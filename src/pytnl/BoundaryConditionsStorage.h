@@ -1,24 +1,22 @@
 #pragma once
 
-#include <pytnl/tnl/Array.h>
-
-#include <pybind11/pybind11.h>
-namespace py = pybind11;
+#include <pytnl/pytnl.h>
+#include <pytnl/containers/Array.h>
 
 #include <TNL/MHFEM/BoundaryConditionsStorage.h>
 
 // operator needed for the bindings for Array<BoundaryConditionsType>
 namespace TNL::MHFEM {
-    std::ostream& operator<<( std::ostream& str, BoundaryConditionsType type )
+    inline std::ostream& operator<<( std::ostream& str, BoundaryConditionsType type )
     {
         return str << (int) type;
     }
 }
 
 template< typename RealType, typename IndexType >
-void export_BoundaryConditionsStorage( py::module & m )
+void export_BoundaryConditionsStorage( nb::module_ & m )
 {
-    py::enum_< TNL::MHFEM::BoundaryConditionsType >(m, "BoundaryConditionsType")
+    nb::enum_< TNL::MHFEM::BoundaryConditionsType >(m, "BoundaryConditionsType")
         .value("FixedValue", TNL::MHFEM::BoundaryConditionsType::FixedValue)
         .value("FixedFlux", TNL::MHFEM::BoundaryConditionsType::FixedFlux)
         .value("FixedFluxNoAdvection", TNL::MHFEM::BoundaryConditionsType::FixedFluxNoAdvection)
@@ -27,17 +25,17 @@ void export_BoundaryConditionsStorage( py::module & m )
 
     using BCS = TNL::MHFEM::BoundaryConditionsStorage< RealType >;
 
-    void (BCS::* _save1)( const TNL::String &) const = &BCS::save;
-    void (BCS::* _load1)( const TNL::String &) = &BCS::load;
+    void (BCS::* _save1)( const std::string &) const = &BCS::save;
+    void (BCS::* _load1)( const std::string &) = &BCS::load;
     void (BCS::* _save2)( TNL::File &) const = &BCS::save;
     void (BCS::* _load2)( TNL::File &) = &BCS::load;
 
-    py::class_< BCS >(m, "BoundaryConditionsStorage")
-        .def(py::init<>())
-        .def_readwrite("dofSize", &BCS::dofSize)
-        .def_readwrite("tags", &BCS::tags)
-        .def_readwrite("values", &BCS::values)
-        .def_readwrite("dirichletValues", &BCS::dirichletValues)
+    nb::class_< BCS >(m, "BoundaryConditionsStorage")
+        .def(nb::init<>())
+        .def_rw("dofSize", &BCS::dofSize)
+        .def_rw("tags", &BCS::tags)
+        .def_rw("values", &BCS::values)
+        .def_rw("dirichletValues", &BCS::dirichletValues)
         .def("save", _save1)
         .def("load", _load1)
         .def("save", _save2)
