@@ -68,7 +68,7 @@ void solve( Problem& problem,
             double startTime,
             double stopTime,
             double timeStep,
-            TNL::Solvers::IterativeSolverMonitor< typename Problem::RealType, typename Problem::IndexType >* solverMonitor = nullptr )
+            TNL::Solvers::IterativeSolverMonitor< typename Problem::RealType >* solverMonitor = nullptr )
 {
     double t = startTime;
 
@@ -108,7 +108,7 @@ void solve( Problem& problem,
             const TNL::Config::ParameterContainer& parameters,
             TNL::Timer& computeTimer,
             TNL::Timer& ioTimer,
-            TNL::Solvers::IterativeSolverMonitor< typename Problem::RealType, typename Problem::IndexType >* solverMonitor = nullptr )
+            TNL::Solvers::IterativeSolverMonitor< typename Problem::RealType >* solverMonitor = nullptr )
 {
     const double finalTime       = parameters.getParameter< double >( "final-time" );
     const double initialTime     = parameters.getParameter< double >( "initial-time" );
@@ -231,7 +231,7 @@ bool execute( const TNL::Config::ParameterContainer& controlParameters,
     TNL::Timer totalTimer, computeTimer, ioTimer;
     totalTimer.start();
 
-    using SolverMonitorType = TNL::Solvers::IterativeSolverMonitor< typename Problem::RealType, typename Problem::IndexType >;
+    using SolverMonitorType = TNL::Solvers::IterativeSolverMonitor< typename Problem::RealType >;
     SolverMonitorType solverMonitor;
     const int verbose = controlParameters.getParameter< int >( "verbose" );
     solverMonitor.setVerbose( verbose );

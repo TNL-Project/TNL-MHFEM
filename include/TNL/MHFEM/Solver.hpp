@@ -981,7 +981,7 @@ template< typename MeshDependentData,
           typename Matrix >
 void
 Solver< MeshDependentData, BoundaryModel, Matrix >::
-solveLinearSystem( TNL::Solvers::IterativeSolverMonitor< RealType, IndexType >* solverMonitor )
+solveLinearSystem( TNL::Solvers::IterativeSolverMonitor< RealType >* solverMonitor )
 {
     if( distributedMeshPointer->getCommunicator() == MPI_COMM_NULL )
         return;
