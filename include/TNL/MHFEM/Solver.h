@@ -103,7 +103,7 @@ public:
     void assembleLinearSystem( const RealType time,
                                const RealType tau );
 
-    void solveLinearSystem( TNL::Solvers::IterativeSolverMonitor< RealType, IndexType >* solverMonitor = nullptr );
+    void solveLinearSystem( TNL::Solvers::IterativeSolverMonitor< RealType >* solverMonitor = nullptr );
 
     void saveLinearSystem( const Matrix & matrix,
                            DofViewType dofs,

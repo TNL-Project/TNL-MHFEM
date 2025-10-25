@@ -113,46 +113,58 @@ target_include_directories(
     $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 
+# Set position independent code for all targets, including dependencies
+# downloaded and built by FetchContent. Otherwise, linking to static libraries
+# without PIC fails.
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+
 # Find or fetch dependencies
 include(FetchContent)
 FetchContent_Declare(TNL
     GIT_REPOSITORY https://gitlab.com/tnl-project/tnl.git
-    GIT_TAG main
+    # TNL does not have any releases
+    GIT_TAG 9e7b0f44cde84d847e65dcab508785445b28cada
     EXCLUDE_FROM_ALL
 )
 set(TNL_EXPORT_INTERFACE_TARGETS ON)  # needed for adding to the interface target
 FetchContent_MakeAvailable(TNL)
 
-# Need to find/fetch pybind11 before PyTNL to make CMake happy :-(
-FetchContent_Declare(pybind11
-    GIT_REPOSITORY https://github.com/pybind/pybind11.git
-    GIT_TAG master
+FetchContent_Declare(nanobind
+    GIT_REPOSITORY https://github.com/wjakob/nanobind.git
+    GIT_TAG v2.9.2
     SYSTEM
     FIND_PACKAGE_ARGS
 )
-FetchContent_MakeAvailable(pybind11)
+FetchContent_MakeAvailable(nanobind)
 
 FetchContent_Declare(PyTNL
     GIT_REPOSITORY https://gitlab.com/tnl-project/pytnl.git
-    GIT_TAG main
+    GIT_TAG 0.0.6
+    SYSTEM
 )
+set(PyTNL_EXPORT_INTERFACE_TARGETS ON)  # needed for adding to the interface target
 FetchContent_MakeAvailable(PyTNL)
 
-find_package(ZLIB)
-find_package(tinyxml2)
+FetchContent_Declare(
+    tinyxml2
+    GIT_REPOSITORY https://github.com/leethomason/tinyxml2.git
+    GIT_TAG 11.0.0
+    SYSTEM
+    FIND_PACKAGE_ARGS
+)
+set(tinyxml2_BUILD_TESTING OFF)
+FetchContent_MakeAvailable(tinyxml2)
+
+find_package(ZLIB REQUIRED)
 find_package(OpenMP COMPONENTS CXX)
 find_package(MPI COMPONENTS CXX)
 
 # Add dependencies to the interface target
 target_link_libraries(TNL_MHFEM INTERFACE TNL::TNL)
-if(ZLIB_FOUND)
-    target_compile_definitions(TNL_MHFEM INTERFACE "-DHAVE_ZLIB")
-    target_link_libraries(TNL_MHFEM INTERFACE ZLIB::ZLIB)
-endif()
-if(tinyxml2_FOUND)
-    target_compile_definitions(TNL_MHFEM INTERFACE "-DHAVE_TINYXML2")
-    target_link_libraries(TNL_MHFEM INTERFACE tinyxml2::tinyxml2)
-endif()
+target_compile_definitions(TNL_MHFEM INTERFACE "-DHAVE_ZLIB")
+target_link_libraries(TNL_MHFEM INTERFACE ZLIB::ZLIB)
+target_compile_definitions(TNL_MHFEM INTERFACE "-DHAVE_TINYXML2")
+target_link_libraries(TNL_MHFEM INTERFACE tinyxml2::tinyxml2)
 if(OPENMP_FOUND)
     target_compile_definitions(TNL_MHFEM INTERFACE "-DHAVE_OPENMP")
     target_link_libraries(TNL_MHFEM INTERFACE OpenMP::OpenMP_CXX)
