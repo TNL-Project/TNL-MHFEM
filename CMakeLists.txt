@@ -123,7 +123,7 @@ include(FetchContent)
 FetchContent_Declare(TNL
     GIT_REPOSITORY https://gitlab.com/tnl-project/tnl.git
     # TNL does not have any releases
-    GIT_TAG d3a9f32860bd5effe48b1d6f374ba34d6428691b
+    GIT_TAG e534fdf919741426c036b82fd153a2e04f6bb742
     EXCLUDE_FROM_ALL
 )
 set(TNL_EXPORT_INTERFACE_TARGETS ON)  # needed for adding to the interface target
