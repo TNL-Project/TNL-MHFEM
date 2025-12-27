@@ -31,8 +31,7 @@ void init( Problem& problem,
     }
 
     if( communicator.size() > 1 || format == "pvtu" ) {
-        if( ! TNL::Meshes::loadDistributedMesh( *meshPointer, meshFile, meshFileFormat, communicator ) )
-            throw std::runtime_error( "failed to load the distributed mesh from file " + meshFile );
+        TNL::Meshes::loadDistributedMesh( *meshPointer, meshFile, meshFileFormat, communicator );
 
         if( meshPointer->getCommunicator() != MPI_COMM_NULL ) {
             constexpr int meshDimension = Problem::DistributedHostMeshType::getMeshDimension();
@@ -43,8 +42,7 @@ void init( Problem& problem,
         }
     }
     else {
-        if( ! TNL::Meshes::loadMesh( meshPointer->getLocalMesh(), meshFile, meshFileFormat ) )
-            throw std::runtime_error( "failed to load the mesh from file " + meshFile );
+        TNL::Meshes::loadMesh( meshPointer->getLocalMesh(), meshFile, meshFileFormat );
         meshPointer->setCommunicator( communicator );
     }
 
