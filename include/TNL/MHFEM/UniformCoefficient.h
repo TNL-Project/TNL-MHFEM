@@ -38,14 +38,14 @@ public:
         return storage[ 0 ];
     }
 
-    const StorageArray& getStorageArray() const
+    typename StorageArray::ConstViewType getConstStorageArrayView() const
     {
-        return storage;
+        return storage.getConstView();
     }
 
-    StorageArray& getStorageArray()
+    typename StorageArray::ViewType getStorageArrayView()
     {
-        return storage;
+        return storage.getView();
     }
 
 private:
