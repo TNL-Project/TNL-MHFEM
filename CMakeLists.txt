@@ -123,7 +123,7 @@ include(FetchContent)
 FetchContent_Declare(TNL
     GIT_REPOSITORY https://gitlab.com/tnl-project/tnl.git
     # TNL does not have any releases
-    GIT_TAG e534fdf919741426c036b82fd153a2e04f6bb742
+    GIT_TAG bdaf14ef835bb50befa366e43c5ba0c0e3874563
     EXCLUDE_FROM_ALL
 )
 set(TNL_EXPORT_INTERFACE_TARGETS ON)  # needed for adding to the interface target
@@ -139,7 +139,7 @@ FetchContent_MakeAvailable(nanobind)
 
 FetchContent_Declare(PyTNL
     GIT_REPOSITORY https://gitlab.com/tnl-project/pytnl.git
-    GIT_TAG 0.0.8
+    GIT_TAG 0.0.9
     SYSTEM
 )
 set(PyTNL_EXPORT_INTERFACE_TARGETS ON)  # needed for adding to the interface target

@@ -397,8 +397,8 @@ setupLinearSystem()
     // sanity check (doesn't happen if the traverser works, but this is pretty
     // hard to debug and the check does not cost us much in initialization)
     using IndexVectorViewType = TNL::Containers::VectorView< IndexType, DeviceType, IndexType >;
-    IndexVectorViewType rowLengths_diag_vector( rowLengths_diag.getStorageArray().getView() );
-    IndexVectorViewType rowLengths_offd_vector( rowLengths_offd.getStorageArray().getView() );
+    IndexVectorViewType rowLengths_diag_vector( rowLengths_diag.getStorageArrayView() );
+    IndexVectorViewType rowLengths_offd_vector( rowLengths_offd.getStorageArrayView() );
     if( TNL::min( rowLengths_diag_vector ) <= 0 ) {
         std::stringstream ss;
         ss << "MHFEM error: attempted to set invalid rowsLengths vector for the diag block:\n" << rowLengths_diag_vector << std::endl;
@@ -434,7 +434,7 @@ setupLinearSystem()
         }
     };
     TNL::Algorithms::parallelFor< DeviceType >( localFaces, faces, kernel_col_map );
-    col_map_offd = col_map_device.getStorageArray();
+    col_map_offd = col_map_device.getStorageArrayView();
 
     // initialize the parcsr matrix
     parcsr_A.bind( distributedMeshPointer->getCommunicator(),
@@ -466,7 +466,7 @@ setupLinearSystem()
 
     // sanity check (doesn't happen if the traverser works, but this is pretty
     // hard to debug and the check does not cost us much in initialization)
-    TNL::Containers::VectorView< IndexType, DeviceType, IndexType > rowLengths_vector( rowLengths.getStorageArray().getView() );
+    TNL::Containers::VectorView< IndexType, DeviceType, IndexType > rowLengths_vector( rowLengths.getStorageArrayView() );
     if( TNL::min( rowLengths_vector ) <= 0 ) {
         std::stringstream ss;
         ss << "MHFEM error: attempted to set invalid rowsLengths vector:\n" << rowLengths_vector << std::endl;
@@ -778,12 +778,12 @@ preIterate( const RealType time,
 
         // NOTE: this is specific to how the ndarrays are ordered
         if constexpr( MeshDependentDataType::do_mobility_upwind ) {
-            auto m_upw_view = mdd->m_iE_upw.getStorageArray().getView();
+            auto m_upw_view = mdd->m_iE_upw.getStorageArrayView();
             faceSynchronizer->synchronizeArray( m_upw_view, MeshDependentDataType::NumberOfEquations );
         }
 
         if constexpr( MeshDependentData::AdvectionDiscretization == AdvectionDiscretization::explicit_upwind ) {
-            auto Z_upw_view = mdd->Z_ijE_upw.getStorageArray().getView();
+            auto Z_upw_view = mdd->Z_ijE_upw.getStorageArrayView();
             faceSynchronizer->synchronizeArray( Z_upw_view, MeshDependentDataType::NumberOfEquations * MeshDependentDataType::NumberOfEquations );
         }
 
@@ -886,7 +886,7 @@ preIterate( const RealType time,
 //    std::cout << "f = " << mdd->f << std::endl;
 
 //    std::cout << "b = " << mdd->b << std::endl;
-//    std::cout << "m_upw = " << mdd->m_iE_upw.getStorageArray() << std::endl;
+//    std::cout << "m_upw = " << mdd->m_iE_upw.getStorageArrayView() << std::endl;
 //    std::cout << "R_ijKF = " << mdd->R1 << std::endl;
 //    std::cout << "R_iK = " << mdd->R2 << std::endl;
 }
@@ -1001,7 +1001,7 @@ solveLinearSystem( TNL::Solvers::IterativeSolverMonitor< RealType >* solverMonit
     auto gko_A = gko::share( TNL::Matrices::getGinkgoMatrixCsrView( gko_exec, distributedMatrixPointer->getLocalMatrix() ) );
 
     // Wrap the vectors
-    DofViewType dofs_view = mdd->Z_iF.getStorageArray().getView();
+    DofViewType dofs_view = mdd->Z_iF.getStorageArrayView();
     auto gko_b = TNL::Containers::GinkgoVector< RealType, DeviceType >::create( gko_exec, rhsVector.getView() );
     auto gko_x = TNL::Containers::GinkgoVector< RealType, DeviceType >::create( gko_exec, dofs_view );
 
@@ -1181,7 +1181,7 @@ solveLinearSystem( TNL::Solvers::IterativeSolverMonitor< RealType >* solverMonit
     hypre_solver->setMatrix( parcsr_A, reuse_preconditioner );
 
     // Prepare parallel vectors
-    DofViewType dofs_view = mdd->Z_iF.getStorageArray().getView( 0, localDofs );
+    DofViewType dofs_view = mdd->Z_iF.getStorageArrayView( 0, localDofs );
     TNL::Containers::DistributedVectorView< RealType, DeviceType, IndexType > dist_dofs( localRange, 0, globalDofs, distributedMeshPointer->getCommunicator(), dofs_view );
     TNL::Containers::DistributedVectorView< RealType, DeviceType, IndexType > dist_rhs( localRange, 0, globalDofs, distributedMeshPointer->getCommunicator(), rhsVector.getView( 0, localDofs ) );
 
@@ -1205,7 +1205,7 @@ solveLinearSystem( TNL::Solvers::IterativeSolverMonitor< RealType >* solverMonit
         && TNL::MPI::GetSize( distributedMeshPointer->getCommunicator() ) > 1 )
     {
         timer_hypre_synchronization.start();
-        auto dofs_view_with_ghosts = mdd->Z_iF.getStorageArray().getView();
+        auto dofs_view_with_ghosts = mdd->Z_iF.getStorageArrayView();
         faceSynchronizer->synchronizeArray( dofs_view_with_ghosts, MeshDependentDataType::NumberOfEquations );
         timer_hypre_synchronization.stop();
     }
@@ -1244,7 +1244,7 @@ solveLinearSystem( TNL::Solvers::IterativeSolverMonitor< RealType >* solverMonit
     timer_linearSolver.start();
 
     const IndexType dofs = this->getDofs();
-    DofViewType dofs_view = mdd->Z_iF.getStorageArray().getView();
+    DofViewType dofs_view = mdd->Z_iF.getStorageArrayView();
     TNL::Containers::DistributedVectorView< RealType, DeviceType, IndexType > dist_dofs( localRange, dofs - localDofs, globalDofs, distributedMatrixPointer->getCommunicator(), dofs_view );
     TNL::Containers::DistributedVectorView< RealType, DeviceType, IndexType > dist_rhs( localRange, dofs - localDofs, globalDofs, distributedMatrixPointer->getCommunicator(), rhsVector.getView() );
     dist_dofs.setSynchronizer( faceSynchronizer, MeshDependentDataType::NumberOfEquations );
@@ -1318,8 +1318,8 @@ postIterate( const RealType time,
 
     timer_postIterate.stop();
 
-//    std::cout << "solution (Z_iE): " << std::endl << mdd->Z_iF.getStorageArray() << std::endl;
-//    std::cout << "solution (Z_iK): " << std::endl << mdd->Z_iK.getStorageArray() << std::endl;
+//    std::cout << "solution (Z_iE): " << std::endl << mdd->Z_iF.getStorageArrayView() << std::endl;
+//    std::cout << "solution (Z_iK): " << std::endl << mdd->Z_iK.getStorageArrayView() << std::endl;
 //    std::cin.get();
 }
 

@@ -234,7 +234,7 @@ public:
             writer.writeCellData( distributedMesh.vtkCellGhostTypes(), TNL::Meshes::VTK::ghostArrayName() );
 
         // write scalar fields
-        writer.writeCellData( this->Z_iK.getStorageArray(), "Z" );
+        writer.writeCellData( this->Z_iK.getConstStorageArrayView(), "Z" );
     }
 
 protected:
