@@ -132,7 +132,7 @@ FetchContent_MakeAvailable(fmt)
 FetchContent_Declare(TNL
     GIT_REPOSITORY https://gitlab.com/tnl-project/tnl.git
     # TNL does not have any releases
-    GIT_TAG ed36682257174795dd4425851334a66d06100eff
+    GIT_TAG 40f62622b8ac54f1e143078053fd4ef6faaeee68
     EXCLUDE_FROM_ALL
 )
 set(TNL_EXPORT_INTERFACE_TARGETS ON)  # needed for adding to the interface target
