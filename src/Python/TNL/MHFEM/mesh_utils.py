@@ -1,76 +1,39 @@
-#! /usr/bin/env python3
-
 import os.path
 import io
 
-import tnl
+import pytnl.meshes
 
-from .capture import capture_fd
-
-class tnlIOError(Exception):
-    pass
-
-def get_mesh_reader(fname_mesh):
-    for Reader in [tnl.VTKReader, tnl.VTUReader]:
-        reader = Reader(fname_mesh)
-        with capture_fd() as r:
-            for Mesh in [tnl.Grid1D, tnl.Grid2D, tnl.Grid3D, tnl.MeshOfEdges, tnl.MeshOfTriangles, tnl.MeshOfTetrahedrons, tnl.MeshOfQuadrangles, tnl.MeshOfHexahedrons]:
-                try:
-                    mesh = Mesh()
-                    reader.loadMesh(mesh)
-                    return reader, mesh
-                except (AssertionError, RuntimeError):
-                    pass
-
-    try:
-        import tnl_mpi
-        reader = tnl_mpi.PVTUReader(fname_mesh)
-        with capture_fd() as r:
-            for Mesh in [tnl_mpi.DistributedMeshOfEdges, tnl_mpi.DistributedMeshOfTriangles, tnl_mpi.DistributedMeshOfTetrahedrons, tnl_mpi.DistributedMeshOfQuadrangles, tnl_mpi.DistributedMeshOfHexahedrons]:
-                try:
-                    mesh = Mesh()
-                    reader.loadMesh(mesh)
-                    tnl_mpi.distributeFaces(mesh)
-                    return reader, mesh
-                except (AssertionError, RuntimeError):
-                    pass
-    except ImportError:
-        pass
-
-    raise tnlIOError("failed to load mesh from file {}".format(fname_mesh))
-
-def load_mesh(fname_mesh):
-    reader, mesh = get_mesh_reader(fname_mesh)
-    return mesh
 
 def get_mesh_writer(mesh, format):
     if format == ".vtk":
-        module = "tnl"
-        attr = "VTKWriter_"
+        writer = pytnl.meshes.VTKWriter
     elif format == ".vtu":
-        module = "tnl"
-        attr = "VTUWriter_"
+        writer = pytnl.meshes.VTUWriter
     elif format == ".pvtu":
-        module = "tnl_mpi"
-        attr = "PVTUWriter_"
+        writer = pytnl.meshes.PVTUWriter
     else:
-        raise ValueError(f"unsupported format: {format} (must be either of '.vtk', '.vtu', '.pvtu')")
+        raise ValueError(
+            f"unsupported format: {format} (must be either of '.vtk', '.vtu', '.pvtu')"
+        )
 
-    mesh_type = mesh.__class__.__name__
-    if mesh_type.startswith("Distributed"):
-        if module == "tnl":
-            raise ValueError("format {format} is not supported for the distributed mesh type {mesh_type}")
+    mesh_class = mesh.__class__
+    if mesh_class.__name__.startswith("Distributed"):
+        if writer is not pytnl.meshes.PVTUWriter:
+            raise ValueError(
+                "format {format} is not supported for the distributed mesh type {mesh_type}"
+            )
         # PVTUWriter is specialized by the local mesh type
-        mesh_type = mesh.getLocalMesh().__class__.__name__
+        mesh_class = mesh.getLocalMesh().__class__
 
-    attr += mesh_type
-    return getattr(__import__(module), attr)
+    return writer[mesh_class]
+
 
 def write_mesh_functions(mesh, functions, fname, *, cycle=-1, time=-1):
     ext = os.path.splitext(fname)[1]
     if ext == ".pvtu":
         # create a .pvtu file (only rank 0 actually writes to the file)
         from mpi4py import MPI
+
         comm = MPI.COMM_WORLD
         if comm.Get_rank() == 0:
             f = open(fname, "wb")

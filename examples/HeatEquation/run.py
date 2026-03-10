@@ -2,6 +2,7 @@
 
 import argparse
 import configparser
+import os
 import subprocess
 from pathlib import Path
 
@@ -9,6 +10,9 @@ from pathlib import Path
 example_dir = Path(__file__).parent
 project_dir = (example_dir / ".." / "..").resolve()
 bin_dir = project_dir / "build" / example_dir.relative_to(project_dir)
+python_src_dir = project_dir / "src" / "Python"
+pytnl_module_dir = project_dir / "build" / "src" / "pytnl"
+
 
 def parse_config(config_path: Path):
     parser = configparser.ConfigParser()
@@ -19,29 +23,48 @@ def parse_config(config_path: Path):
     # return options in the fake section
     return parser, parser["top"]
 
+
 def decompose_mesh(input_path: Path, output_path: Path, subdomains: int):
     args = [
         "tnl-decompose-mesh",
-        "--input-file", input_path,
-        "--output-file", output_path,
-        "--subdomains", str(subdomains),
-        "--ghost-levels", "1",
-        "--metis-niter", "100",
-        "--metis-ncuts", "10",
+        "--input-file",
+        input_path,
+        "--output-file",
+        output_path,
+        "--subdomains",
+        str(subdomains),
+        "--ghost-levels",
+        "1",
+        "--metis-niter",
+        "100",
+        "--metis-ncuts",
+        "10",
     ]
     subprocess.run(args, check=True, cwd=example_dir)
 
-def init(mpi_ranks: int, mesh_path: Path, output_initial_path: Path, output_boundary_path: Path):
+
+def init(
+    mpi_ranks: int,
+    mesh_path: Path,
+    output_initial_path: Path,
+    output_boundary_path: Path,
+):
     args = []
     if mpi_ranks > 1:
         args += ["mpirun", "-np", str(mpi_ranks)]
     args += [
         example_dir / "init.py",
-        "--mesh", mesh_path,
-        "--output", output_initial_path,
-        "--output-boundary", output_boundary_path,
+        "--mesh",
+        mesh_path,
+        "--output",
+        output_initial_path,
+        "--output-boundary",
+        output_boundary_path,
     ]
-    subprocess.run(args, check=True, cwd=example_dir)
+    env = os.environ.copy()
+    env["PYTHONPATH"] = f"{python_src_dir}:{pytnl_module_dir}"
+    subprocess.run(args, check=True, cwd=example_dir, env=env)
+
 
 def solve(device: str, mpi_ranks: int, config_path: Path, log_path: Path):
     solver_path = bin_dir / f"HeatEquation_{device}"
@@ -51,28 +74,50 @@ def solve(device: str, mpi_ranks: int, config_path: Path, log_path: Path):
         args += ["mpirun", "-np", str(mpi_ranks)]
     args += [
         solver_path,
-        "--config", config_path,
-        "--log-file", log_path,
-        "--redirect-mpi-output", "true",
-        "--redirect-mpi-output-dir", log_path.parent,
+        "--config",
+        config_path,
+        "--log-file",
+        log_path,
+        "--redirect-mpi-output",
+        "true",
+        "--redirect-mpi-output-dir",
+        log_path.parent,
     ]
 
     # run the process and print its output as it is being executed
-    with subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-                          bufsize=1, cwd=example_dir, text=True) as p:
+    with subprocess.Popen(
+        args,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        bufsize=1,
+        cwd=example_dir,
+        text=True,
+    ) as p:
         for line in p.stdout:
             print(line, end="")
     if p.returncode != 0:
         raise subprocess.CalledProcessError(p.returncode, p.args)
 
+
 if __name__ == "__main__":
     argparser = argparse.ArgumentParser(description="Heat equation example")
-    argparser.add_argument("--config", default="config.ini",
-            help="path to the config file (relative to the path of this script)")
-    argparser.add_argument("--exec", default="host", choices=["host", "cuda"],
-            help="execution of the MHFEM solver")
-    argparser.add_argument("--mpi-ranks", default=1, type=int,
-            help="number of MPI ranks for distributed computation")
+    argparser.add_argument(
+        "--config",
+        default="config.ini",
+        help="path to the config file (relative to the path of this script)",
+    )
+    argparser.add_argument(
+        "--exec",
+        default="host",
+        choices=["host", "cuda"],
+        help="execution of the MHFEM solver",
+    )
+    argparser.add_argument(
+        "--mpi-ranks",
+        default=1,
+        type=int,
+        help="number of MPI ranks for distributed computation",
+    )
 
     # parse the command line arguments
     args = argparser.parse_args()
@@ -99,7 +144,9 @@ if __name__ == "__main__":
         # update the paths in the config object
         mesh_path = distributed_mesh_path
         config["mesh"] = str(mesh_path.relative_to(example_dir))
-        output_initial_path = output_initial_path.parent / (output_initial_path.stem + ".pvtu")
+        output_initial_path = output_initial_path.parent / (
+            output_initial_path.stem + ".pvtu"
+        )
         config["initial-condition"] = str(output_initial_path.relative_to(example_dir))
 
         # save the updated config as a copy in the output directory
