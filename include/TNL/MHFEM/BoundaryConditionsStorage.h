@@ -67,7 +67,7 @@ struct BoundaryConditionsStorage
     void load( const std::string& filename )
     {
         File file( filename, std::ios_base::in );
-        save( file );
+        load( file );
     }
 };
 
