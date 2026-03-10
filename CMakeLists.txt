@@ -120,6 +120,15 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 # Find or fetch dependencies
 include(FetchContent)
+FetchContent_Declare(fmt
+    GIT_REPOSITORY https://github.com/fmtlib/fmt.git
+    GIT_TAG 12.1.0
+    SYSTEM
+    FIND_PACKAGE_ARGS
+)
+set(FMT_INSTALL ON)  # needed for adding to the interface target
+FetchContent_MakeAvailable(fmt)
+
 FetchContent_Declare(TNL
     GIT_REPOSITORY https://gitlab.com/tnl-project/tnl.git
     # TNL does not have any releases
@@ -160,11 +169,8 @@ find_package(OpenMP COMPONENTS CXX)
 find_package(MPI COMPONENTS CXX)
 
 # Add dependencies to the interface target
-target_link_libraries(TNL_MHFEM INTERFACE TNL::TNL)
-target_compile_definitions(TNL_MHFEM INTERFACE "-DHAVE_ZLIB")
-target_link_libraries(TNL_MHFEM INTERFACE ZLIB::ZLIB)
-target_compile_definitions(TNL_MHFEM INTERFACE "-DHAVE_TINYXML2")
-target_link_libraries(TNL_MHFEM INTERFACE tinyxml2::tinyxml2)
+target_link_libraries(TNL_MHFEM INTERFACE TNL::TNL fmt::fmt tinyxml2::tinyxml2 ZLIB::ZLIB)
+target_compile_definitions(TNL_MHFEM INTERFACE "-DHAVE_TINYXML2 -DHAVE_ZLIB")
 if(OPENMP_FOUND)
     target_compile_definitions(TNL_MHFEM INTERFACE "-DHAVE_OPENMP")
     target_link_libraries(TNL_MHFEM INTERFACE OpenMP::OpenMP_CXX)

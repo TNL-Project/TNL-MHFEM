@@ -1,9 +1,10 @@
 #pragma once
 
+#include <fmt/format.h>
+
 #include <TNL/MHFEM/BaseModel.h>
 #include <TNL/MHFEM/UniformCoefficient.h>
 
-#include <TNL/FileName.h>
 #include <TNL/Meshes/Writers/VTUWriter.h>
 #include <TNL/Meshes/Writers/PVTUWriter.h>
 
@@ -180,14 +181,10 @@ public:
         const FileFormat format = FileFormat::zlib_compressed;
 
         // create a .pvtu file (only rank 0 actually writes to the file)
-        TNL::FileName mainFileName;
-        mainFileName.setFileNameBase( outputPrefix + "data_" );
-        mainFileName.setExtension( "pvtu" );
-        mainFileName.setIndex( step );
-        mainFileName.setDigitsCount( 5 );
+        const std::string mainFileName = fmt::format( "{}data_{:05d}.pvtu", outputPrefix, step );
         std::ofstream file;
         if( TNL::MPI::GetSize( distributedMesh.getCommunicator() ) > 1 && TNL::MPI::GetRank( distributedMesh.getCommunicator() ) == 0 )
-           file.open( mainFileName.getFileName() );
+           file.open( mainFileName );
         using PVTU = TNL::Meshes::Writers::PVTUWriter< LocalMesh >;
         PVTU pvtu( file, format );
         pvtu.template writeEntities< MeshType::getMeshDimension() >( distributedMesh );
@@ -209,14 +206,10 @@ public:
         // create a .vtu file for local data
         std::ofstream subfile;
         if( TNL::MPI::GetSize( distributedMesh.getCommunicator() ) > 1 )
-            subfile.open( pvtu.addPiece( mainFileName.getFileName(), distributedMesh.getCommunicator() ) );
+            subfile.open( pvtu.addPiece( mainFileName, distributedMesh.getCommunicator() ) );
         else {
-            TNL::FileName fileName;
-            fileName.setFileNameBase( outputPrefix + "data_" );
-            fileName.setExtension( "vtu" );
-            fileName.setIndex( step );
-            fileName.setDigitsCount( 5 );
-            subfile.open( fileName.getFileName().getString() );
+            const std::string fileName = fmt::format( "{}data_{:05d}.vtu", outputPrefix, step );
+            subfile.open( fileName );
         }
 
         MeshWriter writer( subfile, format );
