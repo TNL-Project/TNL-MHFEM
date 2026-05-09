@@ -83,7 +83,7 @@ Most notably, the solver supports MPI computations on distributed unstructured m
 
 7. Run the example solver:
 
-       ./examples/HeatEquation/run.py --device cuda
+       ./examples/HeatEquation/run.py --exec cuda
 
    This will use the default configuration prepared in the [config.ini](examples/HeatEquation/config.ini)
    file. Use the `--help` option to see the options available in `run.py`.
