@@ -140,7 +140,7 @@ FetchContent_MakeAvailable(TNL)
 
 FetchContent_Declare(nanobind
     GIT_REPOSITORY https://github.com/wjakob/nanobind.git
-    GIT_TAG v3.0.0
+    GIT_TAG v3.0.1
     SYSTEM
     FIND_PACKAGE_ARGS
 )
