@@ -148,7 +148,7 @@ FetchContent_MakeAvailable(nanobind)
 
 FetchContent_Declare(PyTNL
     GIT_REPOSITORY https://gitlab.com/tnl-project/pytnl.git
-    GIT_TAG 0.0.12
+    GIT_TAG 0.0.13
     SYSTEM
 )
 set(PyTNL_EXPORT_INTERFACE_TARGETS ON)  # needed for adding to the interface target
